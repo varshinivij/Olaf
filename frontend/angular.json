@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "TwoCube-Frontend": {
+    "twocube-frontend": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -69,10 +69,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "TwoCube-Frontend:build:production"
+              "buildTarget": "twocube-frontend:build:production"
             },
             "development": {
-              "buildTarget": "TwoCube-Frontend:build:development"
+              "buildTarget": "twocube-frontend:build:development"
             }
           },
           "defaultConfiguration": "development"
