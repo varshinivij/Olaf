@@ -1,15 +1,35 @@
-import { Injectable } from '@angular/core';
-import { Firestore } from '@angular/fire/firestore';
-import { User } from '../models/user';
+import { Injectable, inject } from '@angular/core';
+import { Auth, signInWithPopup, GoogleAuthProvider, UserCredential, signInWithEmailAndPassword } from '@angular/fire/auth';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserService {
+  private auth: Auth = inject(Auth);
 
-  constructor(private firestore:Firestore) { }
+  //TODO keep this updated
+  user = this.auth.currentUser;
+  constructor() {}
 
-  createUser(user: User) {
-    // create user
+  loginWithGoogle(): Promise<UserCredential> {
+    const provider = new GoogleAuthProvider();
+    return signInWithPopup(this.auth, provider);
   }
+
+  logout(): Promise<void> {
+    return this.auth.signOut();
+  }
+
+  getCurrentUser() {
+    return this.auth.currentUser;
+  }
+
+  loginWithEmail(email: string, password: string): Promise<UserCredential> {
+    return signInWithEmailAndPassword(this.auth, email, password);
+  }
+
+  signupWithEmail(email: string, password: string): Promise<UserCredential> {
+    return signInWithEmailAndPassword(this.auth, email, password);
+  }
+
 }
