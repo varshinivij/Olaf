@@ -1,18 +1,24 @@
-# Welcome to Cloud Functions for Firebase for Python!
-# To get started, simply uncomment the below code or create your own.
-# Deploy with `firebase deploy`
-
-from firebase_functions import https_fn
+from firebase_functions import https_fn, options
 from firebase_admin import initialize_app
+from agent_logic import MasterAgent
 
 initialize_app()
-#
-#
-@https_fn.on_request()
+
+@https_fn.on_request(
+    cors=options.CorsOptions(cors_origins="*", cors_methods=["get", "post"])
+)
 def on_request_example(req: https_fn.Request) -> https_fn.Response:
-    # if path is /hello, return "Hello world!"
-    if req.path == "/hello":
-        return https_fn.Response("Hello world!")
-    else:
-        return https_fn.Response("Not Hello World!")
+    return https_fn.Response("Hello world this is me!!")
+
+
+@https_fn.on_request(
+    cors=options.CorsOptions(cors_origins="*", cors_methods=["post"])
+)
+def ask_agent(req: https_fn.Request) -> https_fn.Response:
+    #a request will be conversation history
+    history = req.json.get("history")
+    agent = MasterAgent()
+    response = agent.chat_completion(history)
+    parsed_response = agent.parse_output(response)
+    return https_fn.Response(parsed_response)
 
