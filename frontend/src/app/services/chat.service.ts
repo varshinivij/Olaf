@@ -18,4 +18,5 @@ export class ChatService {
     });
     return this.http.post<ChatMessage[]>(this.chatAPIEndpoint, { history }, { headers });
   }
+
 }

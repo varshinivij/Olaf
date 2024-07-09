@@ -1,9 +1,13 @@
 <div class="chat-container">
   <div class="chat-toolbar">
     <span class="toolbar-title">TwoCube.ai</span>
-    <button class="upload-button">Upload</button>
+    <div>
+      <button (click)="connectToSandBox()" class="upload-button status-indicator" [ngClass]="{'connected': isConnected, 'disconnected': !isConnected}">{{ isConnected ? 'Sandbox Connected' : 'Sandbox Disconnected' }}</button>
+      <button class="upload-button">Upload</button>
+    </div>
   </div>
   <div class="chat-panel">
+    <div *ngIf="loading" class="spinner"></div>
     <div *ngFor="let message of messages" [ngClass]="{'chat-message': true, 'assistant': message.role === 'assistant', 'user': message.role === 'user'}">
       <ng-container *ngIf="message.type === 'text'">
         <p>{{ message.content }}</p>
@@ -16,5 +20,10 @@
   <div class="chat-input-container">
     <input type="text" [(ngModel)]="newMessage" placeholder="Type your message..." />
     <button (click)="sendMessage()">Submit</button>
+    <button
+     (click)="continue()"
+     style="background-color: orange; margin-left:2%;">
+     Continue
+    </button>
   </div>
 </div>

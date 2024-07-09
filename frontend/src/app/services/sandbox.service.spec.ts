@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { E2bService } from './e2b.service';
+import { SandboxService } from './sandbox.service';
 
-describe('E2bService', () => {
-  let service: E2bService;
+describe('SandboxService', () => {
+  let service: SandboxService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(E2bService);
+    service = TestBed.inject(SandboxService);
   });
 
   it('should be created', () => {
