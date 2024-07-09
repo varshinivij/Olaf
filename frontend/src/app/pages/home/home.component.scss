@@ -86,3 +86,11 @@
   .chat-input-container button:hover {
     background-color: #0056b3;
   }
+
+  .chat-message.assistant {
+    text-align: left;
+  }
+  .chat-message.user {
+    text-align: right;
+  }
+
