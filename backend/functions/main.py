@@ -2,6 +2,7 @@ from firebase_functions import https_fn, options
 from firebase_admin import initialize_app
 from agent_logic import MasterAgent
 from e2b import Sandbox
+from e2b_code_interpreter import CodeInterpreter
 import json
 
 initialize_app()
@@ -33,7 +34,7 @@ e2b_api_key = 'REMOVED'
 )
 def request_sandbox(req: https_fn.Request) -> https_fn.Response:
     try:
-        sandbox = Sandbox(api_key=e2b_api_key, template="base", timeout=300)
+        sandbox = CodeInterpreter(api_key=e2b_api_key, timeout=300)
         sandbox_id = sandbox.id
         sandbox.keep_alive(5 * 60) #keep box alive for 5minutes
         result = {"sandboxId": sandbox_id}
@@ -50,10 +51,9 @@ def execute_on_sandbox(req: https_fn.Request) -> https_fn.Response:
         sandbox_id = req.json.get("sandboxId")
         code = req.json.get("code")
 
-        sandbox = Sandbox.reconnect(sandbox_id, api_key=e2b_api_key) 
-        echo = sandbox.process.start('echo "Code Ran (not really, this is a place holder)!"')  
-        echo.wait()
-        result = {"output": echo.stdout}
+        sandbox = CodeInterpreter.reconnect(sandbox_id, api_key=e2b_api_key) 
+        execution = sandbox.notebook.exec_cell(code)
+        result = {"output": execution.logs.stdout}
         json_result = json.dumps(result)
         return https_fn.Response(json_result, status=200)
     except Exception as e:
