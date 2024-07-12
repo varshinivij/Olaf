@@ -1,28 +1,37 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ChatService } from '../../services/chat.service';
 import { ChatMessage } from '../../models/chat-message';
 import { SandboxService } from '../../services/sandbox.service';
+import { UserService } from '../../services/user.service';
 @Component({
   selector: 'app-chat',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss']
+  styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent {
-  loading:boolean = false;
-  isConnected:boolean = false;
+  loading: boolean = false;
+  isConnected: boolean = false;
 
   constructor(
     private http: HttpClient,
     private chatService: ChatService,
-    private sandboxService: SandboxService) { }
+    private sandboxService: SandboxService,
+    private router: Router,
+    private userService: UserService
+  ) {}
 
-  messages:ChatMessage[] = [
-    { type: 'text', role: 'assistant', content: 'Hello, how can I help you today?' },
+  messages: ChatMessage[] = [
+    {
+      type: 'text',
+      role: 'assistant',
+      content: 'Hello, how can I help you today?',
+    },
   ];
 
   newMessage: string = '';
@@ -36,7 +45,7 @@ export class HomeComponent {
         this.loading = false;
         console.log(this.sandboxService.getSandboxId());
       },
-      error => {
+      (error) => {
         console.error('Error:', error);
         this.loading = false;
       }
@@ -48,7 +57,7 @@ export class HomeComponent {
       const userMessage: ChatMessage = {
         type: 'text',
         role: 'user',
-        content: this.newMessage
+        content: this.newMessage,
       };
       this.messages.push(userMessage);
       this.newMessage = '';
@@ -60,7 +69,7 @@ export class HomeComponent {
           this.messages = [...this.messages, ...response];
           this.loading = false;
         },
-        error => {
+        (error) => {
           console.error('Error:', error);
           this.loading = false;
         }
@@ -75,7 +84,7 @@ export class HomeComponent {
         this.messages = [...this.messages, ...response];
         this.loading = false;
       },
-      error => {
+      (error) => {
         console.error('Error:', error);
         this.loading = false;
       }
@@ -88,12 +97,12 @@ export class HomeComponent {
         const codeResultMessage: ChatMessage = {
           type: 'text',
           role: 'assistant',
-          content: result.output || 'Code executed goes here'
+          content: result.output || 'Code executed goes here',
         };
         this.messages.push(codeResultMessage);
         this.loading = false;
       },
-      error => {
+      (error) => {
         console.error('Error:', error);
         this.loading = false;
       }
@@ -101,10 +110,32 @@ export class HomeComponent {
   }
 
   processResponse(response: ChatMessage[]) {
-    response.forEach(message => {
+    response.forEach((message) => {
       if (message.type === 'code') {
         this.executeCode(message.content);
       }
     });
+  }
+
+  // to use the signal from userService, i just made a getter here
+  // and used it in the template like normal as it auto-updates.
+  get currentUser() {
+    return this.userService.currentUser;
+  }
+
+  async logout() {
+    try {
+      await this.userService.logout();
+    } catch (error) {
+      console.error('Error logging out: ', error);
+    }
+  }
+
+  async deleteAccount() {
+    try {
+      await this.userService.deleteAccount();
+    } catch (error) {
+      console.error('Error deleting account: ', error);
+    }
   }
 }

@@ -1,17 +1,17 @@
 <div class="login-container">
-    <div class="login-box">
+    <div class="login-box">    
       <!-- example of tailwind classes. takes lower precedence than stylesheets -->
       <h2 class="text-2xl tracking-tight">Two Cube Login</h2>
-      <form>
+      <form [formGroup]="loginForm" (ngSubmit)="loginWithEmail()">
         <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" name="email" placeholder="Enter your email">
+          <input type="email" id="email" name="email" formControlName="email" placeholder="Enter your email">
         </div>
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" placeholder="Enter your password">
+          <input type="password" id="password" name="password" formControlName="password" placeholder="Enter your password">
         </div>
-        <button type="submit" (click)="loginWithEmail()">Login</button>
+        <button type="submit">Login</button>
       </form>
       <button style="margin-top: 5%" class="google-login" (click)="loginWithGoogle()">Login with Google</button>
       <div class="divider">or</div>
