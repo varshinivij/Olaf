@@ -34,7 +34,7 @@ e2b_api_key = 'REMOVED'
 )
 def request_sandbox(req: https_fn.Request) -> https_fn.Response:
     try:
-        sandbox = CodeInterpreter(api_key=e2b_api_key, timeout=300)
+        sandbox = CodeInterpreter(api_key=e2b_api_key, template="vh7kehbtf0t4xbx9ec9u", timeout=300)
         sandbox_id = sandbox.id
         sandbox.keep_alive(5 * 60) #keep box alive for 5minutes
         result = {"sandboxId": sandbox_id}
