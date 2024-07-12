@@ -2,13 +2,36 @@
   <div class="chat-toolbar">
     <span class="toolbar-title">TwoCube.ai</span>
     <div>
-      <button (click)="connectToSandBox()" class="upload-button status-indicator" [ngClass]="{'connected': isConnected, 'disconnected': !isConnected}">{{ isConnected ? 'Sandbox Connected' : 'Sandbox Disconnected' }}</button>
+      <button
+        (click)="connectToSandBox()"
+        class="upload-button status-indicator"
+        [ngClass]="{ connected: isConnected, disconnected: !isConnected }"
+      >
+        {{ isConnected ? "Sandbox Connected" : "Sandbox Disconnected" }}
+      </button>
       <button class="upload-button">Upload</button>
+      <button (click)="logout()" class="upload-button status-indicator">
+        Logout
+      </button>
+      <button class="upload-button status-indicator">
+        <!-- Using the signal here directly in the template. -->
+        Email: {{ currentUser()?.email }}
+      </button>
+      <button (click)="deleteAccount()" class="upload-button status-indicator">
+        DELETE ACCOUNT
+      </button>
     </div>
   </div>
   <div class="chat-panel">
     <div *ngIf="loading" class="spinner"></div>
-    <div *ngFor="let message of messages" [ngClass]="{'chat-message': true, 'assistant': message.role === 'assistant', 'user': message.role === 'user'}">
+    <div
+      *ngFor="let message of messages"
+      [ngClass]="{
+        'chat-message': true,
+        assistant: message.role === 'assistant',
+        user: message.role === 'user'
+      }"
+    >
       <ng-container *ngIf="message.type === 'text'">
         <p>{{ message.content }}</p>
       </ng-container>
@@ -18,12 +41,17 @@
     </div>
   </div>
   <div class="chat-input-container">
-    <input type="text" [(ngModel)]="newMessage" placeholder="Type your message..." />
+    <input
+      type="text"
+      [(ngModel)]="newMessage"
+      placeholder="Type your message..."
+    />
     <button (click)="sendMessage()">Submit</button>
     <button
-     (click)="continue()"
-     style="background-color: orange; margin-left:2%;">
-     Continue
+      (click)="continue()"
+      style="background-color: orange; margin-left: 2%"
+    >
+      Continue
     </button>
   </div>
 </div>

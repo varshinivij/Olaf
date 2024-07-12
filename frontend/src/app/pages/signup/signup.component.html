@@ -2,14 +2,14 @@
     <div class="login-box">
       <h2>Two Cube Sign Up</h2>
       <p> This does not currently work, just login with your google account on the login page</p>
-      <form>
+      <form [formGroup]="signupForm" (ngSubmit)="signupWithEmail()">
         <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" name="email" placeholder="Enter your email">
+          <input type="email" id="email" name="email" formControlName="email" placeholder="Enter your email">
         </div>
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" placeholder="Enter your password">
+          <input type="password" id="password" name="password" formControlName="password" placeholder="Enter your password">
         </div>
         <button type="submit">Create Account</button>
       </form>
