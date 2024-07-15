@@ -9,7 +9,7 @@
       >
         {{ isConnected ? "Sandbox Connected" : "Sandbox Disconnected" }}
       </button>
-      <button class="upload-button">Upload</button>
+      <button (click)="uploadFiles()" class="upload-button status-indicator">Upload</button>
       <button (click)="logout()" class="upload-button status-indicator">
         Logout
       </button>

@@ -121,6 +121,10 @@ export class HomeComponent {
     });
   }
 
+  async uploadFiles() {
+    
+  }
+
   async logout() {
     try {
       await this.userService.logout();

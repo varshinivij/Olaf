@@ -1,8 +1,8 @@
 /*
   TODO:
-    1) Write updateUserInfo() function (if necessary)?
-    2) Any user services that will be necessary in the future (edit/delete account, etc.)?
-    3) Route guard so you can't go to Home Page without logging in (+future pages)?
+    1) Write updateUserInfo() function
+    2) Any user services that will be necessary in the future (edit account, etc.)
+    3) (if necessary) potentially also expose a signal that holds currentUser as well
 */
 
 import { Injectable } from '@angular/core';
@@ -50,14 +50,14 @@ export class UserService {
   }
 
   /**
-    * Retrieves the current user as an observable.
-    *
-    * This observable updates on authentication state changes as well as Firestore user document changes.
-    *
-    * @returns An Observable of the current user or null if not authenticated.
-    */
+   * Retrieves the current user as an observable.
+   *
+   * This observable updates on authentication state changes as well as Firestore user document changes.
+   *
+   * @returns An Observable of the current user or null if not authenticated.
+   */
   getCurrentUser(): Observable<User | null> {
-    return this.user$
+    return this.user$;
   }
 
   /**
