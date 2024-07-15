@@ -10,7 +10,6 @@ import { SandboxService } from '../../services/sandbox.service';
 import { UserService } from '../../services/user.service';
 
 import { ChatMessage } from '../../models/chat-message';
-import { User } from '../../models/user';
 
 @Component({
   selector: 'app-chat',
@@ -22,18 +21,14 @@ import { User } from '../../models/user';
 export class HomeComponent {
   loading: boolean = false;
   isConnected: boolean = false;
-  user$: Observable<User | null>;
 
   constructor(
     private http: HttpClient,
     private router: Router,
     private chatService: ChatService,
     private sandboxService: SandboxService,
-    private userService: UserService,
-  ) {
-    // example of how to use userService observable
-    this.user$ = userService.getCurrentUser();
-  }
+    public userService: UserService,
+  ) {}
 
   messages: ChatMessage[] = [
     {

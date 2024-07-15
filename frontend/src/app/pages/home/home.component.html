@@ -15,7 +15,7 @@
       </button>
       <button class="upload-button status-indicator">
         <!-- accessing userService observable data (reactively updates) -->
-        Email: {{ (user$ | async)?.email }}
+        Email: {{ (userService.getCurrentUser() | async)?.email }}
       </button>
       <button (click)="deleteAccount()" class="upload-button status-indicator">
         DELETE ACCOUNT
