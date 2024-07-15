@@ -1,12 +1,17 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AsyncPipe, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { Observable } from 'rxjs';
+
 import { ChatService } from '../../services/chat.service';
-import { ChatMessage } from '../../models/chat-message';
 import { SandboxService } from '../../services/sandbox.service';
 import { UserService } from '../../services/user.service';
+
+import { ChatMessage } from '../../models/chat-message';
+import { User } from '../../models/user';
+
 @Component({
   selector: 'app-chat',
   standalone: true,
@@ -17,14 +22,18 @@ import { UserService } from '../../services/user.service';
 export class HomeComponent {
   loading: boolean = false;
   isConnected: boolean = false;
+  user$: Observable<User | null>;
 
   constructor(
     private http: HttpClient,
+    private router: Router,
     private chatService: ChatService,
     private sandboxService: SandboxService,
-    private router: Router,
-    private userService: UserService
-  ) {}
+    private userService: UserService,
+  ) {
+    // example of how to use userService observable
+    this.user$ = userService.getCurrentUser();
+  }
 
   messages: ChatMessage[] = [
     {
@@ -115,12 +124,6 @@ export class HomeComponent {
         this.executeCode(message.content);
       }
     });
-  }
-
-  // to use the signal from userService, i just made a getter here
-  // and used it in the template like normal as it auto-updates.
-  get currentUser() {
-    return this.userService.currentUser;
   }
 
   async logout() {

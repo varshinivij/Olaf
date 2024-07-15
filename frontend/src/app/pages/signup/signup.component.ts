@@ -1,12 +1,14 @@
-import { Component } from '@angular/core';
-import { UserService } from '../../services/user.service';
-import { Router } from '@angular/router';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import {
   ReactiveFormsModule,
   FormBuilder,
   FormGroup,
   Validators,
 } from '@angular/forms';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+
+import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-login',
@@ -18,13 +20,14 @@ import {
   // service rather than maintain a singleton (not what we want).
   // providers: [UserService],
 })
-export class SignupComponent {
-  signupForm: FormGroup | any = null;
+export class SignupComponent implements OnInit, OnDestroy {
+  signupForm: FormGroup;
+  private subscription: Subscription | undefined;
 
   constructor(
-    private userService: UserService,
+    private formBuilder: FormBuilder,
     private router: Router,
-    private formBuilder: FormBuilder
+    private userService: UserService
   ) {
     this.signupForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
@@ -32,14 +35,27 @@ export class SignupComponent {
     });
   }
 
-  // TODO - eventually make a new user record (done. -Cody)
+  ngOnInit() {
+    this.subscription = this.userService.getCurrentUser().subscribe({
+      next: (user) => {
+        if (user) {
+          console.log('Logged in: ', user);
+          this.router.navigate(['/home']);
+        }
+      },
+      error: (error) => {
+        console.error('Error retrieving Firestore: ', error);
+      },
+    });
+  }
+
+  ngOnDestroy() {
+    this.subscription?.unsubscribe();
+  }
+
   async loginWithGoogle() {
     try {
       await this.userService.loginWithGoogle();
-      console.log(
-        `Logged in with Google: ${JSON.stringify(this.userService.currentUser())}`
-      );
-      this.router.navigate(['/home']);
     } catch (error) {
       console.error('Error logging in with Google: ', error);
     }
@@ -51,10 +67,6 @@ export class SignupComponent {
         this.signupForm.value.email,
         this.signupForm.value.password
       );
-      console.log(
-        `Signed up with email: ${JSON.stringify(this.userService.currentUser())}`
-      );
-      this.router.navigate(['/home']);
     } catch (error) {
       console.error('Error signing up with email: ', error);
     }

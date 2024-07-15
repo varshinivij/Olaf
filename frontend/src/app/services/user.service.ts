@@ -5,19 +5,14 @@
     3) Route guard so you can't go to Home Page without logging in (+future pages)?
 */
 
-import {
-  Injectable,
-  WritableSignal,
-  inject,
-  signal,
-} from '@angular/core';
+import { Injectable } from '@angular/core';
 import {
   Auth,
   GoogleAuthProvider,
   User as FirebaseUser,
   createUserWithEmailAndPassword,
-  signInWithPopup,
   signInWithEmailAndPassword,
+  signInWithPopup,
   updateEmail,
   updatePassword,
   updateProfile,
@@ -27,66 +22,110 @@ import {
   Firestore,
   deleteDoc,
   doc,
+  docData,
   getDoc,
   setDoc,
 } from '@angular/fire/firestore';
-import { Observable, Subscription } from 'rxjs';
-import { User as UserProfile } from '../models/user';
+import { Observable, of, switchMap } from 'rxjs';
+
+import { User } from '../models/user';
 
 @Injectable({
   providedIn: 'root',
 })
 export class UserService {
-  private auth: Auth = inject(Auth);
-  private firestore: Firestore = inject(Firestore);
+  private user$: Observable<User | null>;
 
-  // observable which streams events on login, logout, and token refresh.
-  // emits raw User object from @angular/fire. likely unused outside of class.
-  user$: Observable<FirebaseUser | null> = user(this.auth);
+  constructor(private auth: Auth, private firestore: Firestore) {
+    this.user$ = user(this.auth).pipe(
+      switchMap((user: FirebaseUser | null) => {
+        if (user) {
+          const userDocRef = doc(this.firestore, 'users', user.uid);
+          return docData(userDocRef) as Observable<User>;
+        } else {
+          return of(null);
+        }
+      })
+    );
+  }
 
-  // signal emitting the current user as a models/user.ts/User object.
-  // access through UserService().currentUser().
-  // from my understanding: use this signal within a template and it
-  // auto-reacts to changes. use effect() to react within component logic.
-  currentUser: WritableSignal<UserProfile | null> = signal<UserProfile | null>(
-    null
-  );
+  /**
+    * Retrieves the current user as an observable.
+    *
+    * This observable updates on authentication state changes as well as Firestore user document changes.
+    *
+    * @returns An Observable of the current user or null if not authenticated.
+    */
+  getCurrentUser(): Observable<User | null> {
+    return this.user$
+  }
 
-  constructor() {}
-
+  /**
+   * Authenticates a user using Google Sign-In.
+   *
+   * If the user does not exist in Firestore, their information is automatically created.
+   */
   async loginWithGoogle(): Promise<void> {
     const provider = new GoogleAuthProvider();
     const credential = await signInWithPopup(this.auth, provider);
-    // login with google without an account will register in Auth anyway (special case)
+    // login with google w/o account will register in Auth anyway (special case)
     if (!(await this.checkUserExists(credential.user))) {
       await this.createUserInfo(credential.user);
     }
-    this.currentUser.set(await this.readUserInfo(credential.user));
   }
 
-  async loginWithEmail(email: string, password: string) {
-    const credential = await signInWithEmailAndPassword(this.auth, email, password);
+  /**
+   * Authenticates a user with email and password.
+   *
+   * @param email The user's email address.
+   * @param password The user's password.
+   */
+  async loginWithEmail(email: string, password: string): Promise<void> {
+    const credential = await signInWithEmailAndPassword(
+      this.auth,
+      email,
+      password
+    );
     // just in case an account exists in Auth but somehow not in the database
     if (!(await this.checkUserExists(credential.user))) {
       await this.createUserInfo(credential.user);
     }
-    this.currentUser.set(await this.readUserInfo(credential.user));
   }
 
-  async signupWithEmail(email: string, password: string) {
-    const credential = await createUserWithEmailAndPassword(this.auth, email, password);
+  /**
+   * Signs up a new user with an email and password.
+   *
+   * After successful authentication, it creates user information in Firestore.
+   *
+   * @param email The email address of the new user.
+   * @param password The password for the new user.
+   */
+  async signupWithEmail(email: string, password: string): Promise<void> {
+    const credential = await createUserWithEmailAndPassword(
+      this.auth,
+      email,
+      password
+    );
     await this.createUserInfo(credential.user);
-    this.currentUser.set(await this.readUserInfo(credential.user));
   }
 
+  /**
+   * Logs out the current user.
+   *
+   * This will end the user's session and clear any authentication tokens.
+   */
   async logout(): Promise<void> {
     await this.auth.signOut();
-    this.currentUser.set(null);
   }
 
+  /**
+   * Deletes the current user's account.
+   *
+   * This will remove the user's Firebase Auth record and delete their information from Firestore.
+   * Note: This action is irreversible.
+   */
   async deleteAccount(): Promise<void> {
     await this.deleteUserInfo(this.auth.currentUser!);
-    this.currentUser.set(null);
   }
 
   /*
@@ -103,40 +142,32 @@ export class UserService {
   // creates new Firestore user data based on given FirebaseUser
   private async createUserInfo(user: FirebaseUser): Promise<void> {
     const data = {
+      id: user.uid,
       email: user.email || 'noemail@example.com',
       name: user.displayName || 'No Name',
       role: 'someRole',
       status: 'someStatus',
       createdAt: new Date(),
       updatedAt: new Date(),
-    }; // userID is stored as documentID so no need to put in document
+    };
 
     const userDocument = doc(this.firestore, 'users', user.uid);
     await setDoc(userDocument, data);
   }
 
   // reads Firestore user data based on given FirebaseUser as UserProfile
-  private async readUserInfo(user: FirebaseUser): Promise<UserProfile> {
+  private async readUserInfo(user: FirebaseUser): Promise<User> {
     const docSnap = await getDoc(doc(this.firestore, 'users', user.uid));
     const data = docSnap.data()!;
-
-    return {
-      id: docSnap.id,
-      email: data['email'],
-      name: data['name'],
-      role: data['role'],
-      status: data['status'],
-      createdAt: data['createdAt'],
-      updatedAt: data['updatedAt'],
-    } as UserProfile;
+    return data as User;
   }
 
   // TODO: updates Firestore user data based on given FirebaseUser and update data
   private async updateUserInfo(
     user: FirebaseUser,
-    data: Partial<Omit<UserProfile, 'id'>>
+    data: Partial<User>
   ): Promise<void> {
-    // should probably update Firestore data for user as well as relevant Auth
+    // should update Firestore data for user as well as relevant Auth
     // fields (updateEmail(), updatePassword(), updateProfile())?
   }
 

@@ -14,8 +14,8 @@
         Logout
       </button>
       <button class="upload-button status-indicator">
-        <!-- Using the signal here directly in the template. -->
-        Email: {{ currentUser()?.email }}
+        <!-- accessing userService observable data (reactively updates) -->
+        Email: {{ (user$ | async)?.email }}
       </button>
       <button (click)="deleteAccount()" class="upload-button status-indicator">
         DELETE ACCOUNT
