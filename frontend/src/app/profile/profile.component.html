@@ -1,0 +1,59 @@
+<div class="profile-container mat-elevation-z3">
+  <div class="profile-picture-container">
+    <img
+      *ngIf="user?.profilePictureUrl; else defaultPicture"
+      [src]="user?.profilePictureUrl"
+      alt="{{ user?.name }}"
+      class="profile-picture"
+    />
+    <ng-template #defaultPicture>
+      <div class="default-picture" (click)="fileInput.click()">
+        <mat-icon>person</mat-icon>
+      </div>
+    </ng-template>
+    <input
+      type="file"
+      #fileInput
+      style="display: none"
+      (change)="onFileSelected($event)"
+    />
+    <button
+      mat-mini-fab
+      color="accent"
+      class="edit-icon"
+      (click)="fileInput.click()"
+    >
+      <mat-icon>edit</mat-icon>
+    </button>
+  </div>
+  <button
+    mat-raised-button
+    color="accent"
+    *ngIf="selectedFile"
+    (click)="onUpload()"
+  >
+    Upload
+  </button>
+  <mat-progress-bar
+    *ngIf="uploadProgress !== null"
+    mode="determinate"
+    [value]="uploadProgress"
+  ></mat-progress-bar>
+  <div class="profile-details">
+    <h1>{{ user?.name }}</h1>
+    <div class="profile-row">
+      <span class="label">Email:</span>
+      <span class="value">{{ user?.email }}</span>
+    </div>
+    <div class="profile-row">
+      <span class="label">Organization:</span>
+      <span class="value">{{
+        user?.organization ? user?.organization : "None"
+      }}</span>
+    </div>
+    <div class="profile-row">
+      <span class="label">Date Joined:</span>
+      <span class="value">{{ user?.createdAt | date }}</span>
+    </div>
+  </div>
+</div>

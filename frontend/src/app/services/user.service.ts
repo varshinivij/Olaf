@@ -1,16 +1,4 @@
-/*
-  TODO:
-    1) Write updateUserInfo() function (if necessary)?
-    2) Any user services that will be necessary in the future (edit/delete account, etc.)?
-    3) Route guard so you can't go to Home Page without logging in (+future pages)?
-*/
-
-import {
-  Injectable,
-  WritableSignal,
-  inject,
-  signal,
-} from '@angular/core';
+import { Injectable, WritableSignal, inject, signal } from '@angular/core';
 import {
   Auth,
   GoogleAuthProvider,
@@ -25,13 +13,22 @@ import {
 } from '@angular/fire/auth';
 import {
   Firestore,
+  Timestamp,
   deleteDoc,
   doc,
   getDoc,
   setDoc,
 } from '@angular/fire/firestore';
-import { Observable, Subscription } from 'rxjs';
+import { Observable } from 'rxjs';
 import { User as UserProfile } from '../models/user';
+import {
+  FirebaseStorage,
+  getDownloadURL,
+  getStorage,
+  ref,
+  uploadBytes,
+  uploadBytesResumable,
+} from '@angular/fire/storage';
 
 @Injectable({
   providedIn: 'root',
@@ -39,6 +36,7 @@ import { User as UserProfile } from '../models/user';
 export class UserService {
   private auth: Auth = inject(Auth);
   private firestore: Firestore = inject(Firestore);
+  private storage: FirebaseStorage = getStorage();
 
   // observable which streams events on login, logout, and token refresh.
   // emits raw User object from @angular/fire. likely unused outside of class.
@@ -65,7 +63,11 @@ export class UserService {
   }
 
   async loginWithEmail(email: string, password: string) {
-    const credential = await signInWithEmailAndPassword(this.auth, email, password);
+    const credential = await signInWithEmailAndPassword(
+      this.auth,
+      email,
+      password
+    );
     // just in case an account exists in Auth but somehow not in the database
     if (!(await this.checkUserExists(credential.user))) {
       await this.createUserInfo(credential.user);
@@ -74,7 +76,11 @@ export class UserService {
   }
 
   async signupWithEmail(email: string, password: string) {
-    const credential = await createUserWithEmailAndPassword(this.auth, email, password);
+    const credential = await createUserWithEmailAndPassword(
+      this.auth,
+      email,
+      password
+    );
     await this.createUserInfo(credential.user);
     this.currentUser.set(await this.readUserInfo(credential.user));
   }
@@ -109,6 +115,8 @@ export class UserService {
       status: 'someStatus',
       createdAt: new Date(),
       updatedAt: new Date(),
+      organization: 'someOrganization',
+      profilePictureUrl: null,
     }; // userID is stored as documentID so no need to put in document
 
     const userDocument = doc(this.firestore, 'users', user.uid);
@@ -116,7 +124,7 @@ export class UserService {
   }
 
   // reads Firestore user data based on given FirebaseUser as UserProfile
-  private async readUserInfo(user: FirebaseUser): Promise<UserProfile> {
+  public async readUserInfo(user: FirebaseUser): Promise<UserProfile> {
     const docSnap = await getDoc(doc(this.firestore, 'users', user.uid));
     const data = docSnap.data()!;
 
@@ -126,23 +134,62 @@ export class UserService {
       name: data['name'],
       role: data['role'],
       status: data['status'],
-      createdAt: data['createdAt'],
-      updatedAt: data['updatedAt'],
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      organization: data['organization'],
+      profilePictureUrl: data['profilePictureUrl'],
     } as UserProfile;
   }
 
-  // TODO: updates Firestore user data based on given FirebaseUser and update data
-  private async updateUserInfo(
+  // updates Firestore user data based on given FirebaseUser and update data
+  public async updateUserInfo(
     user: FirebaseUser,
     data: Partial<Omit<UserProfile, 'id'>>
   ): Promise<void> {
-    // should probably update Firestore data for user as well as relevant Auth
-    // fields (updateEmail(), updatePassword(), updateProfile())?
+    const userDocument = doc(this.firestore, 'users', user.uid);
+
+    // Update Firebase Auth profile fields
+    if (data.email) await updateEmail(user, data.email);
+    if (data.name) await updateProfile(user, { displayName: data.name });
+    // Note: Updating password should be done through a separate method for security reasons
+
+    await setDoc(
+      userDocument,
+      { ...data, updatedAt: new Date() },
+      { merge: true }
+    );
   }
 
   // deletes Firestore and Firebase Auth user data based on given FirebaseUser
   private async deleteUserInfo(user: FirebaseUser): Promise<void> {
     await user.delete();
     await deleteDoc(doc(this.firestore, 'users', user.uid));
+  }
+
+  async uploadProfilePicture(
+    userId: string,
+    file: File,
+    onProgress: (progress: number) => void
+  ): Promise<string> {
+    const storageRef = ref(this.storage, `user/profile/${userId}/${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          onProgress(progress);
+        },
+        (error) => {
+          reject(error);
+        },
+        async () => {
+          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(downloadUrl);
+        }
+      );
+    });
   }
 }
