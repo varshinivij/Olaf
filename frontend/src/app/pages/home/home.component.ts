@@ -3,10 +3,11 @@ import { AsyncPipe, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 
 import { ChatService } from '../../services/chat.service';
 import { SandboxService } from '../../services/sandbox.service';
+import { UploadService } from '../../services/upload.service';
 import { UserService } from '../../services/user.service';
 
 import { ChatMessage } from '../../models/chat-message';
@@ -21,14 +22,29 @@ import { ChatMessage } from '../../models/chat-message';
 export class HomeComponent {
   loading: boolean = false;
   isConnected: boolean = false;
+  selectedUploadFiles: File[] = [];
+  uploadSubscription: Subscription | undefined;
 
   constructor(
     private http: HttpClient,
     private router: Router,
     private chatService: ChatService,
     private sandboxService: SandboxService,
-    public userService: UserService,
+    public uploadService: UploadService,
+    public userService: UserService
   ) {}
+
+  ngOnInit() {
+    this.uploadSubscription = this.uploadService.getUploadProgress().subscribe(
+      (uploads) => {
+        console.log(uploads);
+      }
+    );
+  }
+
+  ngOnDestroy() {
+    this.uploadSubscription?.unsubscribe();
+  }
 
   messages: ChatMessage[] = [
     {
@@ -121,8 +137,20 @@ export class HomeComponent {
     });
   }
 
+  onUploadFilesSelected(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const files = target.files as FileList;
+    this.selectedUploadFiles = Array.from(files);
+    this.uploadService.setFiles(this.selectedUploadFiles);
+    console.log('Files selected: ', files);
+  }
+
   async uploadFiles() {
-    
+    try {
+      await this.uploadService.uploadFiles();
+    } catch (error) {
+      console.error('Error uploading files: ', error);
+    }
   }
 
   async logout() {

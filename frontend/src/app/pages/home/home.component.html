@@ -9,16 +9,21 @@
       >
         {{ isConnected ? "Sandbox Connected" : "Sandbox Disconnected" }}
       </button>
-      <button (click)="uploadFiles()" class="upload-button status-indicator">Upload</button>
-      <button (click)="logout()" class="upload-button status-indicator">
-        Logout
+      <input
+        class="w-48"
+        type="file"
+        (change)="onUploadFilesSelected($event)"
+        multiple
+      />
+      <button (click)="uploadFiles()" class="upload-button status-indicator">
+        Upload
       </button>
-      <button class="upload-button status-indicator">
+      <button (click)="logout()" class="upload-button status-indicator">
         <!-- accessing userService observable data (reactively updates) -->
-        Email: {{ (userService.getCurrentUser() | async)?.email }}
+        Logout: {{ (userService.getCurrentUser() | async)?.email }}
       </button>
       <button (click)="deleteAccount()" class="upload-button status-indicator">
-        DELETE ACCOUNT
+        Delete Account
       </button>
     </div>
   </div>

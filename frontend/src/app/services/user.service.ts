@@ -3,6 +3,9 @@
     1) Write updateUserInfo() function
     2) Any user services that will be necessary in the future (edit account, etc.)
     3) (if necessary) potentially also expose a signal that holds currentUser as well
+    4) Consider placing a .tap(?) on Observable and storing state in local storage?
+       (maybe replace with readUserInfo? not sure.)
+       https://medium.com/@aayyash/authentication-in-angular-why-it-is-so-hard-to-wrap-your-head-around-it-23ea38a366de
 */
 
 import { Injectable } from '@angular/core';
