@@ -163,7 +163,7 @@ export class UserService {
       updatedAt: new Date(),
       organization: 'someOrganization',
       profilePictureUrl: null,
-    }; // userID is stored as documentID so no need to put in document
+    };
 
     const userDocument = doc(this.firestore, 'users', user.uid);
     await setDoc(userDocument, data);
@@ -182,7 +182,6 @@ export class UserService {
     data: Partial<User>
   ): Promise<void> {
     const userDocument = doc(this.firestore, 'users', user.uid);
-
     // Update Firebase Auth profile fields
     if (data.email) await updateEmail(user, data.email);
     if (data.name) await updateProfile(user, { displayName: data.name });
@@ -202,11 +201,10 @@ export class UserService {
   }
 
   async uploadProfilePicture(
-    userId: string,
     file: File,
     onProgress: (progress: number) => void
   ): Promise<string> {
-    const storageRef = ref(this.storage, `user/profile/${userId}/${file.name}`);
+    const storageRef = ref(this.storage, `user/profile/${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     return new Promise((resolve, reject) => {
