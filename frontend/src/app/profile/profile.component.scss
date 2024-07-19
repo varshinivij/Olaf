@@ -1,0 +1,75 @@
+.profile-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  max-width: 400px;
+  margin: auto;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-picture-container {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin-bottom: 20px;
+
+  .profile-picture,
+  .default-picture {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f0f0;
+  }
+
+  .edit-icon {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+  }
+}
+
+.profile-details {
+  width: 100%;
+  text-align: left;
+  margin-top: 20px;
+
+  .profile-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 1rem;
+
+    .label {
+      font-weight: bold;
+      color: #555;
+    }
+
+    .value {
+      color: #333;
+    }
+  }
+}
+
+h1 {
+  margin-bottom: 10px;
+  font-size: 2rem;
+  color: #1976d2;
+  text-align: center;
+  font-weight: 500;
+}
+
+mat-progress-bar {
+  width: 100%;
+  margin-top: 10px;
+}
+
+button[mat-raised-button] {
+  margin-top: 10px;
+}

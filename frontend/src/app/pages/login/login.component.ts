@@ -1,12 +1,14 @@
-import { Component } from '@angular/core';
-import { UserService } from '../../services/user.service';
-import { Router } from '@angular/router';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import {
   ReactiveFormsModule,
   FormBuilder,
   FormGroup,
   Validators,
 } from '@angular/forms';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+
+import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-login',
@@ -18,13 +20,14 @@ import {
   // service rather than maintain a singleton (not what we want).
   // providers: [UserService],
 })
-export class LoginComponent {
-  loginForm: FormGroup | any = null;
+export class LoginComponent implements OnInit, OnDestroy {
+  loginForm: FormGroup;
+  private subscription: Subscription | undefined;
 
   constructor(
-    private userService: UserService,
+    private formBuilder: FormBuilder,
     private router: Router,
-    private formBuilder: FormBuilder
+    private userService: UserService
   ) {
     this.loginForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
@@ -32,21 +35,40 @@ export class LoginComponent {
     });
   }
 
-  // eventually check if user exists - if not move to signup
-  async loginWithGoogle() {
-    try {
-      await this.userService.loginWithGoogle();
-      console.log(
-        `Logged in with Google: ${JSON.stringify(this.userService.currentUser())}`
-      );
-      this.router.navigate(['/home']);
-    } catch (error) {
-      console.error('Error logging in with Google: ', error);
-    }
+  // this is my solution to redirecting reactively as user logs in. feel
+  // free to modify if there's a better way. not sure about subscribing
+  // directly inside event handler functions, might cause memory leaks.
+  // placing it here will also automatically redirect to home if a
+  // logged in user decides to visit /login through the URL.
+  ngOnInit() {
+    this.subscription = this.userService.getCurrentUser().subscribe({
+      next: (user) => {
+        if (user) {
+          console.log('Logged in: ', user);
+          this.router.navigate(['/home']);
+        }
+      },
+      error: (error) => {
+        console.error('Error retrieving user data: ', error);
+      },
+    });
+  }
+
+  // prevent memory leaks
+  ngOnDestroy() {
+    this.subscription?.unsubscribe();
   }
 
   navigateToSignup() {
     this.router.navigate(['/signup']);
+  }
+
+  async loginWithGoogle() {
+    try {
+      await this.userService.loginWithGoogle();
+    } catch (error) {
+      console.error('Error logging in with Google: ', error);
+    }
   }
 
   async loginWithEmail() {
@@ -55,10 +77,6 @@ export class LoginComponent {
         this.loginForm.value.email,
         this.loginForm.value.password
       );
-      console.log(
-        `Logged in with email: ${JSON.stringify(this.userService.currentUser())}`
-      );
-      this.router.navigate(['/home']);
     } catch (error) {
       console.error('Error logging in with email: ', error);
     }
