@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { UserService } from '../services/user.service';
-import { User } from '../models/user';
+import { UserService } from '../../services/user.service';
+import { User } from '../../models/user';
 import { ProfileComponent } from './profile.component';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';

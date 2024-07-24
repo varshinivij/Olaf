@@ -1,20 +1,100 @@
-<div class="login-container">
-    <div class="login-box">    
-      <!-- example of tailwind classes. takes lower precedence than stylesheets -->
-      <h2 class="text-2xl tracking-tight">Two Cube Login</h2>
-      <form [formGroup]="loginForm" (ngSubmit)="loginWithEmail()">
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" formControlName="email" placeholder="Enter your email">
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" formControlName="password" placeholder="Enter your password">
-        </div>
-        <button type="submit">Login</button>
-      </form>
-      <button style="margin-top: 5%" class="google-login" (click)="loginWithGoogle()">Login with Google</button>
-      <div class="divider">or</div>
-      <button (click)="navigateToSignup()">Sign Up</button>
+<div class="flex bg-[#032D38] w-full h-full">
+  <!-- Left background panel -->
+  <div class="flex-1 flex-col overflow-hidden">
+    <div class="flex items-center">
+      <img src="assets/twocube-logo.svg" width="90px" />
+      <p class="text-[#E0E0E0] text-4xl tracking-tight pt-1">TwoCube</p>
     </div>
+    <img src="assets/minimalist-bg-lines.svg" width="100%" />
   </div>
+  <!-- Right sign in box -->
+  <form
+    class="flex flex-col items-center justify-center gap-y-11 rounded-s-[2rem] bg-[#F2F2F2] w-7/12 h-full"
+    [formGroup]="loginForm"
+    (ngSubmit)="loginWithEmail()"
+  >
+    <p class="font-bold text-[#4F4F4F] text-[2.5rem]">Sign in</p>
+    <!-- Email input box -->
+    <div class="input-with-animated-placeholder relative w-[70%] h-[4.5rem]">
+      <input
+        class="absolute border focus:border-[1.5px] focus:border-[#038C7F] focus:outline-none rounded-2xl font-[500] tracking-wide text-[1.25rem] p-4 pt-10 pr-14 w-full h-full"
+        [ngClass]="{
+          'border-[#D32F2F] border-[1.5px] bg-[#D32F2F]/10 focus:bg-white':
+            errorMessage,
+          'border-[#4F4F4F]': !errorMessage
+        }"
+        type="email"
+        formControlName="email"
+        placeholder=" "
+      />
+      <label
+        class="absolute flex items-center pointer-events-none text-2xl pl-4 w-full h-full"
+        [ngClass]="{
+          'text-[#D32F2F] opacity-100': errorMessage,
+          'text-[#4F4F4F] opacity-30': !errorMessage
+        }"
+      >
+        Email
+      </label>
+    </div>
+    <!-- Password input box -->
+    <div class="input-with-animated-placeholder relative w-[70%] h-[4.5rem]">
+      <input
+        class="absolute border focus:border-[1.5px] focus:border-[#038C7F] focus:outline-none rounded-2xl font-[500] tracking-wide text-[1.25rem] p-4 pt-10 pr-14 w-full h-full"
+        [ngClass]="{
+          'border-[#D32F2F] border-[1.5px] bg-[#D32F2F]/10 focus:bg-white':
+            errorMessage,
+          'border-[#4F4F4F]': !errorMessage
+        }"
+        type="password"
+        formControlName="password"
+        placeholder=" "
+      />
+      <label
+        class="absolute flex items-center pointer-events-none text-2xl pl-4 w-full h-full"
+        [ngClass]="{
+          'text-[#D32F2F] opacity-100': errorMessage,
+          'text-[#4F4F4F] opacity-30': !errorMessage
+        }"
+      >
+        Password
+      </label>
+      <button
+        class="absolute flex justify-center items-center top-[50%] translate-y-[-50%] right-3 bg-[#032D38] rounded-full w-10 h-10"
+        [ngClass]="{
+          'opacity-30': loginForm.invalid,
+          'opacity-100 hover:bg-black': !loginForm.invalid
+        }"
+        type="submit"
+        [disabled]="loginForm.invalid"
+      >
+        <i class="material-icons text-[#F2F2F2]">arrow_forward</i>
+      </button>
+    </div>
+    <!-- Divider + sign up link and error message -->
+    <div class="w-[67%]">
+      <div class="flex justify-between">
+        <button
+          class="text-[#4F4F4F] text-lg tracking-wide"
+          type="button"
+          (click)="navigateToSignup()"
+        >
+          Sign up →
+        </button>
+        <p class="text-[#D32F2F] text-lg tracking-wide">
+          {{ this.errorMessage }}
+        </p>
+      </div>
+      <hr class="bg-black h-[0.125rem]" />
+    </div>
+    <!-- Continue with Google button -->
+    <button
+      class="flex gap-x-2 p-3 justify-center items-center border border-[#4F4F4F] bg-white rounded-2xl hover:brightness-90"
+      type="button"
+      (click)="loginWithGoogle()"
+    >
+      <img src="assets/google-logo.svg" />
+      <p class="text-[#4F4F4F] text-lg tracking-wide">Continue with Google</p>
+    </button>
+  </form>
+</div>
