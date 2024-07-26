@@ -17,10 +17,11 @@
   <div class="flex flex-col flex-grow px-3 w-full">
     @for (page of pages; track $index;){
     <button
-      class="flex justify-start items-center p-2 gap-x-3 text-semibold text-[#666567] rounded-lg"
+      class="flex justify-start items-center p-2 gap-x-3 rounded-lg"
       [ngClass]="{
         'bg-[#F1F1F1] font-semibold text-[#252526]':
           selectedPageIndex === $index,
+        'text-[#666567]': selectedPageIndex !== $index,
         'mt-auto': $last
       }"
       type="button"
