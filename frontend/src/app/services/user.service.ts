@@ -1,9 +1,8 @@
 /*
   TODO:
-    1) Write updateUserInfo() function
-    2) Any user services that will be necessary in the future (edit account, etc.)
-    3) (if necessary) potentially also expose a signal that holds currentUser as well
-    4) Consider placing a .tap(?) on Observable and storing state in local storage?
+    1) Any user services that will be necessary in the future (edit account, etc.)
+    2) (if necessary) potentially also expose a signal that holds currentUser as well
+    3) Consider placing a .tap(?) on Observable and storing state in local storage?
        (maybe replace with readUserInfo? not sure.)
        https://medium.com/@aayyash/authentication-in-angular-why-it-is-so-hard-to-wrap-your-head-around-it-23ea38a366de
 */
@@ -23,16 +22,12 @@ import {
 } from '@angular/fire/auth';
 import {
   Firestore,
-  Timestamp,
   deleteDoc,
   doc,
   docData,
   getDoc,
   setDoc,
 } from '@angular/fire/firestore';
-import { Observable, of, switchMap } from 'rxjs';
-
-import { User } from '../models/user';
 import {
   FirebaseStorage,
   getDownloadURL,
@@ -40,6 +35,9 @@ import {
   ref,
   uploadBytesResumable,
 } from '@angular/fire/storage';
+import { Observable, of, map, switchMap } from 'rxjs';
+
+import { User } from '../models/user';
 
 @Injectable({
   providedIn: 'root',
@@ -53,7 +51,15 @@ export class UserService {
       switchMap((user: FirebaseUser | null) => {
         if (user) {
           const userDocRef = doc(this.firestore, 'users', user.uid);
-          return docData(userDocRef) as Observable<User>;
+          return docData(userDocRef).pipe(
+            map((user: any) => {
+              return {
+                ...user,
+                createdAt: user.createdAt?.toDate(),
+                updatedAt: user.updatedAt?.toDate(),
+              } as User;
+            })
+          ) as Observable<User>;
         } else {
           return of(null);
         }
@@ -131,6 +137,16 @@ export class UserService {
   }
 
   /**
+   * Updates the account information for the current user.
+   *
+   * @param data - An subset of a User object containing user properties to
+   * update in Firestore. Updating user.id will have no effect.
+   */
+  async updateAccount(data: Partial<User>) {
+    await this.updateUserInfo(this.auth.currentUser!, data);
+  }
+
+  /**
    * Deletes the current user's account.
    *
    * This will remove the user's Firebase Auth record and delete their information from Firestore.
@@ -138,6 +154,68 @@ export class UserService {
    */
   async deleteAccount(): Promise<void> {
     await this.deleteUserInfo(this.auth.currentUser!);
+  }
+
+  /**
+   * Uploads a file to Cloud Storage under user/profile/{userID}.
+   * Returns a promise containing downloadURL once
+   *
+   * @param file - The file to be uploaded.
+   * @param onProgress - Callback to be run on progress snapshot.
+   */
+  async uploadProfilePicture(
+    file: File,
+    onProgress: (progress: number) => void
+  ): Promise<string> {
+    const storageRef = ref(
+      this.storage,
+      `user/profile/${this.auth.currentUser!.uid}`
+    );
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          onProgress(progress);
+        },
+        (error) => {
+          reject(error);
+        },
+        async () => {
+          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(downloadUrl);
+        }
+      );
+    });
+  }
+
+  /**
+   * Converts an error thrown by Firebase Auth into a user-friendly
+   * error message. If the error was not thrown by Firebase Auth
+   * (it should have the 'code' property) it returns a default
+   * error message. A list of codes can be found here:
+   * https://firebase.google.com/docs/auth/admin/errors
+   *
+   * @param error - The error thrown by Firebase Auth.
+   */
+  static convertAuthErrorToMessage(error: any) {
+    switch (error.code) {
+      case 'auth/user-disabled': {
+        return 'Account has been disabled';
+      }
+      case 'auth/invalid-credential': {
+        return 'Incorrect email or password';
+      }
+      case 'auth/email-already-in-use': {
+        return 'Account already exists';
+      }
+      default: {
+        return 'Something went wrong, try again later';
+      }
+    }
   }
 
   /*
@@ -177,11 +255,14 @@ export class UserService {
   }
 
   // updates Firestore user data based on given FirebaseUser and update data
-  public async updateUserInfo(
+  private async updateUserInfo(
     user: FirebaseUser,
     data: Partial<User>
   ): Promise<void> {
     const userDocument = doc(this.firestore, 'users', user.uid);
+
+    // should not be able to update user id
+    delete data.id;
     // Update Firebase Auth profile fields
     if (data.email) await updateEmail(user, data.email);
     if (data.name) await updateProfile(user, { displayName: data.name });
@@ -198,31 +279,5 @@ export class UserService {
   private async deleteUserInfo(user: FirebaseUser): Promise<void> {
     await user.delete();
     await deleteDoc(doc(this.firestore, 'users', user.uid));
-  }
-
-  async uploadProfilePicture(
-    file: File,
-    onProgress: (progress: number) => void
-  ): Promise<string> {
-    const storageRef = ref(this.storage, `user/profile/${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    return new Promise((resolve, reject) => {
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          onProgress(progress);
-        },
-        (error) => {
-          reject(error);
-        },
-        async () => {
-          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadUrl);
-        }
-      );
-    });
   }
 }

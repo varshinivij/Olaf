@@ -1,0 +1,35 @@
+<div
+  class="flex flex-col items-center border-3 rounded-lg py-3 bg-[#FAFAFA] overflow-y-auto w-44 h-full"
+>
+  <!-- profile picture/company name -->
+  <img
+    class="rounded-full border border-gray-500 w-12 h-12"
+    [src]="(userService.getCurrentUser() | async)?.profilePictureUrl"
+  />
+  <p class="font-semibold text-[#252526]">
+    {{
+      (userService.getCurrentUser() | async)?.organization || "&lt;company&gt;"
+    }}
+  </p>
+  <!-- divider -->
+  <hr class="border border-[#038C7F]/30 mt-4 mb-3 w-[9.25rem]" />
+  <!-- button column -->
+  <div class="flex flex-col flex-grow px-3 w-full">
+    @for (page of pages; track $index;){
+    <button
+      class="flex justify-start items-center p-2 gap-x-3 rounded-lg"
+      [ngClass]="{
+        'bg-[#F1F1F1] font-semibold text-[#252526]':
+          selectedPageIndex === $index,
+        'text-[#666567]': selectedPageIndex !== $index,
+        'mt-auto': $last
+      }"
+      type="button"
+      (click)="selectedPageIndex = $index"
+    >
+      <i class="material-icons-outlined text-[#666567]">{{ page.icon }}</i>
+      {{ page.name }}
+    </button>
+    }
+  </div>
+</div>

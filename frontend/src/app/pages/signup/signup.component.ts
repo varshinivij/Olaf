@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import {
   ReactiveFormsModule,
@@ -13,15 +14,13 @@ import { UserService } from '../../services/user.service';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './signup.component.html',
   styleUrl: './signup.component.scss',
-  // placing UserService as a component-level provider creates a new instance of the
-  // service rather than maintain a singleton (not what we want).
-  // providers: [UserService],
 })
 export class SignupComponent implements OnInit, OnDestroy {
   signupForm: FormGroup;
+  errorMessage: string | null = null;
   private subscription: Subscription | undefined;
 
   constructor(
@@ -44,7 +43,8 @@ export class SignupComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('Error retrieving Firestore: ', error);
+        this.errorMessage = UserService.convertAuthErrorToMessage(error);
+        console.error('Error retrieving user data: ', error);
       },
     });
   }
@@ -53,10 +53,15 @@ export class SignupComponent implements OnInit, OnDestroy {
     this.subscription?.unsubscribe();
   }
 
+  navigateToLogin() {
+    this.router.navigate(['/login']);
+  }
+
   async loginWithGoogle() {
     try {
       await this.userService.loginWithGoogle();
     } catch (error) {
+      this.errorMessage = UserService.convertAuthErrorToMessage(error);
       console.error('Error logging in with Google: ', error);
     }
   }
@@ -68,6 +73,7 @@ export class SignupComponent implements OnInit, OnDestroy {
         this.signupForm.value.password
       );
     } catch (error) {
+      this.errorMessage = UserService.convertAuthErrorToMessage(error);
       console.error('Error signing up with email: ', error);
     }
   }
