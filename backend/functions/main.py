@@ -1,7 +1,6 @@
-from firebase_admin import initialize_app, firestore
+from firebase_admin import initialize_app
 
-from firebase_functions.https_fn import on_request, Request, Response
-from firebase_functions.storage_fn import on_object_finalized, CloudEvent
+from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
 
 from e2b import Sandbox
@@ -10,7 +9,14 @@ from e2b_code_interpreter import CodeInterpreter
 from agent_logic import MasterAgent
 
 import json
-import re
+
+# initialize cloud functions defined in this file  (organizing like this
+# may be better). maybe even put helper modules in a separate /utils folder.
+from file_storage_functions import (
+    handle_user_file_upload,
+    request_user_create_folder,
+    request_user_delete_path,
+)
 
 
 initialize_app()
@@ -72,29 +78,3 @@ def execute_on_sandbox(req: Request) -> Response:
     except Exception as e:
         json_error = json.dumps({"error": str(e)})
         return Response(json_error, status=500)
-
-
-# --- Uploading files to Cloud Storage updates Firebase user/ID/fields ---
-@on_object_finalized()
-def on_file_uploaded(event: CloudEvent) -> None:
-    file_path = event.data.name
-    match = re.match(r"^uploads/([^/]+)/(.+)$", file_path)
-    if match is None:
-        return
-
-    user_uid, file_name = match.groups()
-
-    db = firestore.client()
-    user_ref = db.collection("users").document(user_uid)
-    user_doc = user_ref.get()
-
-    if not user_doc.exists:
-        # user document does not exist
-        return
-
-    current_files = user_doc.to_dict().get("files", [])
-
-    if file_path not in current_files:
-        # update the user's document
-        user_ref.update({"files": firestore.ArrayUnion([file_path])})
-        print(f"Added {file_path} to files array for user {user_uid}")
