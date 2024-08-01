@@ -115,8 +115,9 @@ def ensure_folder_exists(
                     "id": file_doc.id,
                     "name": current_folder.name,
                     "path": current_folder.parent.as_posix(),
-                    "isFolder": True,
                     "size": 0,
+                    "fileExtension": 'folder',
+                    "isFolder": True,
                     "storageLink": f"uploads/{user_uid}{current_folder.as_posix()}",
                     "uploadedOn": firestore.SERVER_TIMESTAMP,
                 }
@@ -341,8 +342,9 @@ def handle_user_file_upload(event: CloudEvent[StorageObjectData]) -> None:
             "id": file_doc.id,
             "name": upload_name,
             "path": upload_parent,
-            "isFolder": False,
             "size": int(event.data.size),
+            "fileExtension": upload_path.suffix,
+            "isFolder": False,
             "storageLink": event.data.name,
             "uploadedOn": firestore.SERVER_TIMESTAMP,
         }
