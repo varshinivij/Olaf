@@ -24,6 +24,29 @@ from pathlib import Path
 import re
 
 
+EXTENSION_TYPE_MAP = {
+    "code": {
+        ".py",
+        ".java",
+        ".c",
+        ".cpp",
+    },
+    "dataset": {
+        ".csv",
+    },
+    "text": {
+        ".txt",
+        ".md",
+    },
+    "model": {
+        ".h5",
+    },
+    "folder": {
+        "folder",
+    },
+}
+
+
 def validate_firebase_id_token(req: Request) -> dict:
     """
     Validates the Firebase ID token passed in a request's Authorization header.
@@ -68,6 +91,23 @@ def validate_firebase_id_token(req: Request) -> dict:
 
     id_token = req.headers["Authorization"].split("Bearer ")[1]
     return auth.verify_id_token(id_token, check_revoked=True)
+
+
+def map_extension_to_type(ext: str) -> str:
+    """
+    Maps a file extension to a file type to be placed in the Firestore
+    document. Future development will likely need to extract this mapping out
+    to a better centralized place (eg. a separate Firestore document) and
+    calculating file type at time of upload will make updating them later
+    difficult.
+
+    But for now, this is the most simple solution I've come up with.
+    """
+    for type, extensions in EXTENSION_TYPE_MAP.items():
+        if ext in extensions:
+            return type
+
+    return "unknown"
 
 
 @transactional
@@ -116,7 +156,8 @@ def ensure_folder_exists(
                     "name": current_folder.name,
                     "path": current_folder.parent.as_posix(),
                     "size": 0,
-                    "extension": 'folder',
+                    "type": "folder",
+                    "extension": "folder",
                     "isFolder": True,
                     "storageLink": f"uploads/{user_uid}{current_folder.as_posix()}",
                     "uploadedOn": firestore.SERVER_TIMESTAMP,
@@ -234,7 +275,7 @@ def request_user_delete_path(req: CallableRequest) -> None:
             # but if the delete path is root there is no firestore doc,
             # so special case (messy code, but we can structure it better
             # later)
-            if delete_path != Path('/'):
+            if delete_path != Path("/"):
                 return
             else:
                 is_folder = True
@@ -343,6 +384,7 @@ def handle_user_file_upload(event: CloudEvent[StorageObjectData]) -> None:
             "name": upload_name,
             "path": upload_parent,
             "size": int(event.data.size),
+            "type": map_extension_to_type(upload_path.suffix),
             "extension": upload_path.suffix,
             "isFolder": False,
             "storageLink": event.data.name,
