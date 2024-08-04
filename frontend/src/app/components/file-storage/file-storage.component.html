@@ -1,0 +1,125 @@
+<div class="flex flex-col w-full h-screen">
+  <!-- search bar -->
+  <div class="flex-none relative mb-5 w-1/2 h-9">
+    <input
+      class="border border-[#4F4F4F]/40 focus:outline-none text-sm pl-10 rounded-xl w-full h-full"
+      placeholder="Search files..."
+    />
+    <i
+      class="material-icons absolute text-[#9E9E9E] left-2 top-[50%] translate-y-[-50%]"
+      >search</i
+    >
+  </div>
+
+  <!-- filter/upload buttons row -->
+  <div class="flex-none flex py-3 gap-x-4">
+    @for (filter of filterButtons; track $index;) {
+    <button
+      class="text-sm px-4 font-semibold hover:bg-[#032D38] hover:text-white border border-black rounded-3xl h-10"
+      type="button"
+    >
+      {{ filter.name }}
+    </button>
+    }
+    <button
+      class="ml-auto text-sm font-semibold pl-3 pr-4 flex items-center gap-x-2 bg-[#038C7F] rounded-lg text-white hover:brightness-90"
+      type="button"
+    >
+      <i class="material-icons-outlined">file_upload</i>
+      Upload data
+    </button>
+    <button
+      class="material-icons-outlined bg-[#038C7F] rounded-lg text-white px-2 hover:brightness-90"
+      type="button"
+    >
+      create_new_folder
+    </button>
+  </div>
+
+  <!-- file directory table -->
+  <div class="overflow-y-auto w-full">
+    <table class="table-fixed text-left text-sm w-full">
+      <!-- table header + sorting buttons -->
+      <thead>
+        <tr>
+          <!-- weird CSS workaround to make the body scrollable. reference:
+          https://www.geeksforgeeks.org/how-to-create-a-table-with-fixed-header-and-scrollable-body/#. maybe i should've just used flex columns... -->
+          <th class="sticky top-0 rounded-ss-lg bg-[#F1F1F1] px-4 w-[30%]">
+            <div class="flex items-center justify-between">
+              File Name
+              <button
+                class="material-icons-outlined text-[#9E9E9E]"
+                type="button"
+              >
+                unfold_more
+              </button>
+            </div>
+          </th>
+          <th class="sticky top-0 pr-4 bg-[#F1F1F1] w-[20%]">
+            <div class="flex items-center justify-between">
+              File Type
+              <button
+                class="material-icons-outlined text-[#9E9E9E]"
+                type="button"
+              >
+                unfold_more
+              </button>
+            </div>
+          </th>
+          <th class="sticky top-0 bg-[#F1F1F1] w-[15%]">Size</th>
+          <th class="sticky top-0 bg-[#F1F1F1]">
+            <div class="flex items-center justify-between">
+              Last Modified
+              <button
+                class="material-icons-outlined text-[#9E9E9E]"
+                type="button"
+              >
+                unfold_more
+              </button>
+            </div>
+          </th>
+          <th
+            class="sticky top-0 rounded-se-lg bg-[#F1F1F1] text-center p-4 w-[15%]"
+          >
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <!-- file rows -->
+      <tbody>
+        @for (file of (fileStorageService.getFiles() | async); track file.id) {
+        <tr>
+          <td class="p-4 truncate">{{ file.name }}</td>
+          <td class="pr-4 truncate">{{ titleCase(file.type) }}</td>
+          <td class="pr-4 truncate">{{ formatBytes(file.size) }}</td>
+          <td class="pr-4 truncate">
+            {{ file.uploadedOn.toLocaleDateString("en-US") }}
+          </td>
+          <td class="text-center">Trash Icon</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- bottom page navigator -->
+  <div class="flex-none mt-auto flex gap-x-4 justify-center items-center">
+    <button class="text-[#9E9E9E] text-sm" type="button">Previous</button>
+    <button class="bg-[#024050] text-white rounded-xl h-10 w-10" type="button">
+      1
+    </button>
+    <button
+      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+      type="button"
+    >
+      2
+    </button>
+    <button
+      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+      type="button"
+    >
+      3
+    </button>
+    <button class="text-[#9E9E9E] text-sm" type="button">Next</button>
+  </div>
+</div>

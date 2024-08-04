@@ -1,16 +1,23 @@
 import { Component } from '@angular/core';
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+
+import { Auth } from '@angular/fire/auth';
+
+import { Functions, httpsCallable } from '@angular/fire/functions';
+import { Firestore } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
 
 import { ChatService } from '../../services/chat.service';
 import { SandboxService } from '../../services/sandbox.service';
-import { UploadService } from '../../services/upload.service';
+import { FileUploadService } from '../../services/file-upload.service';
 import { UserService } from '../../services/user.service';
 
 import { ChatMessage } from '../../models/chat-message';
+import { User } from '../../models/user';
+import { FirestorePaginator } from '../../utils/firestore-paginator';
 
 @Component({
   selector: 'app-chat',
@@ -26,25 +33,21 @@ export class HomeComponent {
   uploadSubscription: Subscription | undefined;
 
   constructor(
+    private auth: Auth,
+    private firestore: Firestore,
+    private functions: Functions,
     private http: HttpClient,
     private router: Router,
     private chatService: ChatService,
     private sandboxService: SandboxService,
-    public uploadService: UploadService,
+    public uploadService: FileUploadService,
     public userService: UserService
   ) {}
 
   ngOnInit() {
-    this.uploadSubscription = this.uploadService.getUploadProgress().subscribe(
-      (uploads) => {
-        console.log(uploads);
-      }
-    );
   }
 
-  ngOnDestroy() {
-    this.uploadSubscription?.unsubscribe();
-  }
+  ngOnDestroy() {}
 
   messages: ChatMessage[] = [
     {
@@ -145,13 +148,7 @@ export class HomeComponent {
     console.log('Files selected: ', files);
   }
 
-  async uploadFiles() {
-    try {
-      await this.uploadService.uploadFiles();
-    } catch (error) {
-      console.error('Error uploading files: ', error);
-    }
-  }
+  async uploadFiles() {}
 
   async logout() {
     try {

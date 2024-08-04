@@ -8,14 +8,14 @@ import {
 } from '@angular/fire/storage';
 import { BehaviorSubject, Observable } from 'rxjs';
 
-import { UploadProgress } from '../models/upload-progress';
+import { UserFileUpload } from '../models/user-file-upload';
 
 @Injectable({
   providedIn: 'root',
 })
-export class UploadService {
-  private uploadSubject = new BehaviorSubject<UploadProgress[]>([]);
-  private uploadProgress$: Observable<UploadProgress[]> =
+export class FileUploadService {
+  private uploadSubject = new BehaviorSubject<UserFileUpload[]>([]);
+  private uploadProgress$: Observable<UserFileUpload[]> =
     this.uploadSubject.asObservable();
 
   constructor(private auth: Auth, private storage: Storage) {}
@@ -25,7 +25,7 @@ export class UploadService {
    *
    * @returns An Observable of UploadProgress[].
    */
-  getUploadProgress(): Observable<UploadProgress[]> {
+  getUploadProgress(): Observable<UserFileUpload[]> {
     return this.uploadProgress$;
   }
 
@@ -43,6 +43,7 @@ export class UploadService {
       status: 'pending' as const,
     }));
     this.uploadSubject.next([...currentUploads, ...newUploads]);
+    this.uploadFiles();
   }
 
   /**
@@ -58,6 +59,7 @@ export class UploadService {
       status: 'pending' as const,
     }));
     this.uploadSubject.next(newUploads);
+    this.uploadFiles();
   }
 
   /**
@@ -85,15 +87,18 @@ export class UploadService {
     });
   }
 
-  private updateUpload(index: number, updates: Partial<UploadProgress>): void {
+  private updateUpload(index: number, updates: Partial<UserFileUpload>): void {
     const currentUploads = this.uploadSubject.value;
     currentUploads[index] = { ...currentUploads[index], ...updates };
     this.uploadSubject.next(currentUploads);
   }
 
   private uploadFile(file: File, index: number): void {
-    const filePath = `uploads/${this.auth.currentUser!.uid}/${file.name}`;
-    const storageRef = ref(this.storage, filePath);
+    let filePath = `uploads/${this.auth.currentUser!.uid}/folder1/${
+      file.name
+    }`;
+    let storageRef = ref(this.storage, filePath);
+
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     uploadTask.on(

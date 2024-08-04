@@ -1,4 +1,4 @@
-export interface UploadProgress {
+export interface UserFileUpload {
   file: File;
   progress: number;
   downloadURL: string | null;
