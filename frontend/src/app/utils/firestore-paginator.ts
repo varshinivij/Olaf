@@ -4,6 +4,14 @@
 // outsides services handle complex queries.
 
 // Next and previous pagination doesn't seem to work.
+// I think I see the problem:
+// my next/prev queries take in DocumentSnapshots inside the startAt()
+// and endBefore() functions but I mistakenly put in the object's entire
+// data instead of a DocumentSnapshot. except i'm pretty sure the observable
+// doesn't actually emit DocumentSnapshots and skips straight to data,
+// which might be a problem...
+
+// redesigning the pagination might be better.
 
 // This code comes with ABSOLUTELY NO WARRANTY.
 
@@ -18,6 +26,7 @@ import {
   limitToLast,
   query,
   startAt,
+  DocumentSnapshot,
 } from '@angular/fire/firestore';
 import { BehaviorSubject, Observable, filter, switchMap, tap } from 'rxjs';
 
@@ -33,8 +42,8 @@ export class FirestorePaginator<T> {
   private items$: Observable<T[]>;
   private paging$: BehaviorSubject<PaginatorActions | null>;
   private firstItemId?: string; // the id of the first record of this query on the first page, used as marker for enabling previous
-  private prevAnchor?: QueryDocumentSnapshot<any>; // anchor for querying previous page
-  private nextAnchor?: QueryDocumentSnapshot<any>; // anchor for querying next page
+  private prevAnchor?: DocumentSnapshot<any>; // anchor for querying previous page
+  private nextAnchor?: DocumentSnapshot<any>; // anchor for querying next page
 
   private firstEnabled = new BehaviorSubject(false);
   private lastEnabled = new BehaviorSubject(false);
@@ -107,7 +116,8 @@ export class FirestorePaginator<T> {
               break;
           }
 
-          let finalQuery = query(collection(fs, path), ...queryConstraints);
+          const collectionRef = collection(fs, path)
+          let finalQuery = query(collectionRef, ...queryConstraints);
           this.trace('query building done ------------------------ ');
 
           return (collectionData(finalQuery) as Observable<T[]>).pipe(
@@ -116,7 +126,7 @@ export class FirestorePaginator<T> {
                 'snapshot tapper ------------------ ',
                 pagingAction,
                 items,
-                items.length
+                items.length,
               );
               if (items.length) {
                 const ps: number = +this.pageSize;
@@ -184,7 +194,7 @@ export class FirestorePaginator<T> {
                 this.previousEnabled.next(notFirstItem);
 
                 // remember the anchors for moving to previous and next pages
-                this.prevAnchor = items[1]; // item[1] because we have to use endBefore for previous and have to query one item extra
+                this.prevAnchor = items[1].id; // item[1] because we have to use endBefore for previous and have to query one item extra
                 this.nextAnchor = items[items.length - 1]; // last item because we have to use startAt for next and queried one item extra only for this purpose
                 // this.trace('Anchor for prev', JSON.stringify(this.currentPrevAnchor.data()), "Anchor for next", JSON.stringify(this.currentNextAnchor.data()));
               } else {
