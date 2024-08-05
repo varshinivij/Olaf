@@ -24,7 +24,6 @@
 */
 
 import { Injectable } from '@angular/core';
-import { Auth } from '@angular/fire/auth';
 import {
   Firestore,
   OrderByDirection,
@@ -33,14 +32,17 @@ import {
   where,
 } from '@angular/fire/firestore';
 import { Functions, httpsCallable } from '@angular/fire/functions';
-import { Storage } from '@angular/fire/storage';
 import {
-  Observable,
-  map,
-  of,
-  shareReplay,
-  switchMap,
-} from 'rxjs';
+  Storage,
+  getBlob,
+  getDownloadURL,
+  listAll,
+  ref,
+} from '@angular/fire/storage';
+import { Observable, map, of, switchMap } from 'rxjs';
+
+// import { saveAs } from 'file-saver';
+import JSZip from 'jszip';
 
 import { FirestorePaginator } from '../utils/firestore-paginator';
 import { lex_next_string } from '../utils/lex-next-string';
@@ -49,7 +51,6 @@ import { UserService } from '../services/user.service';
 
 import { User } from '../models/user';
 import { UserFile, UserFileSortKey, UserFileType } from '../models/user-file';
-
 
 @Injectable({
   providedIn: 'root',
@@ -65,23 +66,21 @@ export class FileStorageService {
   private typeFilter: UserFileType | null = null;
   private sortField: UserFileSortKey = 'name';
   private sortDirection: OrderByDirection = 'asc';
+  private pageSize = 10;
 
   constructor(
-    private auth: Auth,
     private firestore: Firestore,
     private functions: Functions,
     private storage: Storage,
     private userService: UserService
   ) {
-    const defaultPageSize = 10;
-
     this.files$ = this.userService.getCurrentUser().pipe(
       switchMap((user: User | null) => {
         if (user) {
           this.paginator = new FirestorePaginator<UserFile>(
-            firestore,
+            this.firestore,
             `users/${user.id}/files`,
-            defaultPageSize,
+            this.pageSize,
             this.buildQuery(),
             false,
             true
@@ -157,8 +156,12 @@ export class FileStorageService {
     return this.files$;
   }
 
+  // Sets pagination size to pageSize + 1 to check if there's a next page
   setPageSize(pageSize: number) {
-    this.paginator!.setPageSize(pageSize);
+    // in case the paginator doesn't exist yet (UserService is null)
+    // just set the instance variable so it can read from it later.
+    this.pageSize = pageSize;
+    this.paginator?.setPageSize(pageSize);
   }
 
   setPath(path: string) {
@@ -182,7 +185,72 @@ export class FileStorageService {
     this.updateQuery();
   }
 
-  downloadFile(file: UserFile) {}
+  deletePath(path: string) {
+    const cloudFunctionCallable = httpsCallable(
+      this.functions,
+      'request_user_delete_path'
+    );
+    cloudFunctionCallable({ path });
+  }
 
-  deletePath(path: string) {}
+  createFolder(name: string, path: string) {
+    if (name == '') {
+      return;
+    }
+
+    const cloudFunctionCallable = httpsCallable(
+      this.functions,
+      'request_user_create_folder'
+    );
+    cloudFunctionCallable({ name, path });
+  }
+
+  // TODO: these functions don't work. downloadFile() seems
+  // to work occasionally (sometimes downloads, other times opens a new
+  // window with file contents). since the saveAs package says it's meant
+  // for locally generated files there's probably a better solution I should research.
+
+  // for downloadFolder, I need to configure the CORS stuff on the bucket
+  // to be able to use getBlob() but i'm not sure what direction we should go
+  // on this at the moment. should we download directly from cloud storage?
+  // or move this out to backend?
+
+  async downloadFile(file: UserFile) {
+    // const storageRef = ref(this.storage, file.storageLink);
+    // const downloadUrl = await getDownloadURL(storageRef);
+    // saveAs(downloadUrl, file.name);
+  }
+
+  async downloadFolder(folder: UserFile) {
+    // const zip = new JSZip();
+    // await this.addFilesFromDirectoryToZip(folder.storageLink, zip);
+    // return await zip.generateAsync({ type: 'blob' });
+  }
+
+  private async addFilesFromDirectoryToZip(
+    cloudStoragePath: string,
+    zip: JSZip
+  ) {
+    // const storageRef = ref(this.storage, cloudStoragePath);
+    // const directoryContents = await listAll(storageRef);
+    // for (const file of directoryContents.items) {
+    //   const fileRef = ref(this.storage, file.fullPath);
+    //   const fileBlob = await getBlob(fileRef);
+    //   zip.file(file.fullPath, fileBlob);
+    // }
+    // for (const folder of directoryContents.prefixes) {
+    //   await this.addFilesFromDirectoryToZip(folder.fullPath, zip);
+    // }
+  }
+
+  // Paginator doesn't seem to work. Previous and next methods don't show the proper items.
+  // Since the existing paginator is limited by only going next and before anyway,
+  // a new pagination system might be in order.
+  nextPage() {
+    // this.paginator?.next();
+  }
+
+  previousPage() {
+    // this.paginator?.previous();
+  }
 }

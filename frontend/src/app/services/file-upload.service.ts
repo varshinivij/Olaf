@@ -8,6 +8,8 @@ import {
 } from '@angular/fire/storage';
 import { BehaviorSubject, Observable } from 'rxjs';
 
+import { posix } from 'path-browserify';
+
 import { UserFileUpload } from '../models/user-file-upload';
 
 @Injectable({
@@ -21,106 +23,101 @@ export class FileUploadService {
   constructor(private auth: Auth, private storage: Storage) {}
 
   /**
-   * Retrieves the current upload queue progress as an Observable.
-   *
-   * @returns An Observable of UploadProgress[].
+   * Retrieves the current upload progress queue as an observable.
    */
   getUploadProgress(): Observable<UserFileUpload[]> {
     return this.uploadProgress$;
   }
 
   /**
-   * Adds new files to the upload queue without removing existing ones.
+   * Removes an upload progress object from the queue.
    *
-   * @param files An array of File objects to be added to the upload queue.
+   * @param upload - A reference to the UserFileUpload object inside the array.
    */
-  addFiles(files: File[]): void {
+  removeUpload(upload: UserFileUpload): void {
     const currentUploads = this.uploadSubject.value;
-    const newUploads = files.map((file) => ({
-      file,
-      progress: 0,
-      downloadURL: null,
-      status: 'pending' as const,
-    }));
+    const removed = currentUploads.filter((u) => u != upload);
+    this.uploadSubject.next(removed);
+  }
+
+  /**
+   * Takes an array of files with a specified user upload path and
+   * adds corresponding UserFileUpload objects to the upload progress queue.
+   *
+   * @param files - Array of file objects to be uploaded.
+   * @param path - path of where to upload within the user's dashboard file system
+   */
+  uploadFiles(files: File[], path: string): void {
+    let currentUploads = this.uploadSubject.value;
+
+    // add new files to the observable
+    const newUploads = files.map(
+      (file) =>
+        ({
+          file,
+          progress: 0,
+          uploadPath: path, // the upload path relative to user's directory
+          downloadURL: null,
+          status: 'pending' as const,
+        } as UserFileUpload)
+    );
+
     this.uploadSubject.next([...currentUploads, ...newUploads]);
-    this.uploadFiles();
-  }
 
-  /**
-   * Replaces the current upload queue with a new set of files.
-   *
-   * @param files An array of File objects to set as the new upload queue.
-   */
-  setFiles(files: File[]): void {
-    const newUploads = files.map((file) => ({
-      file,
-      progress: 0,
-      downloadURL: null,
-      status: 'pending' as const,
-    }));
-    this.uploadSubject.next(newUploads);
-    this.uploadFiles();
-  }
-
-  /**
-   * Removes a file from the upload queue at the specified index.
-   *
-   * @param index The index of the file to be removed from the upload queue.
-   */
-  removeFile(index: number): void {
-    const currentUploads = this.uploadSubject.value;
-    currentUploads.splice(index, 1);
-    this.uploadSubject.next(currentUploads);
-  }
-
-  /**
-   * Initiates the upload process for all pending files in the queue.
-   * Uploads to currently logged in user's Firebase Storage folder at
-   * uploads/{userID}/{fileName}.
-   */
-  uploadFiles(): void {
-    const uploads = this.uploadSubject.value;
-    uploads.forEach((upload, index) => {
-      if (upload.status === 'pending') {
-        this.uploadFile(upload.file, index);
-      }
+    // queue the newly added files to upload
+    newUploads.forEach((upload) => {
+      this.uploadFile(upload);
     });
   }
 
-  private updateUpload(index: number, updates: Partial<UserFileUpload>): void {
-    const currentUploads = this.uploadSubject.value;
-    currentUploads[index] = { ...currentUploads[index], ...updates };
-    this.uploadSubject.next(currentUploads);
-  }
+  private uploadFile(upload: UserFileUpload): void {
+    // TODO: check for dupe file names. also add upload folders.
 
-  private uploadFile(file: File, index: number): void {
-    let filePath = `uploads/${this.auth.currentUser!.uid}/folder1/${
-      file.name
-    }`;
-    let storageRef = ref(this.storage, filePath);
+    const cloudStoragePath = posix.join(
+      'uploads',
+      // using the Auth library directly isn't amazing since it can be null
+      // for the first few secs when loading, but making a subscription inside
+      // a service seems to be discouraged. for now, i will do this.
+      this.auth.currentUser!.uid,
+      upload.uploadPath,
+      upload.file.name // add name check here
+    );
 
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    const storageRef = ref(this.storage, cloudStoragePath);
+    const uploadTask = uploadBytesResumable(storageRef, upload.file);
 
     uploadTask.on(
       'state_changed',
       (snapshot) => {
         const progress =
           (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        this.updateUpload(index, { progress, status: 'uploading' });
+        this.updateUpload(upload, { progress, status: 'uploading' });
       },
       (error) => {
         console.error('Upload failed: ', error);
-        this.updateUpload(index, { status: 'error' });
+        this.updateUpload(upload, { status: 'error' });
       },
       async () => {
         try {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          this.updateUpload(index, { downloadURL, status: 'completed' });
+          this.updateUpload(upload, { downloadURL, status: 'completed' });
         } catch (error) {
           console.error('Failed to get download URL: ', error);
-          this.updateUpload(index, { status: 'error' });
+          this.updateUpload(upload, { status: 'error' });
         }
       }
     );
+  }
+
+  private updateUpload(
+    upload: UserFileUpload,
+    updates: Partial<UserFileUpload>
+  ): void {
+    const currentUploads = this.uploadSubject.value;
+    const updated = currentUploads.map((u) =>
+      u == upload ? { ...upload, ...updates } : upload
+    );
+
+    this.uploadSubject.next(updated);
   }
 }

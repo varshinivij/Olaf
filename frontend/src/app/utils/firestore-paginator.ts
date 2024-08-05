@@ -3,6 +3,8 @@
 // templates, but I am modifying it to assist with pagination while
 // outsides services handle complex queries.
 
+// Next and previous pagination doesn't seem to work.
+
 // This code comes with ABSOLUTELY NO WARRANTY.
 
 import {
