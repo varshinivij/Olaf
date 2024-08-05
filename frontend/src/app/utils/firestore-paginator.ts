@@ -193,8 +193,17 @@ export class FirestorePaginator<T> {
                 this.firstEnabled.next(notFirstItem);
                 this.previousEnabled.next(notFirstItem);
 
+                // BUG: this would be where we assign the anchors.
+                // To make this work, these would need to be document snapshots which
+                // we can get since we have collection ref and doc ID in items[0].id.
+                // except getting snapshots is async which we can't do inside the
+                // switchmap. might call for a redesign of this system.
+
+                // mostly because this module was based on the old API and i tried
+                // modifying it to fit the new Angularfire/Firebase API.
+
                 // remember the anchors for moving to previous and next pages
-                this.prevAnchor = items[1].id; // item[1] because we have to use endBefore for previous and have to query one item extra
+                this.prevAnchor = items[1]; // item[1] because we have to use endBefore for previous and have to query one item extra
                 this.nextAnchor = items[items.length - 1]; // last item because we have to use startAt for next and queried one item extra only for this purpose
                 // this.trace('Anchor for prev', JSON.stringify(this.currentPrevAnchor.data()), "Anchor for next", JSON.stringify(this.currentNextAnchor.data()));
               } else {
