@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
+import Split from 'split.js';
 
 import { ChatService } from '../../services/chat.service';
 import { SandboxService } from '../../services/sandbox.service';
@@ -45,6 +46,15 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     public uploadService: UploadService,
     public userService: UserService
   ) {}
+
+  ngAfterViewInit() {
+    Split(['#sidebar', '#main-content', '#den-sidebar'], {
+      sizes: [25, 50, 25], // Initial sizes of the columns in percentage
+      minSize: 200, // Minimum size of each column in pixels
+      gutterSize: 10, // Size of the gutter (the draggable area between columns)
+      cursor: 'col-resize', // Cursor to show when hovering over the gutter
+    });
+  }
 
   ngOnInit() {
     this.uploadSubscription = this.uploadService.getUploadProgress().subscribe(
