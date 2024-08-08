@@ -63,6 +63,40 @@ def request_sandbox(req: Request) -> Response:
 
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def execute_on_sandbox(req: Request) -> Response:
+    """
+    This endpoint essentially returns the properties of the E2B Execution object
+    after executing some code.
+
+    Returns:
+        logs: {
+            stdout: List[str] of stdout messages
+            stderr: List[str] of stderr messages
+        }
+        error: None or str of E2B Error message
+        results: List[ {mimetype: str of data or None} ]
+            example:
+            List [
+                {
+                    "image/png": (base64 encoded PNG data as string)
+                }
+            ]
+
+    According to the E2B docs https://e2b.dev/docs/hello-world/py
+    the image data is encoded as b64, which can then be used as a binary string.
+    Not currently sure whether all data is encoded as b64 since the docs are
+    unclear. Will experiment to find out.
+
+    Decode the strings from B64 on the frontend and make the image from there
+    as a binary string.
+    
+    I don't see easier ways to return multiple files at once besides zipping,
+    but then I don't think you can send additional JSON data along with it.
+    Raw binary strings strings from E2B are the most convenient.
+
+    Also unclear whether a single result could have multiple mimetypes, but I
+    will return as much data as possible without filtering since it's the
+    frontend's job to filter data and the backend's to give as much as possible.
+    """
     try:
         sandbox_id = req.json.get("sandboxId")
         code = req.json.get("code")
@@ -70,7 +104,12 @@ def execute_on_sandbox(req: Request) -> Response:
         sandbox = CodeInterpreter.reconnect(sandbox_id, api_key=E2B_API_KEY)
         execution = sandbox.notebook.exec_cell(code)
 
-        result = {"output": execution.logs.stdout}
+        result = {
+            "logs": {"stdout": execution.logs.stdout, "stderr": execution.logs.stderr},
+            "error": execution.error.traceback if execution.error else None,
+            "results": [result.raw for result in execution.results],
+        }
+
         json_result = json.dumps(result)
 
         return Response(json_result, status=200)
