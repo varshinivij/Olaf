@@ -88,7 +88,7 @@ def execute_on_sandbox(req: Request) -> Response:
 
     Decode the strings from B64 on the frontend and make the image from there
     as a binary string.
-    
+
     I don't see easier ways to return multiple files at once besides zipping,
     but then I don't think you can send additional JSON data along with it.
     Raw binary strings strings from E2B are the most convenient.
@@ -97,6 +97,14 @@ def execute_on_sandbox(req: Request) -> Response:
     will return as much data as possible without filtering since it's the
     frontend's job to filter data and the backend's to give as much as possible.
     """
+    # to put auth into this endpoint, use the validate_firebase_id_token()
+    # function in file_storage_functions and wrap it around the req: Request
+    # object. this will require that the request puts a
+    # "Authorization: Bearer {idToken}" with an idToken from Firebase or it
+    # will error. Not currently putting it since it might be better to put
+    # the function somewhere else and don't want to login in everytime while
+    # testing.
+
     try:
         sandbox_id = req.json.get("sandboxId")
         code = req.json.get("code")
