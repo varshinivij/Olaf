@@ -1,0 +1,12 @@
+<input class="block" [(ngModel)]="sandboxId"/>
+<button class="bg-blue-500" (click)="getSandboxId()">get sandbox</button>
+<button class="bg-green-500" (click)="postCode()">execute</button>
+@for (result of results; track $index) {
+    @for (item of result | keyvalue; track $index) {
+        @if ($any(item.key).indexOf('image') === 0) {
+            <img [src]="'data:' + item.key + ';base64,' + item.value" />
+        } @else {
+            <p>{{ item.key + " " + item.value }}</p>
+        }
+    }
+}
