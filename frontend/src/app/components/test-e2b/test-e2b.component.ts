@@ -3,6 +3,9 @@ import { CommonModule, JsonPipe, KeyValuePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
+import { saveAs } from 'file-saver';
+import { basename } from 'path-browserify';
+
 @Component({
   selector: 'app-test-e2b',
   standalone: true,
@@ -12,12 +15,17 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 })
 export class TestE2bComponent {
   sandboxId = '';
-  executeResponse: any;
   results = [];
+  selectedUploadFiles: File[] = [];
+  downloadPath = '';
 
   executeUrl =
     'https://us-central1-twocube-web.cloudfunctions.net/execute_on_sandbox';
   boxUrl = 'https://us-central1-twocube-web.cloudfunctions.net/request_sandbox';
+  uploadUrl =
+    'https://us-central1-twocube-web.cloudfunctions.net/upload_to_sandbox';
+  downloadUrl =
+    'https://us-central1-twocube-web.cloudfunctions.net/download_from_sandbox';
 
   constructor(private http: HttpClient) {}
 
@@ -62,10 +70,49 @@ plt.show()`;
         { headers }
       )
       .subscribe((response: any) => {
-        this.executeResponse = response;
         console.log(response);
-        this.results = this.executeResponse.results;
         console.log(this.results);
+        this.results = response.results;
+      });
+  }
+
+  onUploadFilesSelected(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const files = target.files as FileList;
+    this.selectedUploadFiles = Array.from(files);
+  }
+
+  uploadFiles() {
+    // making the request as formData will send
+    // as contentType="multipart/form-data"
+    // however, explicity setting the header seems
+    // to be bad. reference: https://github.com/pallets/flask/discussions/4901
+    let formData = new FormData();
+    formData.append('sandboxId', this.sandboxId);
+    for (let file of this.selectedUploadFiles) {
+      formData.append('file', file, file.name);
+    }
+
+    this.http.post(this.uploadUrl, formData).subscribe((response: any) => {
+      console.log(response);
+    });
+  }
+
+  downloadFile() {
+    const path = this.downloadPath;
+
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+    });
+
+    this.http
+      .post(
+        this.downloadUrl,
+        { sandboxId: this.sandboxId, path },
+        { headers, responseType: 'blob' }
+      )
+      .subscribe((response: any) => {
+        saveAs(response, basename(path));
       });
   }
 }
