@@ -152,36 +152,4 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       }
     });
   }
-
-  onUploadFilesSelected(event: Event) {
-    const target = event.target as HTMLInputElement;
-    const files = target.files as FileList;
-    this.selectedUploadFiles = Array.from(files);
-    this.uploadService.setFiles(this.selectedUploadFiles);
-    console.log('Files selected: ', files);
-  }
-
-  async uploadFiles() {
-    try {
-      await this.uploadService.uploadFiles();
-    } catch (error) {
-      console.error('Error uploading files: ', error);
-    }
-  }
-
-  async logout() {
-    try {
-      await this.userService.logout();
-    } catch (error) {
-      console.error('Error logging out: ', error);
-    }
-  }
-
-  async deleteAccount() {
-    try {
-      await this.userService.deleteAccount();
-    } catch (error) {
-      console.error('Error deleting account: ', error);
-    }
-  }
 }
