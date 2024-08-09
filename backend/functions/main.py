@@ -13,6 +13,7 @@ from e2b_functions import (
     request_sandbox,
     execute_on_sandbox,
     upload_to_sandbox,
+    download_from_sandbox
 )
 
 from file_storage_functions import (

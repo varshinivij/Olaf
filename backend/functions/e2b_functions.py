@@ -1,6 +1,10 @@
 from firebase_functions import https_fn, options
 from e2b_code_interpreter import CodeInterpreter
+from flask import send_file
+from werkzeug.utils import secure_filename
 
+from pathlib import Path
+import io
 import json
 
 
@@ -12,7 +16,14 @@ E2B_TEMPLATE = "vh7kehbtf0t4xbx9ec9u"
 def request_sandbox(req: https_fn.Request) -> https_fn.Response:
     try:
         sandbox = CodeInterpreter(
-            api_key=E2B_API_KEY, template=E2B_TEMPLATE, timeout=300
+            api_key=E2B_API_KEY,
+            template=E2B_TEMPLATE,
+            timeout=300,
+            cwd="/home/user",
+            # This is also the default folder for E2B uploads.
+            # Setting the cwd might be a good idea since the root dir
+            # contains the Dockerfile and whatnot. Maybe restrict user permits
+            # to just this folder.
         )
         sandbox_id = sandbox.id
         sandbox.keep_alive(5 * 60)  # keep box alive for 5minutes
@@ -28,29 +39,74 @@ def request_sandbox(req: https_fn.Request) -> https_fn.Response:
 @https_fn.on_request(cors=options.CorsOptions(cors_origins="*", cors_methods=["post"]))
 def upload_to_sandbox(req: https_fn.Request) -> https_fn.Response:
     """
-    Body data:
-        sandboxId: the string ID of the sandbox to execute in
+    Accepts HTTP requests with ContentType "multipart/form-data." This can be
+    done through <form> tags with enctype="multipart/form-data" or using
+    FormData objects: https://developer.mozilla.org/en-US/docs/Web/API/FormData
 
-    Uploaded files should come from a <form enctype="multipart/form-data">
-    with input tags for file upload. That seems to be how Flask works, not my
-    design. (Firebase Cloud Functions are built on top of Flask.) View the
-    documentation under req.files (Intellisense helps) to learn more.
+    Currently, the form data should have a key "sandboxId": the key to the
+    sandbox, along with any files that should be uploaded to the E2B instance
+    with FormData key as "file".
+
+    For future consideration, it may be better to use a RESTful interface:
+    for example, [api]/sandbox/{sandboxId}/upload. But for now, the ID goes
+    inside the form data.
     """
     try:
-        sandbox_id = req.json.get("sandboxId")
-        files = req.files.getlist("files")
+        sandbox_id = req.form["sandboxId"]
+        files = req.files.getlist("file")
 
         sandbox = CodeInterpreter.reconnect(sandbox_id, api_key=E2B_API_KEY)
         for file in files:
-            sandbox.upload_file(file.stream)
+            # Even though file is a FileStorage object (which is a custom
+            # interface from Flask) and not a standard Python file object,
+            # it still works. Ignore linters. This took me forever to figure out.
+            if file.filename is not None:
+                file.name = secure_filename(file.filename)
+            # file.name will be "file" if no filename is provided
+            # although i'm not sure if that's possible.
 
-        content = sandbox.filesystem.list(".")
+            sandbox.upload_file(file)
+
+        # this is the directory where uploads are sent
+        content = sandbox.filesystem.list("/home/user")
         cwdFiles = [{"name": item.name, "isDir": item.is_dir} for item in content]
 
-        result = {"cwd": cwdFiles}
+        result = {"uploadDir": cwdFiles}
 
         json_result = json.dumps(result)
         return https_fn.Response(json_result, status=200)
+
+    except Exception as e:
+        json_error = json.dumps({"error": str(e)})
+        return https_fn.Response(json_error, status=500)
+
+
+@https_fn.on_request(cors=options.CorsOptions(cors_origins="*", cors_methods=["post"]))
+def download_from_sandbox(req: https_fn.Request) -> https_fn.Response:
+    """
+    Downloads a file from an E2B instance relative to the "/home/user/" folder
+    since that's where uploads go. It might be good to restrict permissions
+    to just this folder since we don't want them messing with the Dockerfile
+    and such.
+
+    Because of this, I've set the CWD in the request_sandbox function to be
+    "/home/user".
+
+    Body data:
+        sandboxId: the string ID of the sandbox to execute in
+        code: the Python code to execute as a string
+    """
+    try:
+        sandbox_id = req.json.get("sandboxId")
+        path: Path = Path("/home/user") / req.json.get("path")
+        file_name = path.name
+
+        sandbox = CodeInterpreter.reconnect(sandbox_id, api_key=E2B_API_KEY)
+        file_bytes = sandbox.download_file(path.as_posix())
+
+        return send_file(
+            io.BytesIO(file_bytes), as_attachment=True, download_name=file_name
+        )
 
     except Exception as e:
         json_error = json.dumps({"error": str(e)})
