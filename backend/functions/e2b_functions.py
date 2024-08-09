@@ -94,7 +94,8 @@ def download_from_sandbox(req: https_fn.Request) -> https_fn.Response:
 
     Body data:
         sandboxId: the string ID of the sandbox to execute in
-        code: the Python code to execute as a string
+        path: the path inside the E2B instance to download. path is relative
+              to "/home/user" (so you don't need to specify dir for uploads.)
     """
     try:
         sandbox_id = req.json.get("sandboxId")
