@@ -1,9 +1,8 @@
-import json
 from history import History
-from functions.agent_utils import chat_completion
+from agent_utils import chat_completion
 
 system_prompt = """
-You are `PlannerAgent`, an experienced planner and requirements generator with expertise in bioinformatics and neural network modeling. Your task is to generate detailed, structured plans based on the user's query. Focus on the following aspects:
+You are `MasterAgent`, an experienced planner and requirements generator with expertise in bioinformatics and neural network modeling. Your task is to generate detailed, structured plans based on the user's query. Focus on the following aspects:
 - Class structures, including relationships and components.
 - Neural network architecture, layers, and connections.
 - Preprocessing steps specific to genomic data.
@@ -16,7 +15,7 @@ system = {
         "content": system_prompt
       }
 
-class PlannerAgent:
+class MasterAgent:
 
     def __init__(self):
         self.history = History(system)

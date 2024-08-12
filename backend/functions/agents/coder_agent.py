@@ -1,5 +1,5 @@
 from prompts import few_shot_examples
-from functions.agent_utils import *
+from agent_utils import *
 from history import History
 
 system_prompt = """

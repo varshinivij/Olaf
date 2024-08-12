@@ -1,19 +1,17 @@
-from functions.agents.coder_agent import CoderAgent
-from functions.agents.tester_agent import TesterAgent
-from functions.agents.planner_agent import PlannerAgent
-from executor import Executor
-from firebase_admin import initialize_app
+import json
 
+from executor import Executor
+from agents.coder_agent import CoderAgent
+from agents.tester_agent import TesterAgent
+from agents.master_agent import MasterAgent
+
+from firebase_admin import initialize_app
 from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
 
 from e2b import Sandbox
 from e2b_code_interpreter import CodeInterpreter
 import concurrent.futures
-
-from agent_logic import MasterAgent
-
-import json
 
 # initialize cloud functions defined in this file  (organizing like this
 # may be better). maybe even put helper modules in a separate /utils folder.
@@ -26,6 +24,11 @@ from file_storage_functions import (
 
 initialize_app()
 
+# Global dictionaries to store agent instances
+agent_store = {
+    "coder_agent": None,
+    "tester_agent": None
+}
 
 E2B_API_KEY = "REMOVED"
 
@@ -85,9 +88,92 @@ def execute_on_sandbox(req: Request) -> Response:
         return Response(json_error, status=500)
 
 
+# --- MasterAgent Function ---
+@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+def plan_query(req: Request) -> Response:
+    query = req.json.get("query")
+    master_agent = MasterAgent()
+    plan = master_agent.plan(query)
+    
+    response_data = {
+        "plan": plan
+    }
+    
+    return Response(json.dumps(response_data), status=200)
+
+
+# --- CoderAgent Function ---
+@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+def generate_code(req: Request) -> Response:
+    plan = req.json.get("plan")
+    language = req.json.get("language", "Python")
+    coder_agent = CoderAgent(language=language)
+    agent_store["coder_agent"] = coder_agent
+    
+    generated_code = coder_agent.generate(plan)
+    
+    response_data = {
+        "code": generated_code
+    }
+    
+    return Response(json.dumps(response_data), status=200)
+
+
+@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+def regenerate_code(req: Request) -> Response:
+    plan = req.json.get("plan")
+    code_result = req.json.get("code_result")
+    test_result = req.json.get("test_result")
+    language = req.json.get("language", "Python")
+    coder_agent = agent_store.get("coder_agent")
+    
+    regenerated_code = coder_agent.regenerate(plan, code_result, test_result)
+    
+    response_data = {
+        "code": regenerated_code
+    }
+    
+    return Response(json.dumps(response_data), status=200)
+
+
+# --- TesterAgent Function ---
+@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+def generate_tests(req: Request) -> Response:
+    plan = req.json.get("plan")
+    language = req.json.get("language", "Python")
+    tester_agent = TesterAgent(language=language)
+    agent_store["tester_agent"] = tester_agent
+    
+    generated_tests = tester_agent.generate(plan)
+    
+    response_data = {
+        "tests": generated_tests
+    }
+    
+    return Response(json.dumps(response_data), status=200)
+
+
+@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+def regenerate_tests(req: Request) -> Response:
+    plan = req.json.get("plan")
+    code_result = req.json.get("code_result")
+    test_result = req.json.get("test_result")
+    language = req.json.get("language", "Python")
+    tester_agent = agent_store.get("tester_agent")
+    
+    regenerated_tests = tester_agent.regenerate(plan, code_result, test_result)
+    
+    response_data = {
+        "tests": regenerated_tests
+    }
+    
+    return Response(json.dumps(response_data), status=200)
+
+
+# --- Workflow Function ---
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def code_generation_workflow(req: Request) -> Response:
-    planner_agent = PlannerAgent()
+    planner_agent = MasterAgent()
     coder_agent = CoderAgent(language='Python')
     tester_agent = TesterAgent(language='Python')
     executor_agent = Executor(api_key=E2B_API_KEY)

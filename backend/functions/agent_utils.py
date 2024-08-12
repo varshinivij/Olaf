@@ -1,4 +1,5 @@
 import requests
+import re
 
 def chat_completion(history):
         api_key = "REMOVED"
