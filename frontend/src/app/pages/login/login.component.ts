@@ -60,7 +60,8 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   async loginWithGoogle() {
     try {
-      await this.userService.loginWithGoogle();
+      await this.userService.loginWithGoogle()
+      await this.router.navigate(['/workspace'])
     } catch (error) {
       // this.errorMessage = UserService.convertAuthErrorToMessage(error);
       console.error('Error logging in with Google: ', error);
@@ -73,6 +74,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.loginForm.value.email,
         this.loginForm.value.password
       );
+      await this.router.navigate(['/workspace'])
     } catch (error) {
       // this.errorMessage = UserService.convertAuthErrorToMessage(error);
       console.error('Error logging in with email: ', error);

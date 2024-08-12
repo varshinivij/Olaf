@@ -36,6 +36,9 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     },
   ];
 
+  plans: string[] = []
+  codes: string[] = []
+
   newMessage: string = '';
 
   constructor(
@@ -151,5 +154,33 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         this.executeCode(message.content);
       }
     });
+  }
+
+  requestPlan() {
+    this.loading = true;
+    this.chatService.requestPlan(this.messages).subscribe(
+      (response: ChatMessage[]) => {
+        this.plans = [...this.plans, ...response.map((message) => message.content)];
+        this.loading = false;
+      },
+      (error) => {
+        console.error('Error:', error);
+        this.loading = false;
+      }
+    );
+  }
+
+  requestCode() {
+    this.loading = true;
+    this.chatService.requestCode(this.messages).subscribe(
+      (response: ChatMessage[]) => {
+        this.codes = [...this.codes, ...response.map((message) => message.content)];
+        this.loading = false;
+      },
+      (error) => {
+        console.error('Error:', error);
+        this.loading = false;
+      }
+    );
   }
 }
