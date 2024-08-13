@@ -10,8 +10,9 @@ import { ChatService } from '../../services/chat.service';
 import { SandboxService } from '../../services/sandbox.service';
 import { UploadService } from '../../services/upload.service';
 import { UserService } from '../../services/user.service';
-
+import { SessionsService } from '../../services/sessions.service';
 import { ChatMessage } from '../../models/chat-message';
+
 
 @Component({
   selector: 'app-chat',
@@ -28,14 +29,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   
   selectedTab: string = 'planner'; // Default tab
 
-  messages: ChatMessage[] = [
-    {
-      type: 'text',
-      role: 'assistant',
-      content: 'Hello, how can I help you today?',
-    },
-  ];
-
   newMessage: string = '';
 
   constructor(
@@ -43,6 +36,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     private router: Router,
     private chatService: ChatService,
     private sandboxService: SandboxService,
+    public sessionsService: SessionsService,
     public uploadService: UploadService,
     public userService: UserService
   ) {}
@@ -61,7 +55,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       (uploads) => {
         console.log(uploads);
       }
-    );
+    ); 
   }
 
   ngOnDestroy() {
@@ -95,15 +89,16 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         role: 'user',
         content: this.newMessage,
       };
-      this.messages.push(userMessage);
+      this.sessionsService.addMessageToActiveSession(userMessage);
       this.newMessage = '';
       this.loading = true;
 
-      this.chatService.sendMessage(this.messages).subscribe(
+      this.chatService.sendMessage(this.sessionsService.activeSession.history).subscribe(
         (response: ChatMessage[]) => {
           this.processResponse(response);
-          this.messages = [...this.messages, ...response];
+          this.sessionsService.activeSession.history = [...this.sessionsService.activeSession.history, ...response];
           this.loading = false;
+          this.sessionsService.saveActiveSession();
         },
         (error) => {
           console.error('Error:', error);
@@ -115,9 +110,9 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   continue() {
     this.loading = true;
-    this.chatService.sendMessage(this.messages).subscribe(
+    this.chatService.sendMessage(this.sessionsService.activeSession.history).subscribe(
       (response: ChatMessage[]) => {
-        this.messages = [...this.messages, ...response];
+        this.sessionsService.activeSession.history = [...this.sessionsService.activeSession.history, ...response];
         this.loading = false;
       },
       (error) => {
@@ -135,7 +130,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
           role: 'assistant',
           content: result.output || 'Code executed goes here',
         };
-        this.messages.push(codeResultMessage);
+        this.sessionsService.activeSession.history.push(codeResultMessage);
         this.loading = false;
       },
       (error) => {
