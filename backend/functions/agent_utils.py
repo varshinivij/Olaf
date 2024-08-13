@@ -12,7 +12,7 @@ def chat_completion(history):
 
         payload = {
             "model": "gpt-4o",
-            "messages": history,
+            "messages": history.get_history(),
             "temperature": 0.1
         } 
 
@@ -24,8 +24,6 @@ def chat_completion(history):
             return response_message
 
         else:
-
-
             print(f"Error: {response.status_code}, {response.text}")
             return None
         
