@@ -30,6 +30,7 @@
     "jszip": "^3.10.1",
     "path-browserify": "^1.0.1",
     "rxjs": "~7.8.0",
+    "split.js": "^1.6.5",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.3"
   },

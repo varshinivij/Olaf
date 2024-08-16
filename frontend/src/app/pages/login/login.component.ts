@@ -21,7 +21,7 @@ import { UserService } from '../../services/user.service';
 export class LoginComponent implements OnInit, OnDestroy {
   loginForm: FormGroup;
   errorMessage: string | null = null;
-  private subscription: Subscription | undefined;
+  private subscription: Subscription | null = null;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -34,19 +34,20 @@ export class LoginComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit() {
-    this.subscription = this.userService.getCurrentUser().subscribe({
-      next: (user) => {
-        if (user) {
-          console.log('Logged in: ', user);
-          this.router.navigate(['/home']);
-        }
-      },
-      error: (error) => {
-        this.errorMessage = UserService.convertAuthErrorToMessage(error);
-        console.error('Error retrieving user data: ', error);
-      },
-    });
+  ngOnInit(): void {
+    if (this.userService) {
+      this.subscription = this.userService.getCurrentUser().subscribe({
+        next: (user) => {
+          if (user) {
+            console.log('Logged in: ', user);
+            this.router.navigate(['/home']);
+          }
+        },
+        error: (error) => {
+          console.error('Error retrieving user data: ', error);
+        },
+      });
+    }
   }
 
   ngOnDestroy() {
@@ -61,7 +62,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     try {
       await this.userService.loginWithGoogle();
     } catch (error) {
-      this.errorMessage = UserService.convertAuthErrorToMessage(error);
+      // this.errorMessage = UserService.convertAuthErrorToMessage(error);
       console.error('Error logging in with Google: ', error);
     }
   }
@@ -73,7 +74,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.loginForm.value.password
       );
     } catch (error) {
-      this.errorMessage = UserService.convertAuthErrorToMessage(error);
+      // this.errorMessage = UserService.convertAuthErrorToMessage(error);
       console.error('Error logging in with email: ', error);
     }
   }
