@@ -39,7 +39,7 @@ export class SignupComponent implements OnInit, OnDestroy {
       next: (user) => {
         if (user) {
           console.log('Logged in: ', user);
-          this.router.navigate(['/home']);
+          this.router.navigate(['/dashboard']);
         }
       },
       error: (error) => {
