@@ -1,3 +1,5 @@
+// CURRENTLY UNUSED
+
 /*
     Gets the lexicographically next string from a given string.
     Used to check if a string starts with a certain substring.

@@ -1,6 +1,9 @@
-<div class="flex flex-col w-full h-screen">
+<div class="flex flex-col w-full h-screen p-6 rounded-lg bg-white">
+  <p class="text-2xl font-bold">Data</p>
+  <p class="text-lg">Upload and manage different types of data.</p>
+
   <!-- search bar -->
-  <div class="flex-none relative mb-7 w-1/2 h-9">
+  <div class="flex-none relative my-5 w-1/2 h-9">
     <input
       class="border border-[#4F4F4F]/40 focus:outline-none text-sm pl-10 rounded-xl w-full h-full"
       placeholder="Search files..."
@@ -24,7 +27,7 @@
       {{ $first ? "My Files" : path }}
     </button>
     @if (!$last) {
-    <p class="text-3xl font-normal">/</p>
+    <p class="text-3xl font-normal">></p>
     } }
   </div>
 
@@ -121,13 +124,34 @@
       </thead>
       <!-- file rows -->
       <tbody>
-        @for (file of (fileStorageService.getFiles() | async); track file.id) {
+        <!-- display uploading files -->
+        @for (upload of uploadQueue; track upload.file) { @if (searchFilter ===
+        '' && upload.uploadPath === currentPathToString()) {
+        <tr class="bg-white hover:brightness-90">
+          <td class="px-4 truncate italic">
+            <img
+              class="inline w-8 pr-3 py-1"
+              [src]="fileTypeIcons['unknown']"
+            />
+            {{ upload.file.name }}
+          </td>
+          <td class="pr-4 truncate italic">Uploading...</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        } }
+        <!-- display already stored files -->
+        @for (file of displayedFiles; track file.id) {
         <tr
           class="bg-white hover:brightness-90"
-          (dblclick)="file.isFolder ? toNewDirectory(file.name) : null"
+          (dblclick)="file.isFolder ? toNextDirectory(file.name) : null"
         >
           <td class="px-4 truncate">
-            <img class="inline w-8 pr-3" [src]="fileTypeIcons[file.type]" />
+            <img
+              class="inline w-8 pr-3 py-1"
+              [src]="fileTypeIcons[file.type]"
+            />
             {{ file.name }}
           </td>
           <td class="pr-4 truncate">
@@ -154,7 +178,7 @@
               file_download
             </button> -->
             <button
-              class="material-symbols-outlined py-1 align-middle"
+              class="material-symbols-outlined align-middle"
               type="button"
               (click)="deleteFileOrFolder(file)"
             >
@@ -169,23 +193,68 @@
 
   <!-- bottom page navigator -->
   <div class="flex-none mt-auto flex gap-x-4 justify-center items-center">
-    <button class="text-[#9E9E9E] text-sm" type="button">Previous</button>
-    <button class="bg-[#024050] text-white rounded-xl h-10 w-10" type="button">
-      1
+    <button
+      class="text-[#9E9E9E] text-sm"
+      type="button"
+      (click)="previousPage()"
+      [disabled]="pageNumber === 1"
+    >
+      Previous
     </button>
+
+    <!-- 2 pages back number -->
+    @if (pageNumber === totalPages && pageNumber > 2) {
     <button
       class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
       type="button"
+      (click)="setPage(pageNumber - 2)"
     >
-      2
+      {{ pageNumber - 2 }}
     </button>
+    }
+    <!-- previous page number -->
+    @if (pageNumber !== 1) {
     <button
       class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
       type="button"
+      (click)="setPage(pageNumber - 1)"
     >
-      3
+      {{ pageNumber - 1 }}
     </button>
-    <button class="text-[#9E9E9E] text-sm" type="button">Next</button>
+    }
+    <!-- current page -->
+    <button class="bg-[#024050] text-white rounded-xl h-10 w-10">
+      {{ pageNumber }}
+    </button>
+    <!-- next page -->
+    @if (pageNumber !== totalPages) {
+    <button
+      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+      type="button"
+      (click)="setPage(pageNumber + 1)"
+    >
+      {{ pageNumber + 1 }}
+    </button>
+    }
+    <!-- 2 pages forward -->
+    @if (pageNumber === 1 && totalPages > 2) {
+    <button
+      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+      type="button"
+      (click)="setPage(pageNumber + 2)"
+    >
+      {{ pageNumber + 2 }}
+    </button>
+    }
+
+    <button
+      class="text-[#9E9E9E] text-sm"
+      type="button"
+      (click)="nextPage()"
+      [disabled]="pageNumber === totalPages"
+    >
+      Next
+    </button>
   </div>
 
   <!-- create folder dialog -->

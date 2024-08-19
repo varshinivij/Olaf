@@ -1,5 +1,16 @@
+/* TODO:
+1) maybe some sort of toast message on upload success/not
+2) progress indicators on folder creation/file deletion
+  (tricky since folder creation is currently a cloud function.
+  maybe finish loading based on when the request returns,
+  but this would be different from the uploadService entirely.
+  tricky to design this well.
+3) a lot of logic for filtering data on the client side is here.
+   perhaps moving it out to a separate utility class just like
+   firestore-paginator is ideal.
+*/
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { AsyncPipe, CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { OrderByDirection } from '@angular/fire/firestore';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -10,44 +21,51 @@ import { formatBytes } from '../../utils/format-bytes';
 import { titleCase } from '../../utils/title-case';
 
 import { FileStorageService } from '../../services/file-storage.service';
-import { FileUploadService } from '../../services/file-upload.service';
+import { UploadService } from '../../services/upload.service';
 
-import {
-  UserFile,
-  UserFileSortKey,
-  UserFileType,
-} from '../../models/user-file';
+import { ExtensionType } from '../../models/extension-type';
 import { UserFileUpload } from '../../models/user-file-upload';
+import { UserFile } from '../../models/user-file';
 
 interface FilterButton {
   name: string;
-  type: UserFileType;
+  type: ExtensionType;
 }
 
 type FileTypeIcons = {
-  [K in UserFileType]: string;
+  [K in ExtensionType]: string;
 };
 
 @Component({
   selector: 'app-file-storage',
   standalone: true,
-  imports: [AsyncPipe, CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './file-storage.component.html',
   styleUrl: './file-storage.component.scss',
 })
 export class FileStorageComponent implements OnInit, OnDestroy {
+  private fileStorageSubscription?: Subscription;
+  private uploadSubscription?: Subscription;
+
+  pageSize = 10;  // setting
+  pageNumber = 1;
+  totalPages = 1;  // updated automatically
+
   currentPath = ['/'];
-  createFolderName = '';
-  searchFilter = '';
-  typeFilter = null as UserFileType | null;
-  sortFilter = 'name' as UserFileSortKey;
+  createFolderName = ''; // ngModel variable
+  searchFilter = ''; // ngModel variable
+  typeFilter = null as ExtensionType | null;
+  sortFilter = 'name' as keyof UserFile;
   sortDirectionFilter = 'asc' as OrderByDirection;
 
-  // make imported function available to template
+  private userFiles: UserFile[] = [];
+  displayedFiles: UserFile[] = []; // will store userFiles after sort/filtering
+  uploadQueue: UserFileUpload[] = [];
+
+  // make imported util functions available to template
+  // (is there really no better way to do this?)
   formatBytes = formatBytes;
   titleCase = titleCase;
-
-  private fileUploadSubscription?: Subscription;
 
   filterButtons: FilterButton[] = [
     { name: 'Folders', type: 'folder' },
@@ -67,53 +85,85 @@ export class FileStorageComponent implements OnInit, OnDestroy {
 
   constructor(
     public fileStorageService: FileStorageService,
-    public fileUploadService: FileUploadService
+    public uploadService: UploadService
   ) {}
 
   ngOnInit() {
-    this.fileStorageService.setPageSize(10);
-    this.fileUploadSubscription = this.fileUploadService
+    this.fileStorageSubscription = this.fileStorageService
+      .getFiles()
+      .subscribe((files: UserFile[] | null) => {
+        if (files) {
+          this.userFiles = files;
+        } else {
+          this.userFiles = [];
+        }
+        this.sortAndFilterFiles();
+      });
+
+    this.uploadSubscription = this.uploadService
       .getUploadProgress()
       .subscribe((uploadProgress: UserFileUpload[]) => {
+        this.uploadQueue = uploadProgress;
+
         uploadProgress.forEach((upload) => {
           if (upload.status == 'completed') {
             // probably make a toast message or something here
             console.log('Upload succeeded:', upload);
-            this.fileUploadService.removeUpload(upload);
+            this.uploadService.removeUpload(upload);
           } else if (upload.status == 'error') {
             // probably make a toast message or something here
             console.error('Upload failed:', upload);
-            this.fileUploadService.removeUpload(upload);
+            this.uploadService.removeUpload(upload);
           }
         });
       });
   }
 
   ngOnDestroy(): void {
-    this.fileUploadSubscription?.unsubscribe();
+    this.fileStorageSubscription?.unsubscribe();
+    this.uploadSubscription?.unsubscribe();
+  }
+
+  /*
+    PAGE NAVIGATOR METHODS
+  */
+  previousPage() {
+    if (this.pageNumber > 1) {
+      this.pageNumber--;
+      this.sortAndFilterFiles();
+    }
+  }
+
+  nextPage() {
+    if (this.pageNumber < this.totalPages) {
+      this.pageNumber++;
+      this.sortAndFilterFiles();
+    }
+  }
+
+  setPage(page: number) {
+    if (page >= 1 && page <= this.totalPages) {
+      this.pageNumber = page;
+      this.sortAndFilterFiles();
+    }
+  }
+
+  /*
+    DOWNLOAD/CREATE FOLDER UTILITY METHODS
+  */
+  currentPathToString() {
+    return posix.join(...this.currentPath);
   }
 
   onUploadFilesSelected(event: Event) {
     const target = event.target as HTMLInputElement;
     const files = target.files as FileList;
-    this.fileUploadService.uploadFiles(
+    this.uploadService.uploadFiles(
       Array.from(files),
       posix.join(...this.currentPath)
     );
-  }
-
-  toPreviousDirectory(pathIndex: number) {
-    if (pathIndex < 0) {
-      return;
-    }
-
-    this.currentPath.splice(pathIndex + 1);
-    this.fileStorageService.setPath(posix.join(...this.currentPath));
-  }
-
-  toNewDirectory(directory: string) {
-    this.currentPath.push(directory);
-    this.fileStorageService.setPath(posix.join(...this.currentPath));
+    // reset input file selection (if u don't, can't select same file again)
+    target.value = '';
   }
 
   downloadFileOrFolder(file: UserFile) {
@@ -131,27 +181,109 @@ export class FileStorageComponent implements OnInit, OnDestroy {
   }
 
   createFolder() {
+    // this.createFolderName already updated through ngModel
     const currentDir = posix.join(...this.currentPath);
     console.log(currentDir, this.createFolderName);
     this.fileStorageService.createFolder(this.createFolderName, currentDir);
     this.createFolderName = '';
   }
 
-  applySearchFilter() {
-    this.fileStorageService.setSearchFilter(this.searchFilter);
+  /*
+    SORT/FILTER UTILITY METHODS
+  */
+
+  /*
+   * Updates displayedFiles and totalPages to match current
+   * page number/sort/filter settings.
+   * */
+  private sortAndFilterFiles() {
+    this.userFiles.sort((a, b) => {
+      const valueA: any = a[this.sortFilter];
+      const valueB: any = b[this.sortFilter];
+      let cmp;
+
+      if (typeof valueA === 'string') {
+        cmp = valueA.localeCompare(valueB);
+      } else {
+        cmp = valueA - valueB;
+      }
+
+      if (this.sortDirectionFilter === 'desc') {
+        cmp = -cmp;
+      }
+
+      return cmp;
+    });
+
+    const pageIndexStart = this.pageSize * (this.pageNumber - 1);
+    const pageIndexLast = pageIndexStart + this.pageSize - 1;
+    const currentPath = posix.join(...this.currentPath);
+    let totalFilteredFiles = 0;
+
+    this.displayedFiles = this.userFiles
+      .filter((file: UserFile) => {
+        if (this.searchFilter !== '') {
+          if (
+            // file name should start with the search query, non-case-sensitive
+            !file.name.toLowerCase().startsWith(this.searchFilter.toLowerCase())
+          ) {
+            return false;
+          }
+        } else {
+          // if no search filter, filter based on path
+          if (file.path !== currentPath) {
+            return false;
+          }
+        }
+
+        // finally, filter based on type
+        if (this.typeFilter !== null && file.type !== this.typeFilter) {
+          return false;
+        }
+
+        totalFilteredFiles++;
+        return true;
+      })
+      .filter((file: UserFile, index: number) => {
+        // after filtering, display only the pagesize amount of results
+        return index >= pageIndexStart && index <= pageIndexLast;
+      });
+
+    this.totalPages = Math.max(
+      1,
+      Math.ceil(totalFilteredFiles / this.pageSize)
+    );
   }
 
-  applyTypeFilter(type: UserFileType) {
+  toPreviousDirectory(pathIndex: number) {
+    if (pathIndex < 0) {
+      return;
+    }
+    this.currentPath.splice(pathIndex + 1);
+    this.sortAndFilterFiles();
+  }
+
+  toNextDirectory(directory: string) {
+    this.currentPath.push(directory);
+    this.sortAndFilterFiles();
+  }
+
+  applySearchFilter() {
+    // this.searchFilter is already updated through ngModel
+    // maybe restructure it to be more readable?
+    this.sortAndFilterFiles();
+  }
+
+  applyTypeFilter(type: ExtensionType) {
     if (type == this.typeFilter) {
       this.typeFilter = null;
     } else {
       this.typeFilter = type;
     }
-
-    this.fileStorageService.setTypeFilter(this.typeFilter);
+    this.sortAndFilterFiles();
   }
 
-  applySortFilter(sort: UserFileSortKey) {
+  applySortFilter(sort: keyof UserFile) {
     if (sort == this.sortFilter) {
       this.sortDirectionFilter == 'asc'
         ? (this.sortDirectionFilter = 'desc')
@@ -160,21 +292,17 @@ export class FileStorageComponent implements OnInit, OnDestroy {
       this.sortFilter = sort;
       this.sortDirectionFilter = 'asc';
     }
-
-    this.fileStorageService.setSortField(
-      this.sortFilter,
-      this.sortDirectionFilter
-    );
+    this.sortAndFilterFiles();
   }
 
-  getSortDirectionMatIcon(sort: UserFileSortKey) {
+  getSortDirectionMatIcon(sort: keyof UserFile) {
     if (sort == this.sortFilter) {
       if (this.sortDirectionFilter == 'asc') {
-        return 'expand_less'
+        return 'expand_less';
       } else {
-        return 'expand_more'
+        return 'expand_more';
       }
     }
-    return 'unfold_more'
+    return 'unfold_more';
   }
 }

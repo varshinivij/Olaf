@@ -1,5 +1,5 @@
 <div
-  class="flex flex-col items-center border-3 rounded-lg py-3 bg-[#FAFAFA] overflow-y-auto w-44 h-full"
+  class="flex flex-col items-center border-3 rounded-lg py-3 bg-[#FAFAFA] overflow-y-auto w-full h-full"
 >
   <!-- profile picture/company name -->
   <img
@@ -12,23 +12,23 @@
     }}
   </p>
   <!-- divider -->
-  <hr class="border border-[#038C7F]/30 mt-4 mb-3 w-[9.25rem]" />
+  <hr class="border border-[#038C7F]/30 mt-4 mb-3 w-[calc(100%-1.5rem)]" />
   <!-- button column -->
   <div class="flex flex-col flex-grow px-3 w-full">
-    @for (page of pages; track $index;){
+    @for (page of pages; track page;){
     <button
       class="flex justify-start items-center p-2 gap-x-3 rounded-lg"
       [ngClass]="{
         'bg-[#F1F1F1] font-semibold text-[#252526]':
-          selectedPageIndex === $index,
-        'text-[#666567]': selectedPageIndex !== $index,
+          selectedPage === page,
+        'text-[#666567]': selectedPage !== page,
         'mt-auto': $last
       }"
       type="button"
-      (click)="selectedPageIndex = $index"
+      (click)="selectPage(page)"
     >
-      <i class="material-icons-outlined text-[#666567]">{{ page.icon }}</i>
-      {{ page.name }}
+      <i class="material-icons-outlined text-[#666567]">{{ page.mat_i_outlined_icon }}</i>
+      {{ titleCase(page.name) }}
     </button>
     }
   </div>

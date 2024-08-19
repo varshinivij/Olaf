@@ -7,7 +7,7 @@ import { Observable, Subscription } from 'rxjs';
 
 import { ChatService } from '../../services/chat.service';
 import { SandboxService } from '../../services/sandbox.service';
-import { FileUploadService } from '../../services/file-upload.service';
+import { UploadService } from '../../services/upload.service';
 import { UserService } from '../../services/user.service';
 
 import { ChatMessage } from '../../models/chat-message';
@@ -30,16 +30,16 @@ export class HomeComponent {
     private router: Router,
     private chatService: ChatService,
     private sandboxService: SandboxService,
-    public uploadService: FileUploadService,
+    public uploadService: UploadService,
     public userService: UserService
   ) {}
 
   ngOnInit() {
-    this.uploadSubscription = this.uploadService.getUploadProgress().subscribe(
-      (uploads) => {
+    this.uploadSubscription = this.uploadService
+      .getUploadProgress()
+      .subscribe((uploads) => {
         console.log(uploads);
-      }
-    );
+      });
   }
 
   ngOnDestroy() {

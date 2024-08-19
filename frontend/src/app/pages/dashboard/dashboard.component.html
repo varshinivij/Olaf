@@ -1,0 +1,14 @@
+<div class="flex h-screen overflow-hidden bg-[#F1F1F1]">
+  <app-sidebar id="sidebar" (pageSelected)="selectPage($event)"></app-sidebar>
+  <div id="main-content">
+    @if (selectedPage === 'projects') {
+    <div class="h-full w-full">projects</div>
+    }
+    @if (selectedPage === 'data') {
+    <app-file-storage></app-file-storage>
+    }
+    @if (selectedPage === 'settings') {
+    <div class="h-full w-full">settings</div>
+    }
+  </div>
+</div>

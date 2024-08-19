@@ -1,3 +1,5 @@
+// CURRENTLY UNUSED
+
 // Adapted from https://github.com/ibnYusrat/angularfire-paginator/
 // This was originally a utility class that could be used directly in
 // templates, but I am modifying it to assist with pagination while

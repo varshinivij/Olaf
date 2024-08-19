@@ -1,3 +1,17 @@
+// TODO:
+// 1) upload entire folders at once
+// 2) check for dupe file names
+//    and rename them like "file1.txt -> file1(1).txt or similar."
+// 3) Maybe move "create folder" over here so that it can also put
+// it in the upload queue.
+
+// Separate service for uploading files specifically for user file
+// storage system, exposes an "upload queue" w/ real-time upload progress.
+
+// (Currently can only upload files as once, not entire folders.
+// How to incorporate folders into the upload queue to show progress bar
+// that makes sense?)
+
 import { Injectable } from '@angular/core';
 import { Auth } from '@angular/fire/auth';
 import {
@@ -15,7 +29,7 @@ import { UserFileUpload } from '../models/user-file-upload';
 @Injectable({
   providedIn: 'root',
 })
-export class FileUploadService {
+export class UploadService {
   private uploadSubject = new BehaviorSubject<UserFileUpload[]>([]);
   private uploadProgress$: Observable<UserFileUpload[]> =
     this.uploadSubject.asObservable();
