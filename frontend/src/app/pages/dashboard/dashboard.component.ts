@@ -1,6 +1,7 @@
 import { AfterViewInit, Component } from '@angular/core';
 
 import { FileStorageComponent } from '../../components/file-storage/file-storage.component';
+import { ProjectsComponent } from '../../components/projects/projects.component'
 import { SidebarComponent, PageName } from '../../components/sidebar/sidebar.component';
 
 import Split from 'split.js';
@@ -8,7 +9,7 @@ import Split from 'split.js';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [FileStorageComponent, SidebarComponent],
+  imports: [FileStorageComponent, SidebarComponent, ProjectsComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
