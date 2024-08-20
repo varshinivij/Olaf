@@ -1,6 +1,5 @@
 from prompts import few_shot_examples
 from agent_utils import *
-from history import History
 
 system_prompt = f"""
 You are `TesterAgent`, an expert in generating and refining test cases for programming code. Your task is to:
@@ -23,7 +22,6 @@ class TesterAgent:
         :param language: The programming language for code generation.
         """
         self.language = language
-        self.history = History(system)
 
     def generate(self, requirements: str) -> str:
         """
@@ -32,9 +30,7 @@ class TesterAgent:
         :return: A string of the generated code.
         """
         prompt = f"Generate {self.language} tests for a {self.language} program that implements the following requirements:\n{requirements}. Do not generate the program itself in the output, only the {self.language} tests."
-        self.history.log("user", prompt)
-        response = chat_completion(self.history)
-        self.history.log("assistant", response)
+        response = chat_completion(prompt)
         return extract_python_code(response)
     
     def regenerate(self, requirements: str, code_result: str, test_result: str) -> str:
@@ -51,7 +47,5 @@ class TesterAgent:
         code_result: {code_result}
         test_result: {test_result}
         """
-        self.history.log("user", prompt)
-        response = chat_completion(self.history)
-        self.history.log("assistant", response)
+        response = chat_completion(prompt)
         return extract_python_code(response)

@@ -14,7 +14,6 @@ system = {
         "content": system_prompt
       }
 
-
 class CoderAgent:
 
     def __init__(self, language: str):

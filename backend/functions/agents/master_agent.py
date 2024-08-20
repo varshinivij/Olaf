@@ -18,16 +18,14 @@ system = {
 class MasterAgent:
 
     def __init__(self):
-        self.history = History(system)
-    
-    def plan(self, query):
+        pass
+        
+    def plan(self, history):
         """
         This method takes a query, sends it to the LLM instance, and retrieves a structured plan or requirements.
         """
-        prompt = self.generate_prompt(query)
-        self.history.log("user", prompt)
-        response = chat_completion(self.history)
-        self.history.log("assistant", response)
+        prompt = self.generate_prompt(history)
+        response = chat_completion(prompt)
         return response
     
     def re_plan(self, query, previous_plan):
@@ -36,9 +34,7 @@ class MasterAgent:
         and retrieves a new structured plan or requirements.
         """
         prompt = f"The user was not satisfied with the following plan:\n{previous_plan}\n\nPlease generate an improved plan based on the original query:\n{query}"
-        self.history.log("user", prompt)
         response = chat_completion(self.history)
-        self.history.log("assistant", response)
         return response
 
     def generate_prompt(self, query):

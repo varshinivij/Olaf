@@ -16,11 +16,6 @@ import concurrent.futures
 # Initialize Firebase app
 initialize_app()
 
-# Global dictionaries to store agent instances
-agent_store = {
-    "coder_agent": None,
-    "tester_agent": None
-}
 
 E2B_API_KEY = "REMOVED"
 
@@ -73,12 +68,12 @@ def execute_on_sandbox(req: Request) -> Response:
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def generate_plan(req: Request) -> Response:
     try:
-        query = req.json.get("query")
-        if not query:
-            return Response(json.dumps({"error": "'query' is required"}), status=400)
+        history = req.json.get("history")
+        if not history:
+            return Response(json.dumps({"error": "'history' is required"}), status=400)
         
         master_agent = MasterAgent()
-        plan = master_agent.plan(query)
+        plan = master_agent.plan(history)
         
         response_data = {
             "plan": plan
@@ -93,14 +88,14 @@ def generate_plan(req: Request) -> Response:
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def regenerate_plan(req: Request) -> Response:
     try:
-        query = req.json.get("query")
+        history = req.json.get("history")
         previous_plan = req.json.get("previous_plan")
         
-        if not query or not previous_plan:
-            return Response(json.dumps({"error": "Both 'query' and 'previous_plan' are required"}), status=400)
+        if not history or not previous_plan:
+            return Response(json.dumps({"error": "Both 'history' and 'previous_plan' are required"}), status=400)
         
         master_agent = MasterAgent()
-        plan = master_agent.re_plan(query, previous_plan)
+        plan = master_agent.re_plan(history, previous_plan)
         
         response_data = {
             "plan": plan
@@ -123,7 +118,6 @@ def generate_code(req: Request) -> Response:
             return Response(json.dumps({"error": "'plan' is required"}), status=400)
         
         coder_agent = CoderAgent(language=language)
-        agent_store["coder_agent"] = coder_agent
         
         generated_code = coder_agent.generate(plan)
         
@@ -148,7 +142,7 @@ def regenerate_code(req: Request) -> Response:
         if not plan or not code_result or not test_result:
             return Response(json.dumps({"error": "All of 'plan', 'code_result', and 'test_result' are required"}), status=400)
         
-        coder_agent = agent_store.get("coder_agent")
+        coder_agent = CoderAgent(language=language)
         
         regenerated_code = coder_agent.regenerate(plan, code_result, test_result)
         
@@ -173,7 +167,6 @@ def generate_tests(req: Request) -> Response:
             return Response(json.dumps({"error": "'plan' is required"}), status=400)
         
         tester_agent = TesterAgent(language=language)
-        agent_store["tester_agent"] = tester_agent
         
         generated_tests = tester_agent.generate(plan)
         
@@ -198,7 +191,7 @@ def regenerate_tests(req: Request) -> Response:
         if not plan or not code_result or not test_result:
             return Response(json.dumps({"error": "All of 'plan', 'code_result', and 'test_result' are required"}), status=400)
         
-        tester_agent = agent_store.get("tester_agent")
+        tester_agent = TesterAgent(language=language)
         
         regenerated_tests = tester_agent.regenerate(plan, code_result, test_result)
         
@@ -216,16 +209,16 @@ def regenerate_tests(req: Request) -> Response:
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def code_generation_workflow(req: Request) -> Response:
     try:
-        query = req.json.get("query")
-        if not query:
-            return Response(json.dumps({"error": "'query' is required"}), status=400)
+        history = req.json.get("history")
+        if not history:
+            return Response(json.dumps({"error": "'history' is required"}), status=400)
 
         planner_agent = MasterAgent()
         coder_agent = CoderAgent(language='Python')
         tester_agent = TesterAgent(language='Python')
         executor_agent = Executor(api_key=E2B_API_KEY)
         
-        requirements = planner_agent.plan(query)
+        requirements = planner_agent.plan(history)
         
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future_code = executor.submit(coder_agent.generate, requirements)
