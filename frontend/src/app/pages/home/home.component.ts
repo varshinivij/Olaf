@@ -35,11 +35,11 @@ export class HomeComponent {
   ) {}
 
   ngOnInit() {
-    this.uploadSubscription = this.uploadService.getUploadProgress().subscribe(
-      (uploads) => {
+    this.uploadSubscription = this.uploadService
+      .getUploadProgress()
+      .subscribe((uploads) => {
         console.log(uploads);
-      }
-    );
+      });
   }
 
   ngOnDestroy() {
@@ -141,16 +141,16 @@ export class HomeComponent {
     const target = event.target as HTMLInputElement;
     const files = target.files as FileList;
     this.selectedUploadFiles = Array.from(files);
-    this.uploadService.setFiles(this.selectedUploadFiles);
+    this.uploadService.uploadFiles(this.selectedUploadFiles, '/');
     console.log('Files selected: ', files);
   }
 
   async uploadFiles() {
-    try {
-      await this.uploadService.uploadFiles();
-    } catch (error) {
-      console.error('Error uploading files: ', error);
-    }
+    // try {
+    //   await this.uploadService.uploadFiles();
+    // } catch (error) {
+    //   console.error('Error uploading files: ', error);
+    // }
   }
 
   async logout() {
