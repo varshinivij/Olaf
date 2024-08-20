@@ -70,202 +70,240 @@ def execute_on_sandbox(req: Request) -> Response:
 
 
 # --- MasterAgent Functions ---
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
-def generate_plan(req: Request) -> Response:
-    try:
-        query = req.json.get("query")
-        if not query:
-            return Response(json.dumps({"error": "'query' is required"}), status=400)
+# @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+# def generate_plan(req: Request) -> Response:
+#     try:
+#         query = req.json.get("query")
+#         if not query:
+#             return Response(json.dumps({"error": "'query' is required"}), status=400)
         
-        master_agent = MasterAgent()
-        plan = master_agent.plan(query)
+#         master_agent = MasterAgent()
+#         # # plan = master_agent.plan(query)
+#         # decision = master_agent.make_decision(query)
+#         # response = ""
+#         # if(decision=="1"):
+#         #     response = master_agent.handle_simple_interaction(query)
+#         # elif(decision=="2"):
+#         #     response = master_agent.write_basic_code(query)
+#         # elif(decision=="3"):
+#         #     response = master_agent.decompose_complicated_task(query)
+#         # elif(decision=="4"):
+#         response = master_agent.create_sequential_plan(query)
         
-        response_data = {
-            "plan": plan
-        }
+#         response_data = {
+#             "response": response
+#         }
         
-        return Response(json.dumps(response_data), status=200)
+#         return Response(json.dumps(response_data), status=200)
     
-    except Exception as e:
-        return Response(json.dumps({"error": str(e)}), status=500)
+#     except Exception as e:
+#         return Response(json.dumps({"error": str(e)}), status=500)
 
 
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
-def regenerate_plan(req: Request) -> Response:
-    try:
-        query = req.json.get("query")
-        previous_plan = req.json.get("previous_plan")
+# @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+# def regenerate_plan(req: Request) -> Response:
+#     try:
+#         query = req.json.get("query")
+#         previous_plan = req.json.get("previous_plan")
         
-        if not query or not previous_plan:
-            return Response(json.dumps({"error": "Both 'query' and 'previous_plan' are required"}), status=400)
+#         if not query or not previous_plan:
+#             return Response(json.dumps({"error": "Both 'query' and 'previous_plan' are required"}), status=400)
         
-        master_agent = MasterAgent()
-        plan = master_agent.re_plan(query, previous_plan)
+#         master_agent = MasterAgent()
+#         plan = master_agent.re_plan(query, previous_plan)
         
-        response_data = {
-            "plan": plan
-        }
+#         response_data = {
+#             "plan": plan
+#         }
         
-        return Response(json.dumps(response_data), status=200)
+#         return Response(json.dumps(response_data), status=200)
     
-    except Exception as e:
-        return Response(json.dumps({"error": str(e)}), status=500)
+#     except Exception as e:
+#         return Response(json.dumps({"error": str(e)}), status=500)
 
 
-# --- CoderAgent Functions ---
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
-def generate_code(req: Request) -> Response:
-    try:
-        plan = req.json.get("plan")
-        language = req.json.get("language", "Python")
+# # --- CoderAgent Functions ---
+# @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+# def generate_code(req: Request) -> Response:
+#     try:
+#         plan = req.json.get("plan")
+#         language = req.json.get("language", "Python")
         
-        if not plan:
-            return Response(json.dumps({"error": "'plan' is required"}), status=400)
+#         if not plan:
+#             return Response(json.dumps({"error": "'plan' is required"}), status=400)
         
-        coder_agent = CoderAgent(language=language)
-        agent_store["coder_agent"] = coder_agent
+#         coder_agent = CoderAgent(language=language)
+#         agent_store["coder_agent"] = coder_agent
         
-        generated_code = coder_agent.generate(plan)
+#         generated_code = coder_agent.generate(plan)
         
-        response_data = {
-            "code": generated_code
-        }
+#         response_data = {
+#             "code": generated_code
+#         }
         
-        return Response(json.dumps(response_data), status=200)
+#         return Response(json.dumps(response_data), status=200)
     
-    except Exception as e:
-        return Response(json.dumps({"error": str(e)}), status=500)
+#     except Exception as e:
+#         return Response(json.dumps({"error": str(e)}), status=500)
 
 
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
-def regenerate_code(req: Request) -> Response:
-    try:
-        plan = req.json.get("plan")
-        code_result = req.json.get("code_result")
-        test_result = req.json.get("test_result")
-        language = req.json.get("language", "Python")
+# @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+# def regenerate_code(req: Request) -> Response:
+#     try:
+#         plan = req.json.get("plan")
+#         code_result = req.json.get("code_result")
+#         test_result = req.json.get("test_result")
+#         language = req.json.get("language", "Python")
         
-        if not plan or not code_result or not test_result:
-            return Response(json.dumps({"error": "All of 'plan', 'code_result', and 'test_result' are required"}), status=400)
+#         if not plan or not code_result or not test_result:
+#             return Response(json.dumps({"error": "All of 'plan', 'code_result', and 'test_result' are required"}), status=400)
         
-        coder_agent = agent_store.get("coder_agent")
+#         coder_agent = agent_store.get("coder_agent")
         
-        regenerated_code = coder_agent.regenerate(plan, code_result, test_result)
+#         regenerated_code = coder_agent.regenerate(plan, code_result, test_result)
         
-        response_data = {
-            "code": regenerated_code
-        }
+#         response_data = {
+#             "code": regenerated_code
+#         }
         
-        return Response(json.dumps(response_data), status=200)
+#         return Response(json.dumps(response_data), status=200)
     
-    except Exception as e:
-        return Response(json.dumps({"error": str(e)}), status=500)
+#     except Exception as e:
+#         return Response(json.dumps({"error": str(e)}), status=500)
 
 
-# --- TesterAgent Functions ---
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
-def generate_tests(req: Request) -> Response:
-    try:
-        plan = req.json.get("plan")
-        language = req.json.get("language", "Python")
+# # --- TesterAgent Functions ---
+# @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+# def generate_tests(req: Request) -> Response:
+#     try:
+#         plan = req.json.get("plan")
+#         language = req.json.get("language", "Python")
         
-        if not plan:
-            return Response(json.dumps({"error": "'plan' is required"}), status=400)
+#         if not plan:
+#             return Response(json.dumps({"error": "'plan' is required"}), status=400)
         
-        tester_agent = TesterAgent(language=language)
-        agent_store["tester_agent"] = tester_agent
+#         tester_agent = TesterAgent(language=language)
+#         agent_store["tester_agent"] = tester_agent
         
-        generated_tests = tester_agent.generate(plan)
+#         generated_tests = tester_agent.generate(plan)
         
-        response_data = {
-            "tests": generated_tests
-        }
+#         response_data = {
+#             "tests": generated_tests
+#         }
         
-        return Response(json.dumps(response_data), status=200)
+#         return Response(json.dumps(response_data), status=200)
     
-    except Exception as e:
-        return Response(json.dumps({"error": str(e)}), status=500)
+#     except Exception as e:
+#         return Response(json.dumps({"error": str(e)}), status=500)
 
 
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
-def regenerate_tests(req: Request) -> Response:
-    try:
-        plan = req.json.get("plan")
-        code_result = req.json.get("code_result")
-        test_result = req.json.get("test_result")
-        language = req.json.get("language", "Python")
+# @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+# def regenerate_tests(req: Request) -> Response:
+#     try:
+#         plan = req.json.get("plan")
+#         code_result = req.json.get("code_result")
+#         test_result = req.json.get("test_result")
+#         language = req.json.get("language", "Python")
         
-        if not plan or not code_result or not test_result:
-            return Response(json.dumps({"error": "All of 'plan', 'code_result', and 'test_result' are required"}), status=400)
+#         if not plan or not code_result or not test_result:
+#             return Response(json.dumps({"error": "All of 'plan', 'code_result', and 'test_result' are required"}), status=400)
         
-        tester_agent = agent_store.get("tester_agent")
+#         tester_agent = agent_store.get("tester_agent")
         
-        regenerated_tests = tester_agent.regenerate(plan, code_result, test_result)
+#         regenerated_tests = tester_agent.regenerate(plan, code_result, test_result)
         
-        response_data = {
-            "tests": regenerated_tests
-        }
+#         response_data = {
+#             "tests": regenerated_tests
+#         }
         
-        return Response(json.dumps(response_data), status=200)
+#         return Response(json.dumps(response_data), status=200)
     
-    except Exception as e:
-        return Response(json.dumps({"error": str(e)}), status=500)
+#     except Exception as e:
+#         return Response(json.dumps({"error": str(e)}), status=500)
 
 
-# --- Workflow Function ---
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
-def code_generation_workflow(req: Request) -> Response:
-    try:
-        query = req.json.get("query")
-        if not query:
-            return Response(json.dumps({"error": "'query' is required"}), status=400)
+# # --- Workflow Function ---
+# @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+# def code_generation_workflow(req: Request) -> Response:
+#     try:
+#         query = req.json.get("query")
+#         if not query:
+#             return Response(json.dumps({"error": "'query' is required"}), status=400)
 
-        planner_agent = MasterAgent()
-        coder_agent = CoderAgent(language='Python')
-        tester_agent = TesterAgent(language='Python')
-        executor_agent = Executor(api_key=E2B_API_KEY)
+#         planner_agent = MasterAgent()
+#         coder_agent = CoderAgent(language='Python')
+#         tester_agent = TesterAgent(language='Python')
+#         executor_agent = Executor(api_key=E2B_API_KEY)
         
-        requirements = planner_agent.plan(query)
+#         requirements = planner_agent.plan(query)
         
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_code = executor.submit(coder_agent.generate, requirements)
-            future_tests = executor.submit(tester_agent.generate, requirements)
+#         with concurrent.futures.ThreadPoolExecutor() as executor:
+#             future_code = executor.submit(coder_agent.generate, requirements)
+#             future_tests = executor.submit(tester_agent.generate, requirements)
             
-            generated_code = future_code.result()
-            generated_tests = future_tests.result()
+#             generated_code = future_code.result()
+#             generated_tests = future_tests.result()
 
-        count = 0
-        code_result = "Failed"
-        tests_result = "Failed"
+#         count = 0
+#         code_result = "Failed"
+#         tests_result = "Failed"
         
-        while (code_result != "Passed" or tests_result != "Passed") and count < 5:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future_code_result = executor.submit(executor_agent.execute_code, {"code": generated_code})
-                future_tests_result = executor.submit(executor_agent.execute_tests, {"code": generated_code, "tests": generated_tests})
+#         while (code_result != "Passed" or tests_result != "Passed") and count < 5:
+#             with concurrent.futures.ThreadPoolExecutor() as executor:
+#                 future_code_result = executor.submit(executor_agent.execute_code, {"code": generated_code})
+#                 future_tests_result = executor.submit(executor_agent.execute_tests, {"code": generated_code, "tests": generated_tests})
                 
-                code_result = future_code_result.result().json.get("output", "Failed")
-                tests_result = future_tests_result.result().json.get("output", "Failed")
+#                 code_result = future_code_result.result().json.get("output", "Failed")
+#                 tests_result = future_tests_result.result().json.get("output", "Failed")
 
-            if code_result != "Passed" or tests_result != "Passed":
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future_code = executor.submit(coder_agent.regenerate, requirements, code_result, tests_result)
-                    future_tests = executor.submit(tester_agent.regenerate, requirements, code_result, tests_result)
+#             if code_result != "Passed" or tests_result != "Passed":
+#                 with concurrent.futures.ThreadPoolExecutor() as executor:
+#                     future_code = executor.submit(coder_agent.regenerate, requirements, code_result, tests_result)
+#                     future_tests = executor.submit(tester_agent.regenerate, requirements, code_result, tests_result)
                     
-                    generated_code = future_code.result()
-                    generated_tests = future_tests.result()
+#                     generated_code = future_code.result()
+#                     generated_tests = future_tests.result()
 
-            count += 1
-            if count == 4:
-                return Response(json.dumps({"error": "Iteration limit exceeded :("}), status=500)
+#             count += 1
+#             if count == 4:
+#                 return Response(json.dumps({"error": "Iteration limit exceeded :("}), status=500)
+        
+#         response_data = {
+#             "code": generated_code,
+#             "tests": generated_tests,
+#             "code_result": code_result,
+#             "tests_result": tests_result
+#         }
+        
+#         return Response(json.dumps(response_data), status=200)
+
+#     except Exception as e:
+#         return Response(json.dumps({"error": str(e)}), status=500)
+    
+
+
+
+
+@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+def simple_convo(req: Request) -> Response:
+    try:
+        query = req.json.get("query")
+        if not query:
+            return Response(json.dumps({"error": "'query' is required"}), status=400)
+        
+        master_agent = MasterAgent()
+        response = master_agent.process_query(query)
         
         response_data = {
-            "code": generated_code,
-            "tests": generated_tests,
-            "code_result": code_result,
-            "tests_result": tests_result
+            "response": response
         }
         
         return Response(json.dumps(response_data), status=200)
-
+    
     except Exception as e:
         return Response(json.dumps({"error": str(e)}), status=500)
+
+
+
+
+# http://127.0.0.1:4000/twocube-web//us-central1/?query=I%20have%20uploaded%2016%20files,%204%20files%20per%20cell-type.%20For%20each%20cell%20type%20there%20are%20three%20negative%20sequence%20files%20and%20one%20positive%20sequence%20file.%20Build%20a%20convolution%20neural%20network%20based%20model%20to%20classify%20positive%20and%20negative%20DNA%20sequences.%20For%20evaluation%20results,%20plot%20the%20area%20under%20precision%20recall%20curve%20and%20area%20under%20the%20receiver%20operator%20characteristic%20curve.
