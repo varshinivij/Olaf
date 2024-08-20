@@ -1,0 +1,18 @@
+// make file upload default button disappear
+[type="file"] {
+  &::file-selector-button {
+    display: none;
+  }
+
+  // Safari only https://gist.github.com/perrygovier/3193ba18b63079ff2615d6b263c077f5
+  @media not all and (min-resolution: 0.001dpcm) {
+    @supports (-webkit-appearance: none) {
+      text-indent: -120px;
+      margin-left: -7em;
+
+      &::file-selector-button {
+        display: inline;
+      }
+    }
+  }
+}

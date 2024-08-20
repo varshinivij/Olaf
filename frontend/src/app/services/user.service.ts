@@ -1,10 +1,13 @@
 /*
   TODO:
-    1) Any user services that will be necessary in the future (edit account, etc.)
+    1) Any user services that will be necessary in the future (edit password, etc.)
     2) (if necessary) potentially also expose a signal that holds currentUser as well
-    3) Consider placing a .tap(?) on Observable and storing state in local storage?
-       (maybe replace with readUserInfo? not sure.)
+    3) Consider storing state in local storage to persist data after a refresh.
        https://medium.com/@aayyash/authentication-in-angular-why-it-is-so-hard-to-wrap-your-head-around-it-23ea38a366de
+    4) Consider working on uploadProfilePicture to shrink image size before upload
+    5) Promise resolveAll instead of consecutive awaits when possible
+    6) Using auth.currentUser can be inconsistent since it can take a little while to
+       update after component init/refreshing. Maybe just stick to observables.
 */
 
 import { Injectable } from '@angular/core';
@@ -29,13 +32,12 @@ import {
   setDoc,
 } from '@angular/fire/firestore';
 import {
-  FirebaseStorage,
+  Storage,
   getDownloadURL,
-  getStorage,
   ref,
   uploadBytesResumable,
 } from '@angular/fire/storage';
-import { Observable, of, map, switchMap } from 'rxjs';
+import { Observable, of, map, switchMap, shareReplay } from 'rxjs';
 
 import { User } from '../models/user';
 
@@ -44,9 +46,12 @@ import { User } from '../models/user';
 })
 export class UserService {
   private user$: Observable<User | null>;
-  private storage: FirebaseStorage = getStorage();
 
-  constructor(private auth: Auth, private firestore: Firestore) {
+  constructor(
+    private auth: Auth,
+    private firestore: Firestore,
+    private storage: Storage
+  ) {
     this.user$ = user(this.auth).pipe(
       switchMap((user: FirebaseUser | null) => {
         if (user) {
@@ -58,7 +63,8 @@ export class UserService {
                 createdAt: user.createdAt?.toDate(),
                 updatedAt: user.updatedAt?.toDate(),
               } as User;
-            })
+            }),
+            shareReplay(1)
           ) as Observable<User>;
         } else {
           return of(null);
@@ -76,6 +82,16 @@ export class UserService {
    */
   getCurrentUser(): Observable<User | null> {
     return this.user$;
+  }
+
+  /**
+   * Returns a promise to retrieve an ID token for the user. Used for
+   * Firebase user authentication in pure HTTP endpoints.
+   *
+   * @returns A Promise returning an ID token for the user.
+   */
+  getIdToken(): Promise<string> {
+    return this.auth.currentUser!.getIdToken();
   }
 
   /**
@@ -142,7 +158,7 @@ export class UserService {
    * @param data - An subset of a User object containing user properties to
    * update in Firestore. Updating user.id will have no effect.
    */
-  async updateAccount(data: Partial<User>) {
+  async updateAccount(data: Partial<User>): Promise<void> {
     await this.updateUserInfo(this.auth.currentUser!, data);
   }
 
@@ -157,8 +173,9 @@ export class UserService {
   }
 
   /**
-   * Uploads a file to Cloud Storage under user/profile/{userID}.
-   * Returns a promise containing downloadURL once
+   * Uploads a file to Cloud Storage under profilePictures/{userID}.
+   * Updates user profile picture in Firestore record on completion.
+   * Promise returns the downloadURL to the uploaded picture.
    *
    * @param file - The file to be uploaded.
    * @param onProgress - Callback to be run on progress snapshot.
@@ -169,8 +186,9 @@ export class UserService {
   ): Promise<string> {
     const storageRef = ref(
       this.storage,
-      `user/profile/${this.auth.currentUser!.uid}`
+      `profilePictures/${this.auth.currentUser!.uid}`
     );
+
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     return new Promise((resolve, reject) => {
@@ -186,6 +204,9 @@ export class UserService {
         },
         async () => {
           const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+          this.updateAccount({
+            profilePictureUrl: downloadUrl,
+          });
           resolve(downloadUrl);
         }
       );
@@ -240,18 +261,11 @@ export class UserService {
       createdAt: new Date(),
       updatedAt: new Date(),
       organization: 'someOrganization',
-      profilePictureUrl: null,
+      profilePictureUrl: user.photoURL,
     };
 
     const userDocument = doc(this.firestore, 'users', user.uid);
     await setDoc(userDocument, data);
-  }
-
-  // reads Firestore user data based on given FirebaseUser as UserProfile
-  private async readUserInfo(user: FirebaseUser): Promise<User> {
-    const docSnap = await getDoc(doc(this.firestore, 'users', user.uid));
-    const data = docSnap.data()!;
-    return data as User;
   }
 
   // updates Firestore user data based on given FirebaseUser and update data
@@ -264,9 +278,9 @@ export class UserService {
     // should not be able to update user id
     delete data.id;
     // Update Firebase Auth profile fields
+    // TODO: Updating password should be done through a separate method for security reasons
     if (data.email) await updateEmail(user, data.email);
     if (data.name) await updateProfile(user, { displayName: data.name });
-    // Note: Updating password should be done through a separate method for security reasons
 
     await setDoc(
       userDocument,
@@ -279,5 +293,6 @@ export class UserService {
   private async deleteUserInfo(user: FirebaseUser): Promise<void> {
     await user.delete();
     await deleteDoc(doc(this.firestore, 'users', user.uid));
+    // TODO: delete must be configured to manually delete docs in subcollections. call the delete callable on all files? also delete their profile picture.
   }
 }

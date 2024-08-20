@@ -6,7 +6,6 @@ export interface User {
   status: string;
   createdAt: Date;
   updatedAt: Date;
-  files?: string[];
   organization?: string;
   profilePictureUrl?: string;
 }

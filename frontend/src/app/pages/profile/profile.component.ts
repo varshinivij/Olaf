@@ -50,12 +50,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
         );
         this.selectedFile = null;
         this.uploadProgress = null;
-
-        this.user.profilePictureUrl = downloadUrl;
-
-        await this.userService.updateAccount({
-          profilePictureUrl: downloadUrl,
-        });
       } catch (error) {
         console.error('Error uploading profile picture:', error);
       }

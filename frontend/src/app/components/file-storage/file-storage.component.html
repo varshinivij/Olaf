@@ -1,0 +1,290 @@
+<div class="flex flex-col w-full h-screen p-6 rounded-lg bg-white">
+  <p class="text-2xl font-bold">Data</p>
+  <p class="text-lg">Upload and manage different types of data.</p>
+
+  <!-- search bar -->
+  <div class="flex-none relative my-5 w-1/2 h-9">
+    <input
+      class="border border-[#4F4F4F]/40 focus:outline-none text-sm pl-10 rounded-xl w-full h-full"
+      placeholder="Search files..."
+      [(ngModel)]="searchFilter"
+      (input)="applySearchFilter()"
+    />
+    <i
+      class="material-icons absolute text-[#9E9E9E] left-2 top-[50%] translate-y-[-50%]"
+      >search</i
+    >
+  </div>
+
+  <!-- directory labels -->
+  <div class="flex gap-x-1 items-center text-xl font-bold">
+    @for (path of currentPath; track $index;) {
+    <button
+      class="bg-white hover:brightness-90 p-1 rounded-lg"
+      type="button"
+      (click)="toPreviousDirectory($index)"
+    >
+      {{ $first ? "My Files" : path }}
+    </button>
+    @if (!$last) {
+    <p class="text-3xl font-normal">></p>
+    } }
+  </div>
+
+  <!-- filter/upload buttons row -->
+  <div class="flex-none flex py-3 gap-x-4">
+    @for (filter of filterButtons; track $index;) {
+    <button
+      class="text-sm px-4 font-semibold hover:bg-[#032D38] hover:text-white border border-black rounded-3xl h-10"
+      type="button"
+      [ngClass]="{
+        'bg-[#032D38] text-white': filter.type == this.typeFilter
+      }"
+      (click)="applyTypeFilter(filter.type)"
+    >
+      {{ filter.name }}
+    </button>
+    }
+    <div
+      class="ml-auto relative text-sm font-semibold pl-3 pr-4 flex items-center gap-x-2 bg-[#038C7F] rounded-lg text-white hover:brightness-90"
+      type="button"
+    >
+      <i class="material-icons-outlined">file_upload</i>
+      Upload data
+      <input
+        class="absolute w-full h-full left-0 top-0 opacity-0"
+        type="file"
+        (change)="onUploadFilesSelected($event)"
+        multiple
+      />
+    </div>
+    <button
+      class="material-icons-outlined bg-[#038C7F] rounded-lg text-white px-2 hover:brightness-90"
+      type="button"
+      (click)="createFolderDialog.show()"
+    >
+      create_new_folder
+    </button>
+  </div>
+
+  <!-- file directory table -->
+  <div class="overflow-y-auto w-full">
+    <table class="table-fixed text-left text-sm w-full">
+      <!-- table header + sorting buttons -->
+      <thead>
+        <tr>
+          <!-- weird CSS workaround to make the body scrollable. reference:
+          https://www.geeksforgeeks.org/how-to-create-a-table-with-fixed-header-and-scrollable-body/#. maybe i should've just used flex columns... -->
+          <th class="sticky top-0 rounded-ss-lg bg-[#F1F1F1] px-4 py-3 w-[30%]">
+            <div class="flex items-center justify-between">
+              File Name
+              <button
+                class="material-icons-outlined text-[#9E9E9E]"
+                type="button"
+                (click)="applySortFilter('name')"
+              >
+                {{ getSortDirectionMatIcon("name") }}
+              </button>
+            </div>
+          </th>
+          <th class="sticky top-0 pr-4 bg-[#F1F1F1] w-[15%]">
+            <div class="flex items-center justify-between">
+              File Type
+              <button
+                class="material-icons-outlined text-[#9E9E9E]"
+                type="button"
+                (click)="applySortFilter('type')"
+              >
+                {{ getSortDirectionMatIcon("type") }}
+              </button>
+            </div>
+          </th>
+          <th class="sticky top-0 bg-[#F1F1F1] w-[10%]">Size</th>
+          <th class="sticky top-0 bg-[#F1F1F1] pr-4">
+            <div class="flex items-center justify-between">
+              Last Modified
+              <button
+                class="material-icons-outlined text-[#9E9E9E]"
+                type="button"
+                (click)="applySortFilter('uploadedOn')"
+              >
+                {{ getSortDirectionMatIcon("uploadedOn") }}
+              </button>
+            </div>
+          </th>
+          @if(this.searchFilter !== '') {
+          <th class="sticky top-0 bg-[#F1F1F1]">Path</th>
+          }
+          <th
+            class="sticky top-0 rounded-se-lg bg-[#F1F1F1] text-center px-4 w-[15%]"
+          >
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <!-- file rows -->
+      <tbody>
+        <!-- display uploading files -->
+        @for (upload of uploadQueue; track upload.file) { @if (searchFilter ===
+        '' && upload.uploadPath === currentPathToString()) {
+        <tr class="bg-white hover:brightness-90">
+          <td class="px-4 truncate italic">
+            <img
+              class="inline w-8 pr-3 py-1"
+              [src]="fileTypeIcons['unknown']"
+            />
+            {{ upload.file.name }}
+          </td>
+          <td class="pr-4 truncate italic">Uploading...</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        } }
+        <!-- display already stored files -->
+        @for (file of displayedFiles; track file.id) {
+        <tr
+          class="bg-white hover:brightness-90"
+          (dblclick)="file.isFolder ? toNextDirectory(file.name) : null"
+        >
+          <td class="px-4 truncate">
+            <img
+              class="inline w-8 pr-3 py-1"
+              [src]="fileTypeIcons[file.type]"
+            />
+            {{ file.name }}
+          </td>
+          <td class="pr-4 truncate">
+            {{ titleCase(file.type) }}
+          </td>
+          <td class="pr-4 truncate">
+            {{ !file.isFolder ? formatBytes(file.size) : "" }}
+          </td>
+          <td class="pr-4 truncate">
+            {{ file.uploadedOn.toLocaleDateString("en-US") }}
+          </td>
+          @if(this.searchFilter !== '') {
+          <td class="pr-4 truncate">
+            {{ file.path }}
+          </td>
+          }
+          <td class="text-[#4F4F4F] overflow-hidden text-center">
+            <!-- downloading currently doesn't work (see FileStorageService) -->
+            <!-- <button
+              class="material-symbols-outlined p-0"
+              type="button"
+              (click)="downloadFileOrFolder(file)"
+            >
+              file_download
+            </button> -->
+            <button
+              class="material-symbols-outlined align-middle"
+              type="button"
+              (click)="deleteFileOrFolder(file)"
+            >
+              delete
+            </button>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- bottom page navigator -->
+  <div class="flex-none mt-auto flex gap-x-4 justify-center items-center">
+    <button
+      class="text-[#9E9E9E] text-sm"
+      type="button"
+      (click)="previousPage()"
+      [disabled]="pageNumber === 1"
+    >
+      Previous
+    </button>
+
+    <!-- 2 pages back number -->
+    @if (pageNumber === totalPages && pageNumber > 2) {
+    <button
+      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+      type="button"
+      (click)="setPage(pageNumber - 2)"
+    >
+      {{ pageNumber - 2 }}
+    </button>
+    }
+    <!-- previous page number -->
+    @if (pageNumber !== 1) {
+    <button
+      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+      type="button"
+      (click)="setPage(pageNumber - 1)"
+    >
+      {{ pageNumber - 1 }}
+    </button>
+    }
+    <!-- current page -->
+    <button class="bg-[#024050] text-white rounded-xl h-10 w-10">
+      {{ pageNumber }}
+    </button>
+    <!-- next page -->
+    @if (pageNumber !== totalPages) {
+    <button
+      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+      type="button"
+      (click)="setPage(pageNumber + 1)"
+    >
+      {{ pageNumber + 1 }}
+    </button>
+    }
+    <!-- 2 pages forward -->
+    @if (pageNumber === 1 && totalPages > 2) {
+    <button
+      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+      type="button"
+      (click)="setPage(pageNumber + 2)"
+    >
+      {{ pageNumber + 2 }}
+    </button>
+    }
+
+    <button
+      class="text-[#9E9E9E] text-sm"
+      type="button"
+      (click)="nextPage()"
+      [disabled]="pageNumber === totalPages"
+    >
+      Next
+    </button>
+  </div>
+
+  <!-- create folder dialog -->
+  <dialog
+    #createFolderDialog
+    class="z-[100] p-4 w-80 bg-white rounded-xl border border-[#4F4F4F]/20 outline-none top-[50%] translate-y-[-50%]"
+  >
+    <div class="flex flex-col gap-y-3">
+      <p class="text-xl font-semibold">Create new folder</p>
+      <input
+        class="border border-[#4F4F4F]/40 focus:outline-none rounded-md text-sm w-full p-1 pl-2"
+        placeholder="Enter folder name..."
+        [(ngModel)]="createFolderName"
+      />
+      <div class="flex gap-x-2">
+        <button
+          class="text-sm font-semibold px-3 py-1 bg-[#038C7F] rounded-lg text-white hover:brightness-90"
+          type="button"
+          (click)="createFolder(); createFolderDialog.close()"
+        >
+          Submit
+        </button>
+        <button
+          class="text-sm font-semibold px-3 py-1 rounded-lg hover:brightness-90 border border-[#4F4F4F]/40"
+          type="button"
+          (click)="createFolderDialog.close()"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </dialog>
+</div>
