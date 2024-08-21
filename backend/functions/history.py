@@ -1,6 +1,10 @@
+import json
 class History:
     def __init__(self, system):
-        self.history = [system]
+        if isinstance(system, str):
+            self.history = json.loads(system)[0]
+        else:
+            self.history = system
     
     def log(self, role, content):
         entry = {
@@ -11,6 +15,10 @@ class History:
     
     def get_history(self):
         return self.history
+    
+    def most_recent_entry(self):
+        return self.history[-1]
+    
     
 
 # # Example usage:

@@ -1,7 +1,7 @@
 import requests
 import re
 
-def chat_completion(history):
+def chat_completion(history,system_prompt=''):
         api_key = "REMOVED"
         url = "https://api.openai.com/v1/chat/completions"
 

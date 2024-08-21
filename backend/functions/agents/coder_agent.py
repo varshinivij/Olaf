@@ -22,36 +22,33 @@ class CoderAgent:
         :param language: The programming language for code generation.
         """
         self.language = language
-        self.history = History(system)
 
-    def generate(self, requirements: str) -> str:
+    def generate(self, history: str) -> str:
         """
         Generates code based on the provided requirements using the LLM.
         :param requirements: A dictionary containing the requirements for the code.
         :return: A string of the generated code.
         """
-        prompt = f"{few_shot_examples}\n\n\nGenerate {self.language} program that meets the specified requirements:\n{requirements}"
-        self.history.log("user", prompt)
-        response = chat_completion(self.history)
-        self.history.log("assistant", response)
-        return extract_python_code(response)
+        hidden_prompt = f"{few_shot_examples}\n\n\nGenerate {self.language} program that meets the specified requirements:\n{history.get_history()}"
+        history.log("user", hidden_prompt)
+        response = chat_completion(history)
+        return response
     
-    def regenerate(self, requirements: str, code_result: str, test_result: str) -> str:
+    def regenerate(self, history: str, code_result: str, test_result: str) -> str:
         """
         Generates test cases for the provided code.
         :param code: The code snippet to generate tests for.
         :return: A string of generated test cases.
         """
-        prompt = f"""
+        hidden_prompt = f"""
         {few_shot_examples}\n\n\n
         Based on the results provided below, please revise and improve the program to ensure it functions correctly. 
-        Generate a new {self.language} program that meets the specified requirements:\n{requirements}.
+        Generate a new {self.language} program that meets the specified requirements:\n{history}.
         Do not generate the tests itself in the output, only the {self.language} program.
 
         code_result: {code_result}
         test_result: {test_result}
         """
-        self.history.log("user", prompt)
-        response = chat_completion(self.history)
-        self.history.log("assistant", response)
+        history.log("user", hidden_prompt)
+        response = chat_completion(history)
         return extract_python_code(response)

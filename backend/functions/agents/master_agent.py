@@ -24,8 +24,9 @@ class MasterAgent:
         """
         This method takes a query, sends it to the LLM instance, and retrieves a structured plan or requirements.
         """
-        prompt = self.generate_prompt(history)
-        response = chat_completion(prompt)
+        hidden_prompt = self.generate_prompt(history.get_history())
+        history.log("user", hidden_prompt)
+        response = chat_completion(history)
         return response
     
     def re_plan(self, query, previous_plan):

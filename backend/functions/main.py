@@ -9,7 +9,9 @@ from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
 
 import concurrent.futures
+from history import History
 from functions_framework import http
+from agent_utils import chat_completion
 
 initialize_app()
 
@@ -44,12 +46,12 @@ def generate_plan(req: Request) -> Response:
         history = req.json.get("history")
         if not history:
             return Response(json.dumps({"error": "'history' is required"}), status=400)
-        
+        history = History(history)
         master_agent = MasterAgent()
         plan = master_agent.plan(history)
         
         response_data = {
-            "plan": plan
+            "message": plan
         }
         
         return Response(json.dumps(response_data), status=200)
@@ -62,6 +64,7 @@ def generate_plan(req: Request) -> Response:
 def regenerate_plan(req: Request) -> Response:
     try:
         history = req.json.get("history")
+        history = History(history)
         previous_plan = req.json.get("previous_plan")
         
         if not history or not previous_plan:
@@ -71,7 +74,7 @@ def regenerate_plan(req: Request) -> Response:
         plan = master_agent.re_plan(history, previous_plan)
         
         response_data = {
-            "plan": plan
+            "message": plan
         }
         
         return Response(json.dumps(response_data), status=200)
@@ -85,18 +88,19 @@ def regenerate_plan(req: Request) -> Response:
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def generate_code(req: Request) -> Response:
     try:
-        plan = req.json.get("plan")
+        history = req.json.get("history")
+        history = History(history)
         language = req.json.get("language", "Python")
         
-        if not plan:
-            return Response(json.dumps({"error": "'plan' is required"}), status=400)
+        if not history:
+            return Response(json.dumps({"error": "'history' is required"}), status=400)
         
         coder_agent = CoderAgent(language=language)
         
-        generated_code = coder_agent.generate(plan)
-        
+        generated_code = coder_agent.generate(history)
+
         response_data = {
-            "code": generated_code
+            "message": generated_code
         }
         
         return Response(json.dumps(response_data), status=200)
@@ -121,7 +125,7 @@ def regenerate_code(req: Request) -> Response:
         regenerated_code = coder_agent.regenerate(plan, code_result, test_result)
         
         response_data = {
-            "code": regenerated_code
+            "message": regenerated_code
         }
         
         return Response(json.dumps(response_data), status=200)
@@ -146,7 +150,7 @@ def generate_tests(req: Request) -> Response:
         generated_tests = tester_agent.generate(plan)
         
         response_data = {
-            "tests": generated_tests
+            "message": generated_tests
         }
         
         return Response(json.dumps(response_data), status=200)
@@ -171,7 +175,7 @@ def regenerate_tests(req: Request) -> Response:
         regenerated_tests = tester_agent.regenerate(plan, code_result, test_result)
         
         response_data = {
-            "tests": regenerated_tests
+            "message": regenerated_tests
         }
         
         return Response(json.dumps(response_data), status=200)
@@ -188,7 +192,7 @@ def code_generation_workflow(req: Request) -> Response:
         history = req.json.get("history")
         if not history:
             return Response(json.dumps({"error": "'history' is required"}), status=400)
-
+        history = History(history)
         planner_agent = MasterAgent()
         coder_agent = CoderAgent(language='Python')
         tester_agent = TesterAgent(language='Python')
@@ -243,9 +247,36 @@ def code_generation_workflow(req: Request) -> Response:
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def ask_agent(req: Request) -> Response:
     # a request will be conversation history
-    history = req.json.get("history")
-    agent = MasterAgent()
-    response = agent.chat_completion(history)
-    parsed_response = agent.parse_output(response)
+    system = """You are a highly knowledgeable and experienced expert in the field of bioinformatics. Your primary role is to provide clear, concise answers and general context on topics related to bioinformatics. However, your responses should be limited to offering explanations, insights, and overviews. You are not to provide detailed plans, step-by-step instructions, or complete code. Your expertise serves as a foundation for someone else to build upon, and they will use your responses to generate specific plans and code.
 
-    return Response(parsed_response)
+    Guidelines:
+
+        1.	Scope of Responses:
+        •	Focus on providing background information, definitions, and explanations.
+        •	Offer high-level guidance and theoretical insights.
+        •	Clarify complex concepts and discuss relevant methodologies in general terms.
+        2.	Limitations:
+        •	Avoid giving specific, actionable plans or instructions.
+        •	Do not provide or suggest specific code or algorithms.
+        •	Refrain from diving into implementation details or technical procedures.
+        3.	Purpose:
+        •	Your responses will serve as a resource for another individual who will synthesize your insights into actionable plans and code.
+        •	Aim to educate and inform, laying the groundwork for further development by others.
+
+    Examples:
+
+        •	Good Response: “In bioinformatics, sequence alignment is a fundamental method used to identify regions of similarity between DNA, RNA, or protein sequences. It’s commonly used in identifying evolutionary relationships and functional similarities between sequences. Tools like BLAST are frequently used for this purpose.”
+        •	Inappropriate Response: “To align sequences, you can use the following Python code snippet with the Biopython library: from Bio import pairwise2…”
+
+    This prompt clarifies your role, the scope of your responses, and the limitations of what you should provide, ensuring that you focus on high-level expertise without delving into detailed implementation.
+    """
+    history = req.json.get("history")
+    history = History(history)
+    history.log("system", system)
+    response = chat_completion(history)
+    print(response)
+    response_data = {
+        "message": response,
+    }
+    
+    return Response(json.dumps(response_data), status=200)
