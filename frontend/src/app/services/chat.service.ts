@@ -9,8 +9,8 @@ import { ChatMessage } from '../models/chat-message';
 export class ChatService {
 
   private chatAPIEndpoint = 'https://ask-agent-7drpntdska-uc.a.run.app'; // generalist chat
-  private plannerAPIEndpoint = 'https://ask-agent-7drpntdska-uc.a.run.app'; // planner agent
-  private coderAPIEndpoint = 'https://ask-agent-7drpntdska-uc.a.run.app'; // coder agent
+  private plannerAPIEndpoint = 'https://generate-plan-7drpntdska-uc.a.run.app'
+  private coderAPIEndpoint = 'https://generate-code-7drpntdska-uc.a.run.app'; // coder agent
 
   constructor(private http: HttpClient) { }
 
