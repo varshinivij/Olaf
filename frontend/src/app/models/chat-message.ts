@@ -1,5 +1,5 @@
 export interface ChatMessage {
-    type: 'text' | 'code';
+    type: 'text' | 'code' | 'plan' | 'error' | 'image'; 
     role: 'assistant' | 'user';
     content: string;
 }

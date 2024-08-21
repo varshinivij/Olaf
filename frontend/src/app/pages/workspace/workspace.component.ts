@@ -29,6 +29,18 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   
   selectedTab: string = 'planner'; // Default tab
 
+  // message scheme ONLY FOR REFERENCE
+  // messages: ChatMessage[] = [
+  //   {
+  //     type: 'text',
+  //     role: 'assistant',
+  //     content: 'Hello, how can I help you today?',
+  //   },
+  // ];
+
+  plans: string[] = []
+  codes: string[] = []
+
   newMessage: string = '';
 
   constructor(
@@ -94,17 +106,20 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       this.loading = true;
 
       this.chatService.sendMessage(this.sessionsService.activeSession.history).subscribe(
-        (response: ChatMessage[]) => {
-          this.processResponse(response);
-          this.sessionsService.activeSession.history = [...this.sessionsService.activeSession.history, ...response];
+        (responnse:any) => {
+          let responseMessages: ChatMessage = {
+            type: 'text',
+            role: 'assistant',
+            content: responnse["message"],
+          };
+          this.sessionsService.activeSession.history.push(responseMessages);
           this.loading = false;
-          this.sessionsService.saveActiveSession();
-        },
-        (error) => {
-          console.error('Error:', error);
-          this.loading = false;
-        }
-      );
+          },
+          (error) => {
+            console.error('Error:', error);
+            this.loading = false;
+          }
+        );
     }
   }
 
@@ -146,5 +161,45 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         this.executeCode(message.content);
       }
     });
+  }
+
+  requestPlan() {
+    this.loading = true;
+    this.chatService.requestPlan(this.sessionsService.activeSession.history).subscribe(
+      (response: any) => {
+        //add the plan to message as a ChatMessage with type Plan
+        let planMessage: ChatMessage = {
+          type: 'plan',
+          role: 'assistant',
+          content: response["message"],
+        }
+        this.sessionsService.activeSession.history.push(planMessage);
+
+      },
+      (error) => {
+        console.error('Error:', error);
+        this.loading = false;
+      }
+    );
+  }
+
+  requestCode() {
+    console.log(this.sessionsService.activeSession.history);
+    this.loading = true;
+    this.chatService.requestCode(this.sessionsService.activeSession.history).subscribe(
+      (response: any) => {
+        //add the code to message as a ChatMessage with type Code
+        let codeMessage: ChatMessage = {
+          type: 'code',
+          role: 'assistant',
+          content: response["code"],
+        }
+        this.sessionsService.activeSession.history.push(codeMessage);
+      },
+      (error) => {
+        console.error('Error:', error);
+        this.loading = false;
+      }
+    );
   }
 }
