@@ -104,7 +104,7 @@ system = {
 
 
 class MasterAgent:
-    def __init__(self, system_prompt):
+    def __init__(self):
         self.client = OpenAI(
             api_key="REMOVED")
         self.system_prompt = system_prompt
@@ -172,46 +172,78 @@ class MasterAgent:
             "create_sequential_plan": self.create_sequential_plan,
         }
 
-    def chat_completion_api(self, query, tools=None):
-        print(query)
+    def chat_completion_api(self,query, tools=None):
         api_key = "REMOVED"
-        client = OpenAI(api_key=api_key)
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                # Include the history in the conversation
+        url = "https://api.openai.com/v1/chat/completions"
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+        # Construct the payload with the system prompt, conversation history, and user query
+        payload = {
+            "model": "gpt-4o-mini",
+            "messages": [
                 {"role": "system", "content": self.system_prompt},
-                *self.history.get_history(),
-                {"role": "user", "content": query}
+                *self.history.get_history(),  # Append the conversation history
+                {"role": "user", "content": query}  # Assuming you have a method to get the latest query
             ],
-            tools=tools
-        )
-        return completion.choices[0].message
+            "temperature": 0.1,
+            "tools": tools
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+
+        if response.status_code == 200:
+            result = response.json()
+            return result
+        else:
+            print(f"Error: {response.status_code}, {response.text}")
+            return None
 
     def process_query(self, query: str):
         try:
             response = self.chat_completion_api(query, tools=self.functions)
-            if response.tool_calls:
-                # Step 2: Extract the function name and arguments
-                # Assuming there's only one tool call
-                tool_call = response.tool_calls[0]
-                function_name = tool_call.function.name
-                function_arguments = tool_call.function.arguments
 
-                # Step 3: Convert the arguments from JSON to a Python dictionary
-                args_dict = json.loads(function_arguments)
+            
+            # Check if response is a dictionary (API response)
+            if isinstance(response, dict):
+                # Extract the message from the API response
+                message = response['choices'][0]['message']
+                print(message)
 
-
-                # Step 4: Call the appropriate function
-                if function_name in self.function_map:
-                    result = self.function_map[function_name](**args_dict)
-                    return result.content
+            
+                # Check if there are tool calls
+                if 'tool_calls' in message.keys() and message['tool_calls']:
+                    print("Yes")
+                    # Handle tool calls
+                    tool_call = message['tool_calls'][0]
+                    function_name = tool_call['function']['name']
+                    function_arguments = tool_call['function']['arguments']
+                    
+                    # Convert the arguments from JSON to a Python dictionary
+                    args_dict = json.loads(function_arguments)
+                    
+                    
+                    # Call the appropriate function
+                    if function_name in self.function_map.keys():
+                        print("helo")
+                        result = self.function_map[function_name](**args_dict)
+                        print(result)
+                        return result
+                    else:
+                        return {"error": f"Function {function_name} not found."}
                 else:
-                    return {"error": f"Function {function_name} not found."}
+                    # Return the content if no tool calls
+                    return message.get('content', '')
             else:
-                return response.content
+                # If response is not a dictionary, assume it's the direct content
+                return response
         except json.JSONDecodeError:
             return {"error": "Invalid response from API"}
+        except Exception as e:
+            return {"error": f"An error occurred: {str(e)}"}
 
     def handle_simple_interaction(self, query):
         interaction_prompt = (
@@ -231,7 +263,7 @@ class MasterAgent:
             "Please write the code below:\n"
         )
         self.history.add_entry("user", code_prompt)
-        code_response = self.chat_completion_api(code_prompt)
+        code_response = self.chat_completion_api(code_prompt)["choices"][0]["message"]["content"]
         self.history.add_entry("assistant", code_response)
         return code_response.strip()
 
@@ -309,27 +341,5 @@ class MasterAgent:
         )
         self.history.add_entry(
             "assistant", plan_response.choices[0].message.content)
-        return plan_response.choices[0].message
+        return plan_response.choices[0].message.content
 
-
-def main():
-    agent = MasterAgent(system_prompt)
-    print("Welcome! You can start chatting with the Master Agent.")
-    print("Type 'exit' to end the conversation.")
-
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() == "exit":
-            print("Ending conversation. Goodbye!")
-            break
-
-        # Process the user query with the Master Agent
-        response = agent.process_query(user_input)
-        print(response)
-
-        # Display the response
-        print(f"Agent: {response}")
-
-
-if __name__ == "__main__":
-    main()
