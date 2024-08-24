@@ -8,7 +8,9 @@ import { ChatMessage } from '../models/chat-message';
 })
 export class ChatService {
 
-  private chatAPIEndpoint = 'https://ask-agent-7drpntdska-uc.a.run.app'; // Replace with your cloud function URL
+  private chatAPIEndpoint = 'https://ask-agent-7drpntdska-uc.a.run.app'; // generalist chat
+  private plannerAPIEndpoint = 'https://generate-plan-7drpntdska-uc.a.run.app'
+  private coderAPIEndpoint = 'https://generate-code-7drpntdska-uc.a.run.app'; // coder agent
 
   constructor(private http: HttpClient) { }
 
@@ -18,5 +20,20 @@ export class ChatService {
     });
     return this.http.post<ChatMessage[]>(this.chatAPIEndpoint, { history }, { headers });
   }
+
+  requestPlan(history: ChatMessage[]): Observable<ChatMessage[]> {
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+    return this.http.post<ChatMessage[]>(this.plannerAPIEndpoint, { history }, { headers });
+  }
+
+  requestCode(history: ChatMessage[]): Observable<ChatMessage[]> {
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+    return this.http.post<ChatMessage[]>(this.coderAPIEndpoint, { history }, { headers });
+  }
+  
 
 }

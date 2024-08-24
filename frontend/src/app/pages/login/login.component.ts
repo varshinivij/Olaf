@@ -49,7 +49,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       next: (user) => {
         if (user && this.formSubmitted) {
           console.log('Logged in: ', user);
-          this.navigateToDashboard();
+          this.navigateToWorkspace();
         }
       },
       error: (error) => {
@@ -67,14 +67,14 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.router.navigate(['/signup']);
   }
 
-  navigateToDashboard() {
-    this.router.navigate(['/dashboard']);
+  navigateToWorkspace() {
+    this.router.navigate(['/workspace']);
   }
 
   async loginWithGoogle() {
     try {
       this.formSubmitted = true;
-      await this.userService.loginWithGoogle();
+      await this.userService.loginWithGoogle()
     } catch (error) {
       this.errorMessage = UserService.convertAuthErrorToMessage(error);
       console.error('Error logging in with Google: ', error);
