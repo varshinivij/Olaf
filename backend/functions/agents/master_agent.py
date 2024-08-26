@@ -1,5 +1,6 @@
 from agent_utils import chat_completion_api
 from agent_utils import chat_completion_plan
+from agent_utils import chat_completion_function
 import json
 from firebase_functions.https_fn import Request, Response, on_request
 
@@ -141,29 +142,22 @@ class MasterAgent:
 
     def process_query(self, history):
         try:
-            history.remove_system_messages()
-                
-            response = chat_completion_api(history, system_prompt, tools=self.functions)
+            self.history = history
+            self.history.remove_system_messages()
+            response = chat_completion_function(self.history, system_prompt, tools=self.functions)
             
-            #return Response(json.dumps({"high":response}), status=200)
-
             # Check if response is a dictionary (API response)
             if isinstance(response, dict):
-                # Extract the message from the API response
-                message = response['choices'][0]['message']
-                print(message)
 
                 # Check if there are tool calls
-                if 'tool_calls' in message.keys() and message['tool_calls']:
-                    print("Yes")
+                if 'tool_calls' in response.keys() and response['tool_calls']:
                     # Handle tool calls
-                    tool_call = message['tool_calls'][0]
+                    tool_call = response['tool_calls'][0]
                     function_name = tool_call['function']['name']
                     function_arguments = tool_call['function']['arguments']
                     
                     # Convert the arguments from JSON to a Python dictionary
                     args_dict = json.loads(function_arguments)
-                    
                     # Call the appropriate function
                     if function_name in self.function_map.keys():
                         result = self.function_map[function_name](**args_dict)
@@ -172,20 +166,20 @@ class MasterAgent:
                         return {"error": f"Function {function_name} not found."}
                 else:
                     # Return the content if no tool calls
-                    return message.get('content', '')
+                    return response.get('content', '')
             else:
                 # If response is not a dictionary, assume it's the direct content
                 return response
         except json.JSONDecodeError:
             return {"error": "Invalid response from API"}
         except Exception as e:
-            return {"error": f"An error occurred: {response['choices'][0]['message']}"}
+            return {"error": f"An error occurred: {str(e)}"}
 
     def handle_simple_interaction(self):
         interaction_prompt = (
             f"You are a knowledgeable assistant. Please provide a clear and concise response "
             f"to the following query:\n\n"
-            f"Query: '{history}'\n\n"
+            f"Query: '{self.history.most_recent_entry()}'\n\n"
             "Your response should be easy to understand and directly address the query."
         )
         self.history.remove_system_messages()
@@ -200,21 +194,21 @@ class MasterAgent:
         )
         self.history.remove_system_messages()
         self.history.log("user", code_prompt)
-        code_response = chat_completion_api(code_prompt, self.history, system_prompt)["choices"][0]["message"]["content"]
+        code_response = chat_completion_api(self.history, system_prompt)
         self.history.log("assistant", code_response)
         return code_response.strip()
 
-    def decompose_complicated_task(self, query, history):
+    def decompose_complicated_task(self):
         decomposition_prompt = (
             f"You are an expert in task decomposition, particularly in bioinformatics and machine learning. "
             f"The user has provided a complex query that needs to be broken down into smaller, manageable subtasks. "
             f"Here is the query:\n\n"
-            f"Query: '{query}'\n\n"
+            f"Query: '{self.history.most_recent_entry()}'\n\n"
             "Please identify the key components of this task and provide a step-by-step breakdown into smaller subtasks."
         )
-        history.remove_system_messages()
-        history.log("user", decomposition_prompt)
-        decomposition_response = chat_completion_api(decomposition_prompt, history.get_history(), system_prompt)
+        self.history.remove_system_messages()
+        self.history.log("user", decomposition_prompt)
+        decomposition_response = chat_completion_api(self.history, system_prompt)
         return decomposition_response.strip()
 
     def create_sequential_plan(self):
@@ -222,7 +216,6 @@ class MasterAgent:
             f"You are an expert in project planning, especially in the domains of bioinformatics, machine learning, and software development. "
             f"The user has provided a complex query that requires a step-by-step plan to execute. "
             f"Here is the query:\n\n"
-            f"history : '{self.history}'\n\n"
             "Please create a comprehensive sequential plan that outlines each necessary step clearly and logically. "
             "Ensure that the plan is detailed enough for implementation, and include any dependencies or prerequisites required for each step."
         )

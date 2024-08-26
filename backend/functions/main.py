@@ -48,8 +48,7 @@ def generate_plan(req: Request) -> Response:
         
         history = History(history_data)
         master_agent = MasterAgent(history)
-        plan = master_agent.process_query(history)
-        
+        plan = master_agent.process_query(history)    
         response_data = {
             "message": plan
         }

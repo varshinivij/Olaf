@@ -28,6 +28,31 @@ def chat_completion(history, tools=None):
         print(f"Error: {response.status_code}, {response.text}")
         return None
     
+def chat_completion_function(history, system_prompt, tools=None):
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            *history.get_history(),
+        ],
+        "temperature": 0.1,
+        "tools": tools
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+    
+    if response.status_code == 200:
+        result = response.json()
+        return result['choices'][0]['message']
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        return None
+    
 def chat_completion_api(history, system_prompt, tools=None):
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -45,10 +70,10 @@ def chat_completion_api(history, system_prompt, tools=None):
     }
 
     response = requests.post(url, headers=headers, json=payload)
-
+    
     if response.status_code == 200:
         result = response.json()
-        return result
+        return result['choices'][0]['message']['content']
     else:
         print(f"Error: {response.status_code}, {response.text}")
         return None
@@ -114,7 +139,7 @@ def chat_completion_plan(history, system_prompt, tools=None):
 
     if response.status_code == 200:
         result = response.json()
-        return result.choices[0].message.content
+        return result['choices'][0]['message']['content']
     else:
         print(f"Error: {response.status_code}, {response.text}")
         return None
