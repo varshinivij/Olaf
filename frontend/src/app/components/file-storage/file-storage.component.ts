@@ -23,18 +23,16 @@ import { titleCase } from '../../utils/title-case';
 import { FileStorageService } from '../../services/file-storage.service';
 import { UploadService } from '../../services/upload.service';
 
-import { ExtensionType } from '../../models/extension-type';
-import { UserFileUpload } from '../../models/user-file-upload';
+import {
+  ExtensionType,
+  getImageUrlFromType,
+} from '../../models/extension-type';
 import { UserFile } from '../../models/user-file';
 
 interface FilterButton {
   name: string;
   type: ExtensionType;
 }
-
-type FileTypeIcons = {
-  [K in ExtensionType]: string;
-};
 
 @Component({
   selector: 'app-file-storage',
@@ -45,11 +43,10 @@ type FileTypeIcons = {
 })
 export class FileStorageComponent implements OnInit, OnDestroy {
   private fileStorageSubscription?: Subscription;
-  private uploadSubscription?: Subscription;
 
-  pageSize = 10;  // setting
+  pageSize = 10; // setting
   pageNumber = 1;
-  totalPages = 1;  // updated automatically
+  totalPages = 1; // updated automatically
 
   currentPath = ['/'];
   createFolderName = ''; // ngModel variable
@@ -60,28 +57,19 @@ export class FileStorageComponent implements OnInit, OnDestroy {
 
   private userFiles: UserFile[] = [];
   displayedFiles: UserFile[] = []; // will store userFiles after sort/filtering
-  uploadQueue: UserFileUpload[] = [];
 
   // make imported util functions available to template
-  // (is there really no better way to do this?)
+  console = console;
   formatBytes = formatBytes;
+  getImageUrlFromType = getImageUrlFromType;
   titleCase = titleCase;
 
   filterButtons: FilterButton[] = [
-    { name: 'Folders', type: 'folder' },
-    { name: 'Datasets', type: 'dataset' },
-    { name: 'Code', type: 'code' },
-    { name: 'Models', type: 'model' },
+    { name: 'Folders', type: 'folder' } as const,
+    { name: 'Datasets', type: 'dataset' } as const,
+    { name: 'Code', type: 'code' } as const,
+    { name: 'Models', type: 'model' } as const,
   ];
-
-  fileTypeIcons: FileTypeIcons = {
-    code: 'assets/file-type-code.svg',
-    dataset: 'assets/file-type-dataset.svg',
-    folder: 'assets/file-type-folder.svg',
-    model: 'assets/file-type-model.svg',
-    text: 'assets/file-type-text.svg',
-    unknown: 'assets/file-type-unknown.svg',
-  };
 
   constructor(
     public fileStorageService: FileStorageService,
@@ -99,29 +87,11 @@ export class FileStorageComponent implements OnInit, OnDestroy {
         }
         this.sortAndFilterFiles();
       });
-
-    this.uploadSubscription = this.uploadService
-      .getUploadProgress()
-      .subscribe((uploadProgress: UserFileUpload[]) => {
-        this.uploadQueue = uploadProgress;
-
-        uploadProgress.forEach((upload) => {
-          if (upload.status == 'completed') {
-            // probably make a toast message or something here
-            console.log('Upload succeeded:', upload);
-            this.uploadService.removeUpload(upload);
-          } else if (upload.status == 'error') {
-            // probably make a toast message or something here
-            console.error('Upload failed:', upload);
-            this.uploadService.removeUpload(upload);
-          }
-        });
-      });
   }
 
   ngOnDestroy(): void {
     this.fileStorageSubscription?.unsubscribe();
-    this.uploadSubscription?.unsubscribe();
+    // this.uploadSubscription?.unsubscribe();
   }
 
   /*
@@ -158,11 +128,21 @@ export class FileStorageComponent implements OnInit, OnDestroy {
   onUploadFilesSelected(event: Event) {
     const target = event.target as HTMLInputElement;
     const files = target.files as FileList;
-    this.uploadService.uploadFiles(
-      Array.from(files),
-      posix.join(...this.currentPath)
-    );
-    // reset input file selection (if u don't, can't select same file again)
+
+    Array.from(files).forEach((file: File) => {
+      this.uploadService.uploadFile(
+        file,
+        posix.join(...this.currentPath),
+        (completedUpload) => {
+          console.log('Upload succeeded:', completedUpload);
+          this.uploadService.removeUpload(completedUpload);
+        },
+        (errorUpload) => {
+          console.error('Upload failed:', errorUpload);
+          this.uploadService.removeUpload(errorUpload);
+        }
+      );
+    });
     target.value = '';
   }
 
@@ -175,16 +155,39 @@ export class FileStorageComponent implements OnInit, OnDestroy {
     }
   }
 
-  deleteFileOrFolder(file: UserFile) {
-    const fileFullPath = posix.join(file.path, file.name);
-    this.fileStorageService.deletePath(fileFullPath);
+  async deleteFileOrFolder(event: Event, file: UserFile) {
+    const buttonElement = event.target as HTMLButtonElement;
+
+    buttonElement.textContent = 'progress_activity';
+    buttonElement.classList.toggle('animate-spin');
+    try {
+      const fileFullPath = posix.join(file.path, file.name);
+      await this.fileStorageService.deletePath(fileFullPath);
+    } catch (error) {
+      buttonElement.classList.toggle('animate-spin');
+      buttonElement.textContent = 'error';
+      return;
+    }
+    buttonElement.classList.toggle('animate-spin');
+    buttonElement.textContent = 'delete';
   }
 
   createFolder() {
     // this.createFolderName already updated through ngModel
     const currentDir = posix.join(...this.currentPath);
     console.log(currentDir, this.createFolderName);
-    this.fileStorageService.createFolder(this.createFolderName, currentDir);
+    this.uploadService.createNewFolder(
+      this.createFolderName,
+      currentDir,
+      (completedUpload) => {
+        console.log('Upload succeeded:', completedUpload);
+        this.uploadService.removeUpload(completedUpload);
+      },
+      (errorUpload) => {
+        console.error('Upload failed:', errorUpload);
+        this.uploadService.removeUpload(errorUpload);
+      }
+    );
     this.createFolderName = '';
   }
 

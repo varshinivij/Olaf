@@ -62,7 +62,7 @@ export class FileStorageService {
               files.map((file: any) => {
                 return {
                   ...file,
-                  type: ExtensionTypeMap[file.extension] || 'unknown',
+                  type: ExtensionTypeMap[file.extension as keyof typeof ExtensionTypeMap] || 'unknown',
                   uploadedOn: file.uploadedOn?.toDate(),
                 } as UserFile;
               })
@@ -79,27 +79,14 @@ export class FileStorageService {
     return this.files$;
   }
 
-  deletePath(path: string) {
+  async deletePath(path: string) {
     const cloudFunctionCallable = httpsCallable(
       this.functions,
       'request_user_delete_path'
     );
-    cloudFunctionCallable({ path });
+    await cloudFunctionCallable({ path });
   }
 
-  // maybe i can move this to the uploadService so that creating a new folder
-  // can be added to the queue naturally. seems like a good idea.
-  createFolder(name: string, path: string) {
-    if (name == '') {
-      return;
-    }
-
-    const cloudFunctionCallable = httpsCallable(
-      this.functions,
-      'request_user_create_folder'
-    );
-    cloudFunctionCallable({ name, path });
-  }
 
   // TODO: these functions don't work. downloadFile() seems
   // to work occasionally (sometimes downloads, other times opens a new
