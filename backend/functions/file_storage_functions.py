@@ -342,7 +342,7 @@ def handle_user_file_upload(event: CloudEvent[StorageObjectData]) -> None:
     elif session_image_match:
         # Handle session image upload
         user_uid, upload_name = session_image_match.groups()
-        upload_path = Path(f"sessionImages/{user_uid}/{upload_name}")
+        upload_path = Path(f"sessionImages/{upload_name}")
         upload_parent = upload_path.parent.as_posix()
         upload_name = upload_name.lstrip('/')
 
