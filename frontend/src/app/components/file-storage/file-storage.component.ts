@@ -269,18 +269,22 @@ export class FileStorageComponent implements OnInit, OnDestroy {
     }
     this.currentPathArray.splice(pathIndex + 1);
     this.currentPathString = posix.join(...this.currentPathArray);
+    this.pageNumber = 1;
     this.sortAndFilterFiles();
   }
 
   toNextDirectory(directory: string) {
     this.currentPathArray.push(directory);
     this.currentPathString = posix.join(...this.currentPathArray);
+    this.pageNumber = 1;
     this.sortAndFilterFiles();
   }
 
   applySearchFilter() {
     // this.searchFilter is already updated through ngModel
     // maybe restructure to be more readable? unfamiliar w/ angular design patterns.
+    this.pageNumber = 1;
+    this.toPreviousDirectory(0);
     this.sortAndFilterFiles();
   }
 
@@ -290,6 +294,7 @@ export class FileStorageComponent implements OnInit, OnDestroy {
     } else {
       this.typeFilter = type;
     }
+    this.pageNumber = 1;
     this.sortAndFilterFiles();
   }
 
@@ -302,6 +307,7 @@ export class FileStorageComponent implements OnInit, OnDestroy {
       this.sortFilter = sort;
       this.sortDirectionFilter = 'asc';
     }
+    this.pageNumber = 1;
     this.sortAndFilterFiles();
   }
 
