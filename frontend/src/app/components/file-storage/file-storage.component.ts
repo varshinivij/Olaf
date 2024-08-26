@@ -44,32 +44,32 @@ interface FilterButton {
 export class FileStorageComponent implements OnInit, OnDestroy {
   private fileStorageSubscription?: Subscription;
 
+  // Settings/default values, can be modified
   pageSize = 10; // setting
-  pageNumber = 1;
-  totalPages = 1; // updated automatically
-
-  currentPath = ['/'];
-  createFolderName = ''; // ngModel variable
-  searchFilter = ''; // ngModel variable
   typeFilter = null as ExtensionType | null;
   sortFilter = 'name' as keyof UserFile;
   sortDirectionFilter = 'asc' as OrderByDirection;
-
-  private userFiles: UserFile[] = [];
-  displayedFiles: UserFile[] = []; // will store userFiles after sort/filtering
-
-  // make imported util functions available to template
-  console = console;
-  formatBytes = formatBytes;
-  getImageUrlFromType = getImageUrlFromType;
-  titleCase = titleCase;
-
   filterButtons: FilterButton[] = [
     { name: 'Folders', type: 'folder' } as const,
     { name: 'Datasets', type: 'dataset' } as const,
     { name: 'Code', type: 'code' } as const,
     { name: 'Models', type: 'model' } as const,
   ];
+
+  // Do not modify
+  pageNumber = 1;
+  totalPages = 1; // updated automatically
+  currentPathArray = ['/'];
+  currentPathString = '/';
+  createFolderName = ''; // ngModel variable
+  searchFilter = ''; // ngModel variable
+  private userFiles: UserFile[] = [];
+  displayedFiles: UserFile[] = []; // will store userFiles after sort/filtering
+
+  // make imported util functions available to template
+  formatBytes = formatBytes;
+  getImageUrlFromType = getImageUrlFromType;
+  titleCase = titleCase;
 
   constructor(
     public fileStorageService: FileStorageService,
@@ -91,12 +91,94 @@ export class FileStorageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.fileStorageSubscription?.unsubscribe();
-    // this.uploadSubscription?.unsubscribe();
+  }
+
+  /*
+    UPLOAD/DOWNLOAD FILE/FOLDER UTILITY METHODS
+  */
+
+  onUploadFilesSelected(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const files = target.files as FileList;
+
+    Array.from(files).forEach((file: File) => {
+      this.uploadService.uploadFile(
+        file,
+        this.currentPathString,
+        (completedUpload) => {
+          console.log('Upload succeeded:', completedUpload);
+          this.uploadService.removeUpload(completedUpload);
+        },
+        (errorUpload) => {
+          console.error('Upload failed:', errorUpload);
+          this.uploadService.removeUpload(errorUpload);
+        }
+      );
+    });
+
+    // reset selected files, else you can't select the same files again
+    target.value = '';
+  }
+
+  createFolder() {
+    // this.createFolderName already updated through ngModel
+    this.uploadService.createNewFolder(
+      this.createFolderName,
+      this.currentPathString,
+      (completedUpload) => {
+        console.log('Upload succeeded:', completedUpload);
+        this.uploadService.removeUpload(completedUpload);
+      },
+      (errorUpload) => {
+        console.error('Upload failed:', errorUpload);
+        this.uploadService.removeUpload(errorUpload);
+      }
+    );
+    this.createFolderName = '';
+  }
+
+  deleteFileOrFolder(event: Event, file: UserFile) {
+    /*
+      Currently uses direct DOM manipulation. Another way would be
+      to store the "deleted/error" state in the actual data model,
+      but that doesn't make too much sense. Maybe an entirely separate
+      layer that represents each table row, but this is good enough for now.
+
+      If we did an entirely separate layer, then maybe separate all the
+      filtering/pagination to a utility class. But since we're loading
+      every file into memory at the moment this simple is enough.
+    */
+    const buttonElement = event.target as HTMLButtonElement;
+    const fileFullPath = posix.join(file.path, file.name);
+
+    buttonElement.textContent = 'progress_activity';
+    buttonElement.classList.toggle('animate-spin');
+
+    this.fileStorageService
+      .deletePath(fileFullPath)
+      .then(() => {
+        buttonElement.classList.toggle('animate-spin');
+        buttonElement.textContent = 'delete';
+      })
+      .catch((error) => {
+        buttonElement.classList.toggle('animate-spin');
+        buttonElement.textContent = 'error';
+      });
+  }
+
+  async downloadFileOrFolder(file: UserFile) {
+    // TODO: doesn't work right now. see FileStorageService
+    if (file.isFolder) {
+      this.fileStorageService.downloadFolder(file);
+    } else {
+      this.fileStorageService.downloadFile(file);
+    }
   }
 
   /*
     PAGE NAVIGATOR METHODS
   */
+
   previousPage() {
     if (this.pageNumber > 1) {
       this.pageNumber--;
@@ -119,79 +201,6 @@ export class FileStorageComponent implements OnInit, OnDestroy {
   }
 
   /*
-    DOWNLOAD/CREATE FOLDER UTILITY METHODS
-  */
-  currentPathToString() {
-    return posix.join(...this.currentPath);
-  }
-
-  onUploadFilesSelected(event: Event) {
-    const target = event.target as HTMLInputElement;
-    const files = target.files as FileList;
-
-    Array.from(files).forEach((file: File) => {
-      this.uploadService.uploadFile(
-        file,
-        posix.join(...this.currentPath),
-        (completedUpload) => {
-          console.log('Upload succeeded:', completedUpload);
-          this.uploadService.removeUpload(completedUpload);
-        },
-        (errorUpload) => {
-          console.error('Upload failed:', errorUpload);
-          this.uploadService.removeUpload(errorUpload);
-        }
-      );
-    });
-    target.value = '';
-  }
-
-  downloadFileOrFolder(file: UserFile) {
-    // TODO: doesn't work right now. see FileStorageService
-    if (file.isFolder) {
-      this.fileStorageService.downloadFolder(file);
-    } else {
-      this.fileStorageService.downloadFile(file);
-    }
-  }
-
-  async deleteFileOrFolder(event: Event, file: UserFile) {
-    const buttonElement = event.target as HTMLButtonElement;
-
-    buttonElement.textContent = 'progress_activity';
-    buttonElement.classList.toggle('animate-spin');
-    try {
-      const fileFullPath = posix.join(file.path, file.name);
-      await this.fileStorageService.deletePath(fileFullPath);
-    } catch (error) {
-      buttonElement.classList.toggle('animate-spin');
-      buttonElement.textContent = 'error';
-      return;
-    }
-    buttonElement.classList.toggle('animate-spin');
-    buttonElement.textContent = 'delete';
-  }
-
-  createFolder() {
-    // this.createFolderName already updated through ngModel
-    const currentDir = posix.join(...this.currentPath);
-    console.log(currentDir, this.createFolderName);
-    this.uploadService.createNewFolder(
-      this.createFolderName,
-      currentDir,
-      (completedUpload) => {
-        console.log('Upload succeeded:', completedUpload);
-        this.uploadService.removeUpload(completedUpload);
-      },
-      (errorUpload) => {
-        console.error('Upload failed:', errorUpload);
-        this.uploadService.removeUpload(errorUpload);
-      }
-    );
-    this.createFolderName = '';
-  }
-
-  /*
     SORT/FILTER UTILITY METHODS
   */
 
@@ -203,24 +212,20 @@ export class FileStorageComponent implements OnInit, OnDestroy {
     this.userFiles.sort((a, b) => {
       const valueA: any = a[this.sortFilter];
       const valueB: any = b[this.sortFilter];
-      let cmp;
 
-      if (typeof valueA === 'string') {
-        cmp = valueA.localeCompare(valueB);
-      } else {
-        cmp = valueA - valueB;
-      }
+      const cmp =
+        typeof valueA === 'string'
+          ? valueA.localeCompare(valueB)
+          : valueA - valueB;
 
       if (this.sortDirectionFilter === 'desc') {
-        cmp = -cmp;
+        return -cmp;
       }
-
       return cmp;
     });
 
     const pageIndexStart = this.pageSize * (this.pageNumber - 1);
     const pageIndexLast = pageIndexStart + this.pageSize - 1;
-    const currentPath = posix.join(...this.currentPath);
     let totalFilteredFiles = 0;
 
     this.displayedFiles = this.userFiles
@@ -234,7 +239,7 @@ export class FileStorageComponent implements OnInit, OnDestroy {
           }
         } else {
           // if no search filter, filter based on path
-          if (file.path !== currentPath) {
+          if (file.path !== this.currentPathString) {
             return false;
           }
         }
@@ -262,18 +267,20 @@ export class FileStorageComponent implements OnInit, OnDestroy {
     if (pathIndex < 0) {
       return;
     }
-    this.currentPath.splice(pathIndex + 1);
+    this.currentPathArray.splice(pathIndex + 1);
+    this.currentPathString = posix.join(...this.currentPathArray);
     this.sortAndFilterFiles();
   }
 
   toNextDirectory(directory: string) {
-    this.currentPath.push(directory);
+    this.currentPathArray.push(directory);
+    this.currentPathString = posix.join(...this.currentPathArray);
     this.sortAndFilterFiles();
   }
 
   applySearchFilter() {
     // this.searchFilter is already updated through ngModel
-    // maybe restructure it to be more readable?
+    // maybe restructure to be more readable? unfamiliar w/ angular design patterns.
     this.sortAndFilterFiles();
   }
 

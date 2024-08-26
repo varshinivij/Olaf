@@ -17,17 +17,17 @@
   </div>
 
   <!-- directory labels -->
-  <div class="flex gap-x-1 items-center text-xl font-bold">
-    @for (path of currentPath; track $index;) {
+  <div class="flex items-center text-xl font-bold overflow-x-auto">
+    @for (path of currentPathArray; track $index;) {
     <button
-      class="bg-white hover:brightness-90 p-1 rounded-lg"
+      class="bg-white hover:brightness-90 p-1 rounded-lg whitespace-nowrap"
       type="button"
       (click)="toPreviousDirectory($index)"
     >
       {{ $first ? "My Files" : path }}
     </button>
     @if (!$last) {
-    <p class="text-3xl font-normal">></p>
+      <i class="material-icons-outlined text-[#5f6368]">chevron_right</i>
     } }
   </div>
 
@@ -128,7 +128,7 @@
         @for (upload of (this.uploadService.getUploadProgress() | async); track
         upload.id) {
         @if (searchFilter === '' && pageNumber === 1 && upload.uploadPath ===
-        currentPathToString()) {
+        currentPathString) {
         <tr class="bg-white hover:brightness-90">
           <td class="px-4 truncate italic">
             <img
