@@ -1,28 +1,9 @@
-# from history import History
-# from agent_utils import chat_completion
-# from agent_utils import chat_completion_api
+from agent_utils import chat_completion_api
+from agent_utils import chat_completion_plan
 import json
 from openai import OpenAI
 from pydantic import BaseModel
-import requests
-import re
 
-
-class History:
-    def __init__(self):
-        self.entries = []
-
-    def add_entry(self, role, content):
-        self.entries.append({"role": role, "content": content})
-
-    def get_history(self):
-        return self.entries
-
-    def clear_history(self):
-        self.entries = []
-
-    def __repr__(self):
-        return "\n".join([f"{entry['role'].capitalize()}: {entry['content']}" for entry in self.entries])
 
 
 system_prompt = """
@@ -105,10 +86,7 @@ system = {
 
 class MasterAgent:
     def __init__(self):
-        self.client = OpenAI(
-            api_key="REMOVED")
         self.system_prompt = system_prompt
-        self.history = History()
         self.functions = [
             {
                 "type": "function",
@@ -121,6 +99,10 @@ class MasterAgent:
                             "query": {
                                 "type": "string",
                                 "description": "The user's query"
+                            },
+                            "history": {
+                                "type": "object",
+                                "description": "The history chat between user and assistant"
                             }
                         },
                         "required": ["query"],
@@ -139,6 +121,10 @@ class MasterAgent:
                             "query": {
                                 "type": "string",
                                 "description": "The user's query"
+                            },
+                            "history": {
+                                "type": "object",
+                                "description": "The history chat between user and assistant"
                             }
                         },
                         "required": ["query"],
@@ -157,6 +143,10 @@ class MasterAgent:
                             "query": {
                                 "type": "string",
                                 "description": "The user's query"
+                            },
+                            "history": {
+                                "type": "object",
+                                "description": "The history chat between user and assistant"
                             }
                         },
                         "required": ["query"],
@@ -165,55 +155,23 @@ class MasterAgent:
                 }
             },
         ]
-
         self.function_map = {
             "handle_simple_interaction": self.handle_simple_interaction,
             "write_basic_code": self.write_basic_code,
             "create_sequential_plan": self.create_sequential_plan,
         }
 
-    def chat_completion_api(self,query, tools=None):
-        api_key = "REMOVED"
-        url = "https://api.openai.com/v1/chat/completions"
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-
-        # Construct the payload with the system prompt, conversation history, and user query
-        payload = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {"role": "system", "content": self.system_prompt},
-                *self.history.get_history(),  # Append the conversation history
-                {"role": "user", "content": query}  # Assuming you have a method to get the latest query
-            ],
-            "temperature": 0.1,
-            "tools": tools
-        }
-
-        response = requests.post(url, headers=headers, json=payload)
-
-        if response.status_code == 200:
-            result = response.json()
-            return result
-        else:
-            print(f"Error: {response.status_code}, {response.text}")
-            return None
-
-    def process_query(self, query: str):
+    def process_query(self, history):
         try:
-            response = self.chat_completion_api(query, tools=self.functions)
+            history.remove_system_messages()
+            response = chat_completion_api(history.get_history(), system_prompt, tools=self.functions)
 
-            
             # Check if response is a dictionary (API response)
             if isinstance(response, dict):
                 # Extract the message from the API response
                 message = response['choices'][0]['message']
                 print(message)
 
-            
                 # Check if there are tool calls
                 if 'tool_calls' in message.keys() and message['tool_calls']:
                     print("Yes")
@@ -225,12 +183,9 @@ class MasterAgent:
                     # Convert the arguments from JSON to a Python dictionary
                     args_dict = json.loads(function_arguments)
                     
-                    
                     # Call the appropriate function
                     if function_name in self.function_map.keys():
-                        print("helo")
                         result = self.function_map[function_name](**args_dict)
-                        print(result)
                         return result
                     else:
                         return {"error": f"Function {function_name} not found."}
@@ -245,29 +200,31 @@ class MasterAgent:
         except Exception as e:
             return {"error": f"An error occurred: {str(e)}"}
 
-    def handle_simple_interaction(self, query):
+    def handle_simple_interaction(self, history):
         interaction_prompt = (
             f"You are a knowledgeable assistant. Please provide a clear and concise response "
             f"to the following query:\n\n"
-            f"Query: '{query}'\n\n"
+            f"Query: '{history}'\n\n"
             "Your response should be easy to understand and directly address the query."
         )
-        self.history.add_entry("user", interaction_prompt)
-        interaction_response = self.chat_completion_api(interaction_prompt)
+        history.remove_system_messages()
+        history.log("user", interaction_prompt)
+        interaction_response = chat_completion_api(history.get_history(), system_prompt)
         return interaction_response
 
-    def write_basic_code(self, query):
+    def write_basic_code(self, query, history):
         code_prompt = (
             f"You are an expert software developer. Based on the user's query, please generate a simple, functional code snippet.\n\n"
             f"Query: '{query}'\n\n"
             "Please write the code below:\n"
         )
-        self.history.add_entry("user", code_prompt)
-        code_response = self.chat_completion_api(code_prompt)["choices"][0]["message"]["content"]
-        self.history.add_entry("assistant", code_response)
+        history.remove_system_messages()
+        history.log("user", code_prompt)
+        code_response = chat_completion_api(code_prompt, history.get_history(), system_prompt)["choices"][0]["message"]["content"]
+        history.log("assistant", code_response)
         return code_response.strip()
 
-    def decompose_complicated_task(self, query):
+    def decompose_complicated_task(self, query, history):
         decomposition_prompt = (
             f"You are an expert in task decomposition, particularly in bioinformatics and machine learning. "
             f"The user has provided a complex query that needs to be broken down into smaller, manageable subtasks. "
@@ -275,11 +232,12 @@ class MasterAgent:
             f"Query: '{query}'\n\n"
             "Please identify the key components of this task and provide a step-by-step breakdown into smaller subtasks."
         )
-        self.history.add_entry("user", decomposition_prompt)
-        decomposition_response = self.chat_completion_api(decomposition_prompt)
+        history.remove_system_messages()
+        history.log("user", decomposition_prompt)
+        decomposition_response = chat_completion_api(decomposition_prompt, history.get_history(), system_prompt)
         return decomposition_response.strip()
 
-    def create_sequential_plan(self, query):
+    def create_sequential_plan(self, query, history):
         plan_creation_prompt = (
             f"You are an expert in project planning, especially in the domains of bioinformatics, machine learning, and software development. "
             f"The user has provided a complex query that requires a step-by-step plan to execute. "
@@ -288,58 +246,10 @@ class MasterAgent:
             "Please create a comprehensive sequential plan that outlines each necessary step clearly and logically. "
             "Ensure that the plan is detailed enough for implementation, and include any dependencies or prerequisites required for each step."
         )
-        self.history.add_entry("user", plan_creation_prompt)
-        # self.chat_completion_api(plan_creation_prompt)
-        plan_response = self.client.chat.completions.create(
-            model="gpt-4o-2024-08-06",
-            messages=[
-                {"role": "system", "content": self.system_prompt},
-                *self.history.get_history(),
-                {"role": "user", "content": query}
-            ],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "plan_response",
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "overview": {
-                                "type": "string",
-                                "description": "A brief overview of the entire plan."
-                            },
-                            "steps": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "step_number": {"type": "integer"},
-                                        "title": {"type": "string", "description": "A short title or name for the step."},
-                                        "description": {"type": "string", "description": "A detailed explanation of what this step involves."},
-                                        "dependencies": {
-                                            "type": "array",
-                                            "items": {"type": "string"},
-                                            "description": "Any prerequisites or dependencies required for this step."
-                                        },
-                                        "expected_output": {"type": "string", "description": "The expected result or output of this step."}
-                                    },
-                                    "required": ["step_number", "title", "description", "dependencies", "expected_output"],
-                                    "additionalProperties": False
-                                }
-                            },
-                            "final_check": {
-                                "type": "string",
-                                "description": "A final review or checklist after all steps are completed."
-                            }
-                        },
-                        "required": ["overview", "steps", "final_check"],
-                        "additionalProperties": False
-                    },
-                    "strict": True
-                }
-            }
-        )
-        self.history.add_entry(
-            "assistant", plan_response.choices[0].message.content)
-        return plan_response.choices[0].message.content
+        history.remove_system_messages()
+        history.log("user", plan_creation_prompt)
+        plan_response = chat_completion_plan(query, history.get_history(), system_prompt)
+        history.log(
+            "assistant", plan_response)
+        return plan_response
 
