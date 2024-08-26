@@ -1,7 +1,7 @@
 from agent_utils import chat_completion_api
 from agent_utils import chat_completion_plan
 import json
-
+from firebase_functions.https_fn import Request, Response, on_request
 
 system_prompt = """
     You are MasterAgent, an AI assistant specialized in bioinformatics. Your responsibilities include:
@@ -82,8 +82,9 @@ system = {
 
 
 class MasterAgent:
-    def __init__(self):
+    def __init__(self,history):
         self.system_prompt = system_prompt
+        self.history = history
         self.functions = [
             {
                 "type": "function",
@@ -93,16 +94,8 @@ class MasterAgent:
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The user's query"
-                            },
-                            "history": {
-                                "type": "object",
-                                "description": "The history chat between user and assistant"
-                            }
                         },
-                        "required": ["query"],
+                        "required": ["history"],
                         "additionalProperties": False
                     }
                 }
@@ -115,16 +108,8 @@ class MasterAgent:
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The user's query"
-                            },
-                            "history": {
-                                "type": "object",
-                                "description": "The history chat between user and assistant"
-                            }
                         },
-                        "required": ["query"],
+                        "required": ["history"],
                         "additionalProperties": False
                     }
                 }
@@ -137,16 +122,12 @@ class MasterAgent:
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The user's query"
-                            },
                             "history": {
                                 "type": "object",
                                 "description": "The history chat between user and assistant"
                             }
                         },
-                        "required": ["query"],
+                        "required": ["history"],
                         "additionalProperties": False
                     }
                 }
@@ -161,7 +142,10 @@ class MasterAgent:
     def process_query(self, history):
         try:
             history.remove_system_messages()
-            response = chat_completion_api(history.get_history(), system_prompt, tools=self.functions)
+                
+            response = chat_completion_api(history, system_prompt, tools=self.functions)
+            
+            #return Response(json.dumps({"high":response}), status=200)
 
             # Check if response is a dictionary (API response)
             if isinstance(response, dict):
@@ -195,30 +179,29 @@ class MasterAgent:
         except json.JSONDecodeError:
             return {"error": "Invalid response from API"}
         except Exception as e:
-            return {"error": f"An error occurred: {str(e)}"}
+            return {"error": f"An error occurred: {response['choices'][0]['message']}"}
 
-    def handle_simple_interaction(self, history):
+    def handle_simple_interaction(self):
         interaction_prompt = (
             f"You are a knowledgeable assistant. Please provide a clear and concise response "
             f"to the following query:\n\n"
             f"Query: '{history}'\n\n"
             "Your response should be easy to understand and directly address the query."
         )
-        history.remove_system_messages()
-        history.log("user", interaction_prompt)
-        interaction_response = chat_completion_api(history.get_history(), system_prompt)
+        self.history.remove_system_messages()
+        self.history.log("user", interaction_prompt)
+        interaction_response = chat_completion_api(self.history, system_prompt)
         return interaction_response
 
-    def write_basic_code(self, query, history):
+    def write_basic_code(self):
         code_prompt = (
-            f"You are an expert software developer. Based on the user's query, please generate a simple, functional code snippet.\n\n"
-            f"Query: '{query}'\n\n"
+            f"You are an expert software developer. Based on the user's query from the history, please generate a simple, functional code snippet.\n\n"
             "Please write the code below:\n"
         )
-        history.remove_system_messages()
-        history.log("user", code_prompt)
-        code_response = chat_completion_api(code_prompt, history.get_history(), system_prompt)["choices"][0]["message"]["content"]
-        history.log("assistant", code_response)
+        self.history.remove_system_messages()
+        self.history.log("user", code_prompt)
+        code_response = chat_completion_api(code_prompt, self.history, system_prompt)["choices"][0]["message"]["content"]
+        self.history.log("assistant", code_response)
         return code_response.strip()
 
     def decompose_complicated_task(self, query, history):
@@ -234,19 +217,19 @@ class MasterAgent:
         decomposition_response = chat_completion_api(decomposition_prompt, history.get_history(), system_prompt)
         return decomposition_response.strip()
 
-    def create_sequential_plan(self, query, history):
+    def create_sequential_plan(self):
         plan_creation_prompt = (
             f"You are an expert in project planning, especially in the domains of bioinformatics, machine learning, and software development. "
             f"The user has provided a complex query that requires a step-by-step plan to execute. "
             f"Here is the query:\n\n"
-            f"Query: '{query}'\n\n"
+            f"history : '{self.history}'\n\n"
             "Please create a comprehensive sequential plan that outlines each necessary step clearly and logically. "
             "Ensure that the plan is detailed enough for implementation, and include any dependencies or prerequisites required for each step."
         )
-        history.remove_system_messages()
-        history.log("user", plan_creation_prompt)
-        plan_response = chat_completion_plan(query, history.get_history(), system_prompt)
-        history.log(
+        self.history.remove_system_messages()
+        self.history.log("user", plan_creation_prompt)
+        plan_response = chat_completion_plan(self.history, system_prompt)
+        self.history.log(
             "assistant", plan_response)
         return plan_response
 

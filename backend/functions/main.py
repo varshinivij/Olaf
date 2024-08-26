@@ -41,11 +41,13 @@ def on_request_example(req: Request) -> Response:
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def generate_plan(req: Request) -> Response:
     try:
-        history = req.json.get("history")
-        if not history:
+        history_data = req.json.get("history")
+        
+        if not history_data:
             return Response(json.dumps({"error": "'history' is required"}), status=400)
-        history = History(history)
-        master_agent = MasterAgent()
+        
+        history = History(history_data)
+        master_agent = MasterAgent(history)
         plan = master_agent.process_query(history)
         
         response_data = {
