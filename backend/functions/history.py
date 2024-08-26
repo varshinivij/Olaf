@@ -19,6 +19,9 @@ class History:
     def most_recent_entry(self):
         return self.history[-1]
     
+    def remove_system_messages(self):
+        self.history = [entry for entry in self.history if entry['role'] != 'system']
+    
     
 
 # # Example usage:

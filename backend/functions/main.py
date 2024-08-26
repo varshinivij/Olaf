@@ -1,7 +1,6 @@
 import json
 from executor import Executor
 from agents.coder_agent import CoderAgent
-from agents.tester_agent import TesterAgent
 from agents.master_agent import MasterAgent
 
 from firebase_admin import initialize_app
@@ -77,26 +76,6 @@ def generate_code(req: Request) -> Response:
 
         response_data = {
             "message": generated_code
-        }
-        
-        return Response(json.dumps(response_data), status=200)
-    
-    except Exception as e:
-        return Response(json.dumps({"error": str(e)}), status=500)
-    
-
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
-def simple_convo(req: Request) -> Response:
-    try:
-        query = req.json.get("query")
-        if not query:
-            return Response(json.dumps({"error": "'query' is required"}), status=400)
-        
-        master_agent = MasterAgent()
-        response = master_agent.process_query(query)
-        
-        response_data = {
-            "response": response
         }
         
         return Response(json.dumps(response_data), status=200)

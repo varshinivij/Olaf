@@ -1,9 +1,6 @@
 from agent_utils import chat_completion_api
 from agent_utils import chat_completion_plan
 import json
-from openai import OpenAI
-from pydantic import BaseModel
-
 
 
 system_prompt = """
