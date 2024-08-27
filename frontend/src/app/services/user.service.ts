@@ -76,7 +76,7 @@ export class UserService {
   /**
    * Retrieves the current user as an observable.
    *
-   * This observable updates on authentication state changes as well as Firestore user document changes.
+   * This observable updates on authentication state changes as well as Firestore user document changes. It (should) always emits an initial value upon subscription.
    *
    * @returns An Observable of the current user or null if not authenticated.
    */

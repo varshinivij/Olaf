@@ -17,17 +17,17 @@
   </div>
 
   <!-- directory labels -->
-  <div class="flex gap-x-1 items-center text-xl font-bold">
-    @for (path of currentPath; track $index;) {
+  <div class="flex items-center text-xl font-bold overflow-x-auto">
+    @for (path of currentPathArray; track $index;) {
     <button
-      class="bg-white hover:brightness-90 p-1 rounded-lg"
+      class="bg-white hover:brightness-90 p-1 rounded-lg whitespace-nowrap"
       type="button"
       (click)="toPreviousDirectory($index)"
     >
       {{ $first ? "My Files" : path }}
     </button>
     @if (!$last) {
-    <p class="text-3xl font-normal">></p>
+      <i class="material-icons-outlined text-[#5f6368]">chevron_right</i>
     } }
   </div>
 
@@ -125,17 +125,25 @@
       <!-- file rows -->
       <tbody>
         <!-- display uploading files -->
-        @for (upload of uploadQueue; track upload.file) { @if (searchFilter ===
-        '' && upload.uploadPath === currentPathToString()) {
+        @for (upload of (this.uploadService.getUploadProgress() | async); track
+        upload.id) {
+        @if (searchFilter === '' && pageNumber === 1 && upload.uploadPath ===
+        currentPathString) {
         <tr class="bg-white hover:brightness-90">
           <td class="px-4 truncate italic">
             <img
               class="inline w-8 pr-3 py-1"
-              [src]="fileTypeIcons['unknown']"
+              [src]="
+                upload.type === 'file'
+                  ? getImageUrlFromType('unknown')
+                  : getImageUrlFromType('folder')
+              "
             />
-            {{ upload.file.name }}
+            {{ upload.name }}
           </td>
-          <td class="pr-4 truncate italic">Uploading...</td>
+          <td class="pr-4 truncate italic">
+            {{ upload.type === "file" ? "Uploading..." : "Creating folder..." }}
+          </td>
           <td></td>
           <td></td>
           <td></td>
@@ -150,7 +158,7 @@
           <td class="px-4 truncate">
             <img
               class="inline w-8 pr-3 py-1"
-              [src]="fileTypeIcons[file.type]"
+              [src]="getImageUrlFromType(file.type)"
             />
             {{ file.name }}
           </td>
@@ -180,7 +188,7 @@
             <button
               class="material-symbols-outlined align-middle"
               type="button"
-              (click)="deleteFileOrFolder(file)"
+              (click)="deleteFileOrFolder($event, file)"
             >
               delete
             </button>

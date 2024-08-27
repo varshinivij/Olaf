@@ -1,3 +1,7 @@
+<!-- https://stackoverflow.com/questions/78465724/angular-firebase-login-page-flicker-on-refresh-authguard-redirectunauthorize -->
+<!-- strange workaround that displays nothing if the page is currently being
+rendered by the server. supposedly is SSR's fault. reference above.-->
+@if (isServer) {} @else {
 <div class="flex bg-[#032D38] w-full h-full">
   <!-- Left background panel -->
   <div class="flex-1 flex-col overflow-hidden">
@@ -98,3 +102,4 @@
     </button>
   </form>
 </div>
+}

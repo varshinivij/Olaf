@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import {
   ReactiveFormsModule,
   FormBuilder,
@@ -19,9 +19,10 @@ import { UserService } from '../../services/user.service';
   styleUrl: './signup.component.scss',
 })
 export class SignupComponent implements OnInit, OnDestroy {
+  formSubmitted = false;
   signupForm: FormGroup;
   errorMessage: string | null = null;
-  private subscription: Subscription | undefined;
+  private subscription: Subscription | null = null;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -34,16 +35,16 @@ export class SignupComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.subscription = this.userService.getCurrentUser().subscribe({
       next: (user) => {
-        if (user) {
+        if (user && this.formSubmitted) {
           console.log('Logged in: ', user);
-          this.router.navigate(['/dashboard']);
+          this.navigateToDashboard();
         }
       },
       error: (error) => {
-        this.errorMessage = UserService.convertAuthErrorToMessage(error);
+        this.errorMessage = 'Failed to fetch user, try again later';
         console.error('Error retrieving user data: ', error);
       },
     });
@@ -57,8 +58,13 @@ export class SignupComponent implements OnInit, OnDestroy {
     this.router.navigate(['/login']);
   }
 
+  navigateToDashboard() {
+    this.router.navigate(['/dashboard'])
+  }
+
   async loginWithGoogle() {
     try {
+      this.formSubmitted = true;
       await this.userService.loginWithGoogle();
     } catch (error) {
       this.errorMessage = UserService.convertAuthErrorToMessage(error);
@@ -68,6 +74,7 @@ export class SignupComponent implements OnInit, OnDestroy {
 
   async signupWithEmail() {
     try {
+      this.formSubmitted = true;
       await this.userService.signupWithEmail(
         this.signupForm.value.email,
         this.signupForm.value.password
