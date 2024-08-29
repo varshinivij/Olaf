@@ -1,3 +1,51 @@
+short_few_shot_examples = """
+Task: Implement a class to process and split genomic data.
+    Input: path_to_data
+    Code:
+    ```python
+    import pandas as pd
+    import numpy as np
+
+    class DataProcessor:
+        def __init__(self, path_to_data):
+            self.path = path_to_data
+
+        def concat_data(self):
+            cell_types_v = ['GM', 'H1', 'K562', 'MCF7']
+            positive, type_1_negative, type_2_negative, type_3_negative = [], [], [], []
+
+            for cell_type in cell_types_v:
+                positive.append(pd.read_csv(self.path + cell_type + '_insulator_pos_withCTCF.fa', sep=">chr*", header=None, engine='python').values[1::2][:,0])
+                type_1_negative.append(pd.read_csv(self.path + cell_type + '_type1.fa', sep=">chr*", header=None, engine='python').values[1::2][:,0])
+                type_2_negative.append(pd.read_csv(self.path + cell_type + '_type2.fa', sep=">chr*", header=None, engine='python').values[1::2][:,0])
+                type_3_negative.append(pd.read_csv(self.path + cell_type + '_type3.fa', sep=">chr*", header=None, engine='python').values[1::2][:,0])
+
+            return positive, type_1_negative, type_2_negative, type_3_negative
+
+        def split(self, file, size=0.1):
+            len_v = int(len(file) * size)
+            np.random.seed(42)
+            np.random.shuffle(file)
+            train, test = file[len_v:], file[:len_v]
+            train, val = train[len_v:], train[:len_v]
+            return train, test, val
+    ```
+
+    Task: Implement a function to compute the reverse complement of a DNA sequence.
+    Input: 'ATGC'
+    Output: 'GCAT'
+    Code:
+    ```python
+    def RC(seq):
+    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N',
+                  'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'n': 'n'}
+    t = ''
+    for base in seq:
+        t = complement[base] + t
+    return t
+    ```
+"""
+
 few_shot_examples = """
     Task: Implement a class to process and split genomic data.
     Input: path_to_data
