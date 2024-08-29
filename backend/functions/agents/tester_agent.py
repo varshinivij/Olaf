@@ -1,7 +1,6 @@
-from prompts import few_shot_examples
-from agent_utils import *
+from agent_utils import chat_completion, extract_python_code
 
-system_prompt = f"""
+system_prompt = """
 You are `TesterAgent`, an expert in generating and refining test cases for programming code. Your task is to:
 - Generate test cases based on the provided requirements, ensuring all necessary test scenarios are covered.
 - Regenerate and improve test cases using feedback from code results and test outcomes.

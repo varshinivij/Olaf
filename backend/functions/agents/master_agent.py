@@ -29,13 +29,14 @@ class MasterAgent:
         response = chat_completion(history)
         return response
     
-    def re_plan(self, query, previous_plan):
+    def re_plan(self, query, previous_plan, history:History):
         """
         This method takes a query and the previous plan, sends them to the LLM instance,
         and retrieves a new structured plan or requirements.
         """
-        prompt = f"The user was not satisfied with the following plan:\n{previous_plan}\n\nPlease generate an improved plan based on the original query:\n{query}"
-        response = chat_completion(self.history)
+        hidden_prompt = f"The user was not satisfied with the following plan:\n{previous_plan}\n\nPlease generate an improved plan based on the original query:\n{query}"
+        history.log("user", hidden_prompt)
+        response = chat_completion(history)
         return response
 
     def generate_prompt(self, query):
