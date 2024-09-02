@@ -27,11 +27,25 @@ export class SandboxService {
   getSandboxId(): string | null {
     return this.sandboxId;
   }
+  
+  closeSandbox(): Observable<any> {
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+    return this.http.post<any>(this.boxCloseApi, { sandboxId: this.sandboxId }, { headers });
+  }
 
   executeCode(code: string): Observable<any> {
     const headers = new HttpHeaders({
       'Content-Type': 'application/json'
     });
     return this.http.post<any>(this.boxExecuteApi, { sandboxId: this.sandboxId, code }, { headers });
+  }
+
+  isSandboxConnected(){
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+    return this.http.post<any>(this.boxStatusApi, { sandboxId: this.sandboxId }, { headers });
   }
 }

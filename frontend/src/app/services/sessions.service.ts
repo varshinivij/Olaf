@@ -10,7 +10,8 @@ import {
   collection,
   doc,
   query,
-  where
+  where,
+  deleteDoc
 } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 
@@ -93,5 +94,23 @@ export class SessionsService {
 
   addMessageToActiveSession(message: ChatMessage) {
     this.activeSession.history.push(message);
+    this.saveActiveSession();
+  }
+
+  setSessionSandBoxId(sandboxId: string) {
+    this.activeSession.sandboxId = sandboxId;
+    this.saveActiveSession();
+  }
+
+  async deleteSession(sessionId: string) {
+    await deleteDoc(doc(this.firestore, 'sessions', sessionId));
+    
+    this.userSessions = this.userSessions.filter(session => session.id !== sessionId);
+
+    if (this.activeSession.id === sessionId) {
+      this.newSession();
+    }
+
+    console.log(`Session ${sessionId} deleted successfully.`);
   }
 }
