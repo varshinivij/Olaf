@@ -1,3 +1,4 @@
+import http
 from firebase_functions import https_fn, options
 from e2b_code_interpreter import CodeInterpreter
 from flask import send_file
@@ -11,8 +12,39 @@ import json
 E2B_API_KEY = "REMOVED"
 E2B_TEMPLATE = "vh7kehbtf0t4xbx9ec9u"
 
+@https_fn.on_request(cors=options.CorsOptions(cors_origins="*", cors_methods=["get"]))
+def sandbox_status(sandbox_id: str) -> dict:
+    """
+    Returns the status of the E2B instance with the given sandbox ID.
+    """
+    try:
+        sandbox = CodeInterpreter.reconnect(sandbox_id, api_key=E2B_API_KEY)
+        return {"alive": True,}
+    except Exception as e:
+        return {"alive": False, "error": str(e)}
 
 @https_fn.on_request(cors=options.CorsOptions(cors_origins="*", cors_methods=["post"]))
+def close_sandbox(req: https_fn.Request) -> https_fn.Response:
+    """
+    Closes the E2B instance with the given sandbox ID. This is useful for
+    cleaning up resources and preventing memory leaks.
+
+    Body data:
+        sandboxId: the string ID of the sandbox to close
+    """
+    try:
+        sandbox_id = req.json.get("sandboxId")
+        sandbox = CodeInterpreter.reconnect(sandbox_id, api_key=E2B_API_KEY)
+        sandbox.close()
+
+        return https_fn.Response("Sandbox closed", status=200)
+
+    except Exception as e:
+        json_error = json.dumps({"error": str(e)})
+        return https_fn.Response(json_error, status=500)
+    
+    
+@https_fn.on_request(cors=options.CorsOptions(cors_origins="*", cors_methods=["post"]))    
 def request_sandbox(req: https_fn.Request) -> https_fn.Response:
     try:
         sandbox = CodeInterpreter(
@@ -26,7 +58,8 @@ def request_sandbox(req: https_fn.Request) -> https_fn.Response:
             # to just this folder.
         )
         sandbox_id = sandbox.id
-        sandbox.keep_alive(5 * 60)  # keep box alive for 5minutes
+        print(sandbox_id)
+        sandbox.keep_alive(5)  # keep box alive for 5minutes
         result = {"sandboxId": sandbox_id}
         json_result = json.dumps(result)
 
@@ -166,6 +199,8 @@ def execute_on_sandbox(req: https_fn.Request) -> https_fn.Response:
     try:
         sandbox_id = req.json.get("sandboxId")
         code = req.json.get("code")
+
+        print("Sandbox ID:", sandbox_id)
 
         sandbox = CodeInterpreter.reconnect(sandbox_id, api_key=E2B_API_KEY)
         execution = sandbox.notebook.exec_cell(code)
