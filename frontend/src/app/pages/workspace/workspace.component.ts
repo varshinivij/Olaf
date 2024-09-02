@@ -8,10 +8,12 @@ import Split from 'split.js';
 
 import { ChatService } from '../../services/chat.service';
 import { SandboxService } from '../../services/sandbox.service';
+import { FileStorageService } from '../../services/file-storage.service';
 import { UploadService } from '../../services/upload.service';
 import { UserService } from '../../services/user.service';
 import { SessionsService } from '../../services/sessions.service';
 import { ChatMessage } from '../../models/chat-message';
+import { UserFile } from '../../models/user-file';
 
 
 @Component({
@@ -23,7 +25,9 @@ import { ChatMessage } from '../../models/chat-message';
 })
 export class WorkspaceComponent implements OnInit, OnDestroy {
   loading: boolean = false;
+  executingCode: boolean = false;
   isConnected: boolean = false;
+  userFiles: UserFile[] = [];
   selectedUploadFiles: File[] = [];
   uploadSubscription: Subscription | undefined;
   
@@ -50,7 +54,8 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     private sandboxService: SandboxService,
     public sessionsService: SessionsService,
     public uploadService: UploadService,
-    public userService: UserService
+    public userService: UserService,
+    private fileStorageService: FileStorageService,
   ) {}
 
   ngAfterViewInit() {
@@ -68,6 +73,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         console.log(uploads);
       }
     ); 
+    this.getUserFiles();
   }
 
   ngOnDestroy() {
@@ -78,14 +84,60 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     this.selectedTab = tab;
   }
 
+  getUserFiles() {
+    this.fileStorageService.getFiles().subscribe(
+      (files) => {
+        console.log(files);
+        this.userFiles = files || [];
+      }
+    );
+  }
+
+  /**
+   * Add a file to the e2b sandbox using the firebase storage link
+   * @param fileUrl storage download link url of the file
+   */
+  addFileToSandbox(file: UserFile) {
+    const uploadText = `Uploaded ${file.name}`;
+    const uploadMessage: ChatMessage = {
+      type: 'text',
+      role: 'user',
+      content: uploadText,
+    };
+    this.sessionsService.addMessageToActiveSession(uploadMessage);
+    // this.loading = true;
+    // const downloadUrl = this.fileStorageService.getDownloadUrl(file);
+    // this.sandboxService.uploadFile(downloadUrl).subscribe(
+    //   (response: any) => {
+    //     console.log(response);
+    //     this.loading = false;
+    //   },
+    //   (error) => {
+    //     console.error('Error:', error);
+    //     this.loading = false;
+    //   }
+    // );
+  }
+
   connectToSandBox() {
     this.loading = true;
-    this.sandboxService.createSandbox().subscribe(
+    if (this.sessionsService.activeSession.sandboxId) {
+      this.checkSandboxConnection();
+    } else {
+      this.createSandbox();
+    }
+    // Destroy the sandbox when the tab is closed
+    window.addEventListener('unload', () => this.sandboxService.closeSandbox());
+  }
+  
+  private checkSandboxConnection() {
+    this.sandboxService.isSandboxConnected().subscribe(
       (response: any) => {
-        this.sandboxService.setSandboxId(response.sandboxId);
-        this.isConnected = true;
-        this.loading = false;
-        console.log(this.sandboxService.getSandboxId());
+        if (response.alive) {
+          this.onSandboxConnected();
+        } else {
+          this.createSandbox();
+        }
       },
       (error) => {
         console.error('Error:', error);
@@ -93,8 +145,38 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       }
     );
   }
+  
+  private onSandboxConnected() {
+    this.isConnected = true;
+    this.loading = false;
+    if (this.sessionsService.activeSession.sandboxId) {
+      this.sandboxService.setSandboxId(this.sessionsService.activeSession.sandboxId);
+    }
+  }
+  
+  private createSandbox() {
+    this.sandboxService.createSandbox().subscribe(
+      (response: any) => {
+        this.sandboxService.setSandboxId(response.sandboxId);
+        this.onSandboxCreated();
+      },
+      (error) => {
+        console.error('Error:', error);
+        this.loading = false;
+      }
+    );
+  }
+  
+  private onSandboxCreated() {
+    this.isConnected = true;
+    this.loading = false;
+    console.log(this.sandboxService.getSandboxId());
+  }
 
-  sendMessage() {
+  /**
+   * Add a new message to the active session from message bar
+  **/
+  addUserMessage(): void {
     if (this.newMessage.trim()) {
       const userMessage: ChatMessage = {
         type: 'text',
@@ -103,8 +185,17 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       };
       this.sessionsService.addMessageToActiveSession(userMessage);
       this.newMessage = '';
-      this.loading = true;
+    }
+  }
+ 
+  /**
+   * Send a message to the generalist chat service
+   */
+  sendMessage() {
+    if(this.newMessage.trim()) {
+      this.addUserMessage()
 
+      this.loading = true;
       this.chatService.sendMessage(this.sessionsService.activeSession.history).subscribe(
         (responnse:any) => {
           let responseMessages: ChatMessage = {
@@ -112,7 +203,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
             role: 'assistant',
             content: responnse["message"],
           };
-          this.sessionsService.activeSession.history.push(responseMessages);
+          this.sessionsService.addMessageToActiveSession(responseMessages);
           this.loading = false;
           },
           (error) => {
@@ -138,21 +229,47 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   }
 
   executeCode(code: string) {
+    this.executingCode = true;
     this.sandboxService.executeCode(code).subscribe(
       (result: any) => {
-        const codeResultMessage: ChatMessage = {
-          type: 'text',
-          role: 'assistant',
-          content: result.output || 'Code executed goes here',
-        };
-        this.sessionsService.activeSession.history.push(codeResultMessage);
-        this.loading = false;
+        console.log(result);
+        // if result stdout is not empty, add it to the chat
+        if(result.logs.stdout && result.logs.stdout.length > 0) {
+          const stdoutContent = result.logs.stdout.join('\n');
+          const codeResultMessage: ChatMessage = {
+            type: 'result',
+            role: 'assistant',
+            content: stdoutContent,
+          };
+          this.sessionsService.addMessageToActiveSession(codeResultMessage);
+        }
+        if (result.results && result.results.length > 0) {
+          if(result.results[0]["image/png"]) {
+            const base64Image = `data:image/png;base64,${result.results[0]["image/png"]}`;
+            const imageMessage: ChatMessage = {
+              type: 'image',
+              role: 'assistant',
+              content: base64Image,
+            };
+            this.sessionsService.addMessageToActiveSession(imageMessage);
+          }
+        }
+        if (result.error && result.error.length > 0) {
+          const errorMessage: ChatMessage = {
+            type: 'error',
+            role: 'assistant',
+            content: result.error,
+          };
+          this.sessionsService.addMessageToActiveSession(errorMessage);
+        }
+      this.executingCode = false;
       },
       (error) => {
         console.error('Error:', error);
-        this.loading = false;
+        this.executingCode = false;
       }
     );
+
   }
 
   processResponse(response: ChatMessage[]) {
@@ -164,6 +281,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   }
 
   requestPlan() {
+    this.addUserMessage()
     this.loading = true;
     this.chatService.requestPlan(this.sessionsService.activeSession.history).subscribe(
       (response: any) => {
@@ -173,7 +291,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
           role: 'assistant',
           content: response["message"],
         }
-        this.sessionsService.activeSession.history.push(planMessage);
+        this.sessionsService.addMessageToActiveSession(planMessage);
 
       },
       (error) => {
@@ -183,23 +301,53 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     );
   }
 
-  requestCode() {
+  requestCode(withExecute:boolean = true) {
+    if(!this.isConnected){
+      this.connectToSandBox();
+    }
+    this.addUserMessage()
     console.log(this.sessionsService.activeSession.history);
     this.loading = true;
     this.chatService.requestCode(this.sessionsService.activeSession.history).subscribe(
       (response: any) => {
         //add the code to message as a ChatMessage with type Code
+        let code = this.getCode(response["message"]);
         let codeMessage: ChatMessage = {
           type: 'code',
           role: 'assistant',
-          content: response["code"],
+          content: this.getCode(response["message"]) //TODO this is finicky because the agent is not always returning the code in the same format,
         }
-        this.sessionsService.activeSession.history.push(codeMessage);
+        this.sessionsService.addMessageToActiveSession(codeMessage);
+        console.log(this.sessionsService.activeSession.history);
+        this.loading = false
+        if(withExecute){
+          this.executeCode(code)
+        }
       },
       (error) => {
         console.error('Error:', error);
         this.loading = false;
       }
     );
+  }
+
+  getCode(message: string) {
+    console.log(message);
+    // Check if the message begins with ```python
+    if(message.includes("```python")) {
+      let code = message.split("```python\n");
+      // If there's any code after splitting, it should end before the next ```
+      if (code[1].includes("```")) {
+        return code[1].split("```")[0];
+      }
+      return code[1];
+    }
+    // If the message contains ``` but not starting with ```python
+    else if(message.includes("```")) {
+      let code = message.split("```\n");
+      // Return the code between the first and second ```
+      return code[1];
+    }
+    return message;
   }
 }

@@ -5,6 +5,7 @@ export interface Session {
     files: File[];
     context: string;
     id: string;
+    sandboxId: string | null;
 }
 
 export const createNewSession = (): Session => ({
@@ -19,4 +20,5 @@ export const createNewSession = (): Session => ({
   files: [],
   context: '',
   id: '',
+  sandboxId: null,
 });

@@ -15,6 +15,8 @@ export class ChatService {
   constructor(private http: HttpClient) { }
 
   sendMessage(history: ChatMessage[]): Observable<ChatMessage[]> {
+    // remove all images from history
+    history = history.filter((message) => message.type !== 'image');
     const headers = new HttpHeaders({
       'Content-Type': 'application/json'
     });
@@ -22,6 +24,8 @@ export class ChatService {
   }
 
   requestPlan(history: ChatMessage[]): Observable<ChatMessage[]> {
+    // remove all images from history
+    history = history.filter((message) => message.type !== 'image');
     const headers = new HttpHeaders({
       'Content-Type': 'application/json'
     });
@@ -29,6 +33,8 @@ export class ChatService {
   }
 
   requestCode(history: ChatMessage[]): Observable<ChatMessage[]> {
+    // remove all images from history
+    history = history.filter((message) => message.type !== 'image');
     const headers = new HttpHeaders({
       'Content-Type': 'application/json'
     });

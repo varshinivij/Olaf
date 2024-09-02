@@ -87,6 +87,13 @@ export class FileStorageService {
     await cloudFunctionCallable({ path });
   }
 
+  getDownloadUrl(file: UserFile): string {
+    const storageRef = ref(this.storage, file.storageLink);
+    getDownloadURL(storageRef).then((url) => {
+      return url;
+    });
+    return '';
+  }
 
   // TODO: these functions don't work. downloadFile() seems
   // to work occasionally (sometimes downloads, other times opens a new
