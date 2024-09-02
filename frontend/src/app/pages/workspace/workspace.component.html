@@ -73,6 +73,7 @@
         <li class="cursor-pointer text-gray-600" [ngClass]="{'font-bold': selectedTab === 'planner'}" (click)="selectTab('planner')">Planner</li>
         <li class="cursor-pointer text-gray-600" [ngClass]="{'font-bold': selectedTab === 'terminal'}" (click)="selectTab('terminal')">Terminal</li>
         <li class="cursor-pointer text-gray-600" [ngClass]="{'font-bold': selectedTab === 'code'}" (click)="selectTab('code')">Code</li>
+        <li class="cursor-pointer text-gray-600" [ngClass]="{'font-bold': selectedTab === 'files'}" (click)="selectTab('files')">Files</li>
       </ul>
     </div>
     <div class="mt-4 h-full overflow-auto">
@@ -98,9 +99,25 @@
               <div *ngIf="message.type === 'result'" class="text-white bg-gray-400 p-2 rounded mb-2 max-w-full break-words">
                 <pre>{{ message.content }}</pre>
               </div>
+              <div *ngIf="message.type === 'error'" class="text-white bg-red-400 p-2 rounded mb-2 max-w-full break-words">
+                <pre>{{ message.content }}</pre>
+              </div>
+              <div *ngIf="message.type === 'image'" class="text-white bg-gray-400 p-2 rounded mb-2 max-w-full break-words">
+                <img [src]="message.content" alt="Result" />
+              </div>
             </div>
             <div *ngIf="executingCode">
               ... executing code ...
+            </div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="selectedTab === 'files'">
+        <div *ngFor="let file of this.userFiles">
+          <div class="flex items-center justify-between p-2 border-b">
+            <div>{{ file.name }}</div>
+            <div>
+              <button class="text-green-500" (click)="addFileToSandbox(file)">Add</button>
             </div>
           </div>
         </div>

@@ -10,8 +10,11 @@ export class SandboxService {
 
   constructor(private http: HttpClient) {}
 
-  boxRequestApi:any = 'REMOVED'
-  boxExecuteApi:any = 'REMOVED'
+  boxRequestApi:string = 'REMOVED'
+  boxExecuteApi:string = 'REMOVED'
+  boxCloseApi: string = 'REMOVED'
+  boxStatusApi: string = 'REMOVED'
+  boxUploadApi: string = 'REMOVED'
 
   createSandbox(): Observable<any> {
     const headers = new HttpHeaders({
@@ -48,4 +51,12 @@ export class SandboxService {
     });
     return this.http.post<any>(this.boxStatusApi, { sandboxId: this.sandboxId }, { headers });
   }
+
+  uploadFile(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('sandboxId', this.sandboxId || '');
+    return this.http.post<any>(this.boxUploadApi, formData);
+  }
+
 }

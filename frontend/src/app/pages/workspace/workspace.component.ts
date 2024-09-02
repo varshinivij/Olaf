@@ -8,10 +8,12 @@ import Split from 'split.js';
 
 import { ChatService } from '../../services/chat.service';
 import { SandboxService } from '../../services/sandbox.service';
+import { FileStorageService } from '../../services/file-storage.service';
 import { UploadService } from '../../services/upload.service';
 import { UserService } from '../../services/user.service';
 import { SessionsService } from '../../services/sessions.service';
 import { ChatMessage } from '../../models/chat-message';
+import { UserFile } from '../../models/user-file';
 
 
 @Component({
@@ -25,6 +27,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   loading: boolean = false;
   executingCode: boolean = false;
   isConnected: boolean = false;
+  userFiles: UserFile[] = [];
   selectedUploadFiles: File[] = [];
   uploadSubscription: Subscription | undefined;
   
@@ -51,7 +54,8 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     private sandboxService: SandboxService,
     public sessionsService: SessionsService,
     public uploadService: UploadService,
-    public userService: UserService
+    public userService: UserService,
+    private fileStorageService: FileStorageService,
   ) {}
 
   ngAfterViewInit() {
@@ -61,9 +65,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       gutterSize: 10, // Size of the gutter (the draggable area between columns)
       cursor: 'col-resize', // Cursor to show when hovering over the gutter
     });
-
-    // Connect to sandbox after view loads
-    this.connectToSandBox();
   }
 
   ngOnInit() {
@@ -72,6 +73,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         console.log(uploads);
       }
     ); 
+    this.getUserFiles();
   }
 
   ngOnDestroy() {
@@ -80,6 +82,41 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   selectTab(tab: string) {
     this.selectedTab = tab;
+  }
+
+  getUserFiles() {
+    this.fileStorageService.getFiles().subscribe(
+      (files) => {
+        console.log(files);
+        this.userFiles = files || [];
+      }
+    );
+  }
+
+  /**
+   * Add a file to the e2b sandbox using the firebase storage link
+   * @param fileUrl storage download link url of the file
+   */
+  addFileToSandbox(file: UserFile) {
+    const uploadText = `Uploaded ${file.name}`;
+    const uploadMessage: ChatMessage = {
+      type: 'text',
+      role: 'user',
+      content: uploadText,
+    };
+    this.sessionsService.addMessageToActiveSession(uploadMessage);
+    // this.loading = true;
+    // const downloadUrl = this.fileStorageService.getDownloadUrl(file);
+    // this.sandboxService.uploadFile(downloadUrl).subscribe(
+    //   (response: any) => {
+    //     console.log(response);
+    //     this.loading = false;
+    //   },
+    //   (error) => {
+    //     console.error('Error:', error);
+    //     this.loading = false;
+    //   }
+    // );
   }
 
   connectToSandBox() {
@@ -206,12 +243,33 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
           };
           this.sessionsService.addMessageToActiveSession(codeResultMessage);
         }
+        if (result.results && result.results.length > 0) {
+          if(result.results[0]["image/png"]) {
+            const base64Image = `data:image/png;base64,${result.results[0]["image/png"]}`;
+            const imageMessage: ChatMessage = {
+              type: 'image',
+              role: 'assistant',
+              content: base64Image,
+            };
+            this.sessionsService.addMessageToActiveSession(imageMessage);
+          }
+        }
+        if (result.error && result.error.length > 0) {
+          const errorMessage: ChatMessage = {
+            type: 'error',
+            role: 'assistant',
+            content: result.error,
+          };
+          this.sessionsService.addMessageToActiveSession(errorMessage);
+        }
+      this.executingCode = false;
       },
       (error) => {
         console.error('Error:', error);
         this.executingCode = false;
       }
     );
+
   }
 
   processResponse(response: ChatMessage[]) {
@@ -244,6 +302,9 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   }
 
   requestCode(withExecute:boolean = true) {
+    if(!this.isConnected){
+      this.connectToSandBox();
+    }
     this.addUserMessage()
     console.log(this.sessionsService.activeSession.history);
     this.loading = true;
