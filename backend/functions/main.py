@@ -6,12 +6,10 @@ from agents.master_agent import MasterAgent
 from firebase_admin import initialize_app
 from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
-
 import concurrent.futures
 from history import History
 from functions_framework import http
 from agent_utils import chat_completion
-
 initialize_app()
 
 # import other modules' Cloud Functions
@@ -42,15 +40,15 @@ def on_request_example(req: Request) -> Response:
 def generate_plan(req: Request) -> Response:
     try:
         history_data = req.json.get("history")
-        
         if not history_data:
             return Response(json.dumps({"error": "'history' is required"}), status=400)
-        
         history = History(history_data)
         master_agent = MasterAgent(history)
-        plan = master_agent.process_query(history)    
+        plan = master_agent.process_query()
+        
         response_data = {
-            "message": plan
+            "message": plan,
+            "type" : 'code'
         }
         
         return Response(json.dumps(response_data), status=200)

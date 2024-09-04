@@ -58,11 +58,15 @@ def chat_completion_api(history, system_prompt, tools=None):
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
+    
+    
+    print("this is the actual history : ", [
+            *history.get_history(),
+        ])
 
     payload = {
         "model": "gpt-4o-mini",
         "messages": [
-            {"role": "system", "content": system_prompt},
             *history.get_history(),
         ],
         "temperature": 0.1,
@@ -139,7 +143,7 @@ def chat_completion_plan(history, system_prompt, tools=None):
 
     if response.status_code == 200:
         result = response.json()
-        return result['choices'][0]['message']['content']
+        return result
     else:
         print(f"Error: {response.status_code}, {response.text}")
         return None
