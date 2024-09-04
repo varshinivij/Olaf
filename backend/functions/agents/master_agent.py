@@ -14,10 +14,14 @@ system_prompt = """
         - If its only a greeting there is no need to classify just greet them back please 
         - if its not realted to bioinformatics or software or something you can make your punchline . 
         - if anything else is asked you can process the query and respond.
+        - You are a knowledgeable assistant. Please provide a clear and concise response 
+          Your response should be easy to understand and directly address the query.
+
 
     2. Basic Code Writing:
         - Write simple code snippets when necessary for straightforward tasks.
         - when simple code tasks are mentioned this is done
+        - please create like basic code when needed
 
 
         Examples:
@@ -41,6 +45,13 @@ system_prompt = """
         - Display these plans to the user after all information is collected.
         - Till the user is not satisfied with the plan please ask follow up questions like do we need to change 
         - This is also when a larger query is given like a larger code query is given so we need to make a plan before actually coding it.
+        
+        
+        
+        f"You are an expert in project planning, especially in the domains of bioinformatics, machine learning, and software development. "
+        f"The user has provided a complex query that requires a step-by-step plan to execute. "
+        "Please create a comprehensive sequential plan that outlines each necessary step clearly and logically. "
+        "Ensure that the plan is detailed enough for implementation, and include any dependencies or prerequisites required for each step."
 
 
         Examples:
@@ -90,7 +101,7 @@ class MasterAgent:
                 "type": "function",
                 "function": {
                     "name": "handle_simple_interaction",
-                    "description": "Handles simple user interactions",
+                    "description": "Handles simple user interactions. This is for like human interactions or something like that.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -118,14 +129,10 @@ class MasterAgent:
                 "type": "function",
                 "function": {
                     "name": "create_sequential_plan",
-                    "description": "Creates a detailed, step-by-step plan for a complex task or larger code-related query. Use this function for planning out intricate workflows or comprehensive code architectures. This function should also be used if asked for regenrate or modify the plan okay . use the history for previou plan and then use then use user query to generate new plan ",
+                    "description": "Creates a detailed, step-by-step plan for a complex task or larger code-related query. Use this function for planning out intricate workflows or comprehensive code architectures. This function should also be used if asked for regenrate or modify the plan okay. ",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "history": {
-                                "type": "object",
-                                "description": "The history chat between user and assistant"
-                            }
                         },
                         "required": ["history"],
                         "additionalProperties": False
@@ -133,43 +140,57 @@ class MasterAgent:
                 }
             },
         ]
+        
         self.function_map = {
             "handle_simple_interaction": self.handle_simple_interaction,
             "write_basic_code": self.write_basic_code,
             "create_sequential_plan": self.create_sequential_plan,
         }
 
-    def process_query(self, history):
+    def process_query(self):
         try:
-            history.remove_system_messages()
-                
-            response = chat_completion_api(history, system_prompt, tools=self.functions)
+            self.history.remove_system_messages()
+            self.history.upsert(self.system_prompt)
+            # Call the chat completion API
+            response = chat_completion_api(self.history, system_prompt, tools=self.functions)
             
-            #return Response(json.dumps({"high":response}), status=200)
-
             # Check if response is a dictionary (API response)
             if isinstance(response, dict):
                 # Extract the message from the API response
                 message = response['choices'][0]['message']
-                print(message)
 
                 # Check if there are tool calls
-                if 'tool_calls' in message.keys() and message['tool_calls']:
-                    print("Yes")
+                if 'tool_calls' in message and message['tool_calls']:
                     # Handle tool calls
                     tool_call = message['tool_calls'][0]
-                    function_name = tool_call['function']['name']
-                    function_arguments = tool_call['function']['arguments']
-                    
-                    # Convert the arguments from JSON to a Python dictionary
-                    args_dict = json.loads(function_arguments)
-                    
-                    # Call the appropriate function
-                    if function_name in self.function_map.keys():
-                        result = self.function_map[function_name](**args_dict)
-                        return result
+                    function_name = tool_call.get('function', {}).get('name')
+                    function_arguments = tool_call.get('function', {}).get('arguments')
+
+                    # Ensure function name is present
+                    if not function_name:
+                        return {"error": "Function name is missing in the tool call."}
+
+                    # Convert the arguments from JSON to a Python dictionary if they exist
+                    args_dict = {}
+                    if function_arguments:
+                        try:
+                            args_dict = json.loads(function_arguments)
+                        except json.JSONDecodeError:
+                            return {"error": "Function arguments could not be parsed as JSON."}
+
+                    # Check if the function exists in the function map
+                    if function_name in self.function_map:
+                        try:
+                            # Call the appropriate function with or without arguments
+                            if args_dict:
+                                result = self.function_map[function_name](**args_dict)
+                            else:
+                                result = self.function_map[function_name]()
+                            return result
+                        except Exception as e:
+                            return {"error": f"Error calling function {function_name}: {str(e)}"}
                     else:
-                        return {"error": f"Function {function_name} not found."}
+                        return {"error": f"Function {function_name} not found in function map."}
                 else:
                     # Return the content if no tool calls
                     return message.get('content', '')
@@ -177,30 +198,17 @@ class MasterAgent:
                 # If response is not a dictionary, assume it's the direct content
                 return response
         except json.JSONDecodeError:
-            return {"error": "Invalid response from API"}
+            return {"error": "Invalid response from API (JSON decode error)."}
         except Exception as e:
-            return {"error": f"An error occurred: {response['choices'][0]['message']}"}
+            return {"error": f"An unexpected error occurred: {str(e)}"}
 
     def handle_simple_interaction(self):
-        interaction_prompt = (
-            f"You are a knowledgeable assistant. Please provide a clear and concise response "
-            f"to the following query:\n\n"
-            f"Query: '{history}'\n\n"
-            "Your response should be easy to understand and directly address the query."
-        )
-        self.history.remove_system_messages()
-        self.history.log("user", interaction_prompt)
-        interaction_response = chat_completion_api(self.history, system_prompt)
+        interaction_response = chat_completion_api(self.history, system_prompt)["choices"][0]["message"]["content"]
+        self.history.log("assistant", interaction_response)
         return interaction_response
 
     def write_basic_code(self):
-        code_prompt = (
-            f"You are an expert software developer. Based on the user's query from the history, please generate a simple, functional code snippet.\n\n"
-            "Please write the code below:\n"
-        )
-        self.history.remove_system_messages()
-        self.history.log("user", code_prompt)
-        code_response = chat_completion_api(code_prompt, self.history, system_prompt)["choices"][0]["message"]["content"]
+        code_response = chat_completion_api(self.history, system_prompt)["choices"][0]["message"]["content"]
         self.history.log("assistant", code_response)
         return code_response.strip()
 
@@ -218,18 +226,9 @@ class MasterAgent:
         return decomposition_response.strip()
 
     def create_sequential_plan(self):
-        plan_creation_prompt = (
-            f"You are an expert in project planning, especially in the domains of bioinformatics, machine learning, and software development. "
-            f"The user has provided a complex query that requires a step-by-step plan to execute. "
-            f"Here is the query:\n\n"
-            f"history : '{self.history}'\n\n"
-            "Please create a comprehensive sequential plan that outlines each necessary step clearly and logically. "
-            "Ensure that the plan is detailed enough for implementation, and include any dependencies or prerequisites required for each step."
-        )
         self.history.remove_system_messages()
-        self.history.log("user", plan_creation_prompt)
         plan_response = chat_completion_plan(self.history, system_prompt)
         self.history.log(
             "assistant", plan_response)
-        return plan_response
+        return plan_response["choices"][0]["message"]["content"]
 
