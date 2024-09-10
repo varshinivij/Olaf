@@ -210,8 +210,9 @@
     <p class="font-bold">No Files Yet</p>
     <p>Use the "Upload data" button to get started.</p>
   </div>
+  }
   <!-- File search/filter empty state -->
-  } @else if (displayedFiles?.length === 0 && (searchFilter || typeFilter)) {
+  @else if (displayedFiles?.length === 0 && (searchFilter || typeFilter)) {
   <div class="flex flex-col mt-auto items-center gap-y-1">
     <img class="w-12 h-12" src="assets/twocube-logo-gray-bg.svg" />
     <p class="font-bold">File not found</p>

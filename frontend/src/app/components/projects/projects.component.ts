@@ -29,7 +29,7 @@ export class ProjectsComponent {
   displayedProjects: Project[] = [
     {
       id: 'abcdefg',
-      name: 'Sample Project (double click me!)',
+      name: 'Sample Project 1',
       language: 'Python',
       model: 'GPT-4o',
       updatedAt: new Date(),
