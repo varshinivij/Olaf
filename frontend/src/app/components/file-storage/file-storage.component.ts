@@ -28,6 +28,7 @@ import {
   getImageUrlFromType,
 } from '../../models/extension-type';
 import { UserFile } from '../../models/user-file';
+import { UserUploadTask } from '../../models/user-upload-task';
 
 interface FilterButton {
   name: string;
@@ -43,17 +44,18 @@ interface FilterButton {
 })
 export class FileStorageComponent implements OnInit, OnDestroy {
   private fileStorageSubscription?: Subscription;
+  private uploadSubscription?: Subscription;
 
   // Settings/default values, can be modified
   pageSize = 10; // setting
   typeFilter = null as ExtensionType | null;
-  sortFilter = 'name' as keyof UserFile;
-  sortDirectionFilter = 'asc' as OrderByDirection;
+  sortFilter = 'uploadedOn' as keyof UserFile;
+  sortDirectionFilter = 'desc' as OrderByDirection;
   filterButtons: FilterButton[] = [
-    { name: 'Folders', type: 'folder' } as const,
-    { name: 'Datasets', type: 'dataset' } as const,
+    { name: 'Folder', type: 'folder' } as const,
+    { name: 'Dataset', type: 'dataset' } as const,
     { name: 'Code', type: 'code' } as const,
-    { name: 'Models', type: 'model' } as const,
+    { name: 'Model', type: 'model' } as const,
   ];
 
   // Do not modify
@@ -63,8 +65,9 @@ export class FileStorageComponent implements OnInit, OnDestroy {
   currentPathString = '/';
   createFolderName = ''; // ngModel variable
   searchFilter = ''; // ngModel variable
-  private userFiles: UserFile[] = [];
-  displayedFiles: UserFile[] = []; // will store userFiles after sort/filtering
+  userUploads?: UserUploadTask[];
+  userFiles?: UserFile[];
+  displayedFiles?: UserFile[]; // will store userFiles after sort/filtering
 
   // make imported util functions available to template
   formatBytes = formatBytes;
@@ -87,10 +90,17 @@ export class FileStorageComponent implements OnInit, OnDestroy {
         }
         this.sortAndFilterFiles();
       });
+
+    this.uploadSubscription = this.uploadService
+      .getUploadProgress()
+      .subscribe((uploads: UserUploadTask[]) => {
+        this.userUploads = uploads;
+      });
   }
 
   ngOnDestroy(): void {
     this.fileStorageSubscription?.unsubscribe();
+    this.uploadSubscription?.unsubscribe();
   }
 
   /*
@@ -209,7 +219,7 @@ export class FileStorageComponent implements OnInit, OnDestroy {
    * page number/sort/filter settings.
    * */
   private sortAndFilterFiles() {
-    this.userFiles.sort((a, b) => {
+    this.userFiles?.sort((a, b) => {
       const valueA: any = a[this.sortFilter];
       const valueB: any = b[this.sortFilter];
 
@@ -229,7 +239,7 @@ export class FileStorageComponent implements OnInit, OnDestroy {
     let totalFilteredFiles = 0;
 
     this.displayedFiles = this.userFiles
-      .filter((file: UserFile) => {
+      ?.filter((file: UserFile) => {
         if (this.searchFilter !== '') {
           if (
             // file name should start with the search query, non-case-sensitive

@@ -28,7 +28,7 @@
       {{ $first ? "My Files" : path }}
     </button>
     @if (!$last) {
-      <i class="material-icons-outlined text-[#5f6368]">chevron_right</i>
+    <i class="material-icons-outlined text-[#5f6368]">chevron_right</i>
     } }
   </div>
 
@@ -131,29 +131,28 @@
       <!-- file rows -->
       <tbody>
         <!-- display uploading files -->
-        @for (upload of (this.uploadService.getUploadProgress() | async); track upload.id) {
-          @if (searchFilter === '' && pageNumber === 1 && upload.uploadPath === currentPathString) {
-          <tr class="bg-white hover:brightness-90">
-            <td class="px-4 truncate italic">
-              <img
-                class="inline w-8 pr-3 py-1"
-                [src]="
-                  upload.type === 'file'
-                    ? getImageUrlFromType('unknown')
-                    : getImageUrlFromType('folder')
-                "
-              />
-              {{ upload.name }}
-            </td>
-            <td class="pr-4 truncate italic">
-              {{ upload.type === "file" ? "Uploading..." : "Creating folder..." }}
-            </td>
-            <td></td>
-            <td></td>
-            <td></td>
-          </tr>
-          }
-        }
+        @for (upload of userUploads; track upload.id) { @if (searchFilter === ''
+        && pageNumber === 1 && upload.uploadPath === currentPathString) {
+        <tr class="bg-white hover:brightness-90">
+          <td class="px-4 truncate italic">
+            <img
+              class="inline w-8 pr-3 py-1"
+              [src]="
+                upload.type === 'file'
+                  ? getImageUrlFromType('unknown')
+                  : getImageUrlFromType('folder')
+              "
+            />
+            {{ upload.name }}
+          </td>
+          <td class="pr-4 truncate italic">
+            {{ upload.type === "file" ? "Uploading..." : "Creating folder..." }}
+          </td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        } }
         <!-- display already stored files -->
         @for (file of displayedFiles; track file.id) {
         <tr
@@ -204,8 +203,32 @@
     </table>
   </div>
 
+  <!-- No files uploaded state -->
+  @if (userFiles?.length === 0 && userUploads?.length === 0) {
+  <div class="flex flex-col mt-auto items-center gap-y-1">
+    <img class="w-12 h-12" src="assets/twocube-logo-gray-bg.svg" />
+    <p class="font-bold">No Files Yet</p>
+    <p>Use the "Upload data" button to get started.</p>
+  </div>
+  <!-- File search/filter empty state -->
+  } @else if (displayedFiles?.length === 0 && (searchFilter || typeFilter)) {
+  <div class="flex flex-col mt-auto items-center gap-y-1">
+    <img class="w-12 h-12" src="assets/twocube-logo-gray-bg.svg" />
+    <p class="font-bold">File not found</p>
+    <p class="text-center">
+      {{
+        searchFilter !== ""
+          ? 'Your search "' + searchFilter + '" did not match any file.'
+          : 'There are no "' + titleCase(typeFilter!) + '" found.'
+      }}
+      <br />
+      Please try again.
+    </p>
+  </div>
+  }
+
   <!-- bottom page navigator -->
-  <div class="flex-none mt-auto flex gap-x-4 justify-center items-center">
+  <div class="mt-auto flex gap-x-4 justify-center items-center pr-6">
     <button
       class="text-[#9E9E9E] text-sm"
       type="button"
