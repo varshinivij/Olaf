@@ -1,102 +1,69 @@
+from openai import OpenAI
 import requests
 import re
+import json
 
 api_key = "REMOVED"
 url = "https://api.openai.com/v1/chat/completions"
+client = OpenAI(api_key=api_key)
 
 def chat_completion(history, tools=None):
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
 
-    payload = {
-        "model": "gpt-4o",
-        "messages": history.get_history(),
-        "temperature": 0.1,
-        "tools":  tools
-    }
+    stream = client.chat.completions.create(
+        model="gpt-4o",
+        messages=history.get_history(),
+        temperature=0.1,
+        tools= tools,
+        stream=True,
+    )
 
-    response = requests.post(url, headers=headers, json=payload)
+    for chunk in stream:
+        yield chunk
 
-    if response.status_code == 200:
-        result = response.json()
-        response_message = result['choices'][0]['message']['content']
-        return response_message
-
-    else:
-        print(f"Error: {response.status_code}, {response.text}")
-        return None
     
-def chat_completion_function(history, system_prompt, tools=None):
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+def chat_completion_function(history, tools=None):
 
-    payload = {
-        "model": "gpt-4o-mini",
-        "messages": [
-            {"role": "system", "content": system_prompt},
+    stream = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "Call the function best suited to find the response"},
             *history.get_history(),
         ],
-        "temperature": 0.1,
-        "tools": tools
-    }
+        temperature=0.1,
+        tools= tools,
+    )
 
-    response = requests.post(url, headers=headers, json=payload)
-    
-    if response.status_code == 200:
-        result = response.json()
-        return result['choices'][0]['message']
-    else:
-        print(f"Error: {response.status_code}, {response.text}")
-        return None
-    
+    return stream
+
+
 def chat_completion_api(history, system_prompt, tools=None):
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    
-    
-    print("this is the actual history : ", [
-            *history.get_history(),
-        ])
 
-    payload = {
-        "model": "gpt-4o-mini",
-        "messages": [
-            *history.get_history(),
-        ],
-        "temperature": 0.1,
-        "tools": tools
-    }
-
-    response = requests.post(url, headers=headers, json=payload)
-    
-    if response.status_code == 200:
-        result = response.json()
-        return result['choices'][0]['message']['content']
-    else:
-        print(f"Error: {response.status_code}, {response.text}")
-        return None
-    
-def chat_completion_plan(history, system_prompt, tools=None):
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "model": "gpt-4o-2024-08-06",
-        "messages": [
+    stream = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
             {"role": "system", "content": system_prompt},
             *history.get_history(),
         ],
-        "temperature": 0.1,
-        "tools": tools,
-        "response_format": {
+        temperature=0.1,
+        tools= tools,
+        stream=True
+    )
+
+    for chunk in stream:
+        yield chunk
+    
+
+def chat_completion_plan(history, system_prompt, tools=None):
+
+    stream = client.chat.completions.create(
+        model="gpt-4o-2024-08-06",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            *history.get_history(),
+        ],
+        temperature=0.1,
+        tools=tools,
+        response_format={
             "type": "json_schema",
             "json_schema": {
                 "name": "plan_response",
@@ -136,18 +103,12 @@ def chat_completion_plan(history, system_prompt, tools=None):
                 },
                 "strict": True
             }
-        }
-    }
+        },
+        stream=True,
+    )
 
-    response = requests.post(url, headers=headers, json=payload)
-
-    if response.status_code == 200:
-        result = response.json()
-        return result
-    else:
-        print(f"Error: {response.status_code}, {response.text}")
-        return None
-
+    for chunk in stream:
+        yield chunk
 
 def extract_python_code(text):
     """
@@ -166,3 +127,12 @@ def extract_python_code(text):
         return match.group(1).strip()
     else:
         return "No Python code found in the input text."
+    
+
+def stream(agent):
+    for chunk in agent.generate():
+        content = chunk.choices[0].delta.content
+        if content is not None:
+            yield content.encode('utf-8')
+        else:
+            continue

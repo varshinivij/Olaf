@@ -1,3 +1,4 @@
+import openai
 from agent_utils import chat_completion_api
 from agent_utils import chat_completion_plan
 from agent_utils import chat_completion_function
@@ -148,25 +149,25 @@ class MasterAgent:
             "create_sequential_plan": self.create_sequential_plan,
         }
 
-    def process_query(self):
+    def generate(self):
         try:
             self.history.remove_system_messages()
             self.history.upsert(self.system_prompt)
             # Call the chat completion API
-            response = chat_completion_api(self.history, system_prompt, tools=self.functions)
+            response = chat_completion_function(self.history, tools=self.functions)
             
             # Check if response is a dictionary (API response)
-            if isinstance(response, dict):
+            if isinstance(response, openai.types.chat.chat_completion.ChatCompletion):
                 # Extract the message from the API response
-                message = response['choices'][0]['message']
+                message = response.choices[0].message
 
                 # Check if there are tool calls
-                if 'tool_calls' in message and message['tool_calls']:
+                if message.tool_calls:
                     # Handle tool calls
-                    tool_call = message['tool_calls'][0]
-                    function_name = tool_call.get('function', {}).get('name')
-                    function_arguments = tool_call.get('function', {}).get('arguments')
-
+                    tool_call = message.tool_calls[0]
+                    function_name = tool_call.function.name
+                    function_arguments = tool_call.function.arguments
+                    print(function_name)
                     # Ensure function name is present
                     if not function_name:
                         return {"error": "Function name is missing in the tool call."}
@@ -204,14 +205,23 @@ class MasterAgent:
             return {"error": f"An unexpected error occurred: {str(e)}"}
 
     def handle_simple_interaction(self):
-        interaction_response = chat_completion_api(self.history, system_prompt)["choices"][0]["message"]["content"]
-        self.history.log("assistant", interaction_response)
-        return interaction_response
+        interaction_response = chat_completion_api(self.history, system_prompt)
+        result = ""
+        for chunk in interaction_response:
+            content = chunk.choices[0].delta.content
+            if content:
+                result += content
+            yield chunk
+        self.history.log("assistant", result)
 
     def write_basic_code(self):
-        code_response = chat_completion_api(self.history, system_prompt)["choices"][0]["message"]["content"]
-        self.history.log("assistant", code_response)
-        return code_response.strip()
+        result = ""
+        for chunk in chat_completion_api(self.history, system_prompt):
+            content = chunk.choices[0].delta.content
+            if content:
+                result += content
+            yield chunk
+        self.history.log("assistant", result)
 
     def decompose_complicated_task(self):
         decomposition_prompt = (
@@ -223,13 +233,24 @@ class MasterAgent:
         )
         self.history.remove_system_messages()
         self.history.log("user", decomposition_prompt)
-        decomposition_response = chat_completion_api(self.history, system_prompt)
-        return decomposition_response.strip()
+
+        result = ""
+        for chunk in chat_completion_api(self.history, system_prompt):
+            content = chunk.choices[0].delta.content
+            if content:
+                result += content
+            yield chunk
+        self.history.log("assistant", result)
 
     def create_sequential_plan(self):
         self.history.remove_system_messages()
-        plan_response = chat_completion_plan(self.history, system_prompt)
-        self.history.log(
-            "assistant", plan_response)
-        return plan_response["choices"][0]["message"]["content"]
+        result = ""
+        for chunk in chat_completion_plan(self.history, system_prompt):
+            content = chunk.choices[0].delta.content
+            if content:
+                result += content
+            yield chunk
+        self.history.log("assistant", result)
+    
+        
 

@@ -1,7 +1,10 @@
 import json
+import time
 from executor import Executor
 from agents.coder_agent import CoderAgent
 from agents.master_agent import MasterAgent
+import flask
+
 
 from firebase_admin import initialize_app
 from firebase_functions.https_fn import Request, Response, on_request
@@ -9,7 +12,7 @@ from firebase_functions.options import CorsOptions
 import concurrent.futures
 from history import History
 from functions_framework import http
-from agent_utils import chat_completion
+from agent_utils import chat_completion, stream
 initialize_app()
 
 # import other modules' Cloud Functions
@@ -39,48 +42,38 @@ def on_request_example(req: Request) -> Response:
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def generate_plan(req: Request) -> Response:
     try:
-        history_data = req.json.get("history")
-        if not history_data:
-            return Response(json.dumps({"error": "'history' is required"}), status=400)
-        history = History(history_data)
+        history = req.json.get("history")
+        
+        if not history:
+            return flask.Response(json.dumps({"error": "'history' is required"}), status=400)
+        
+        history = History(history)
         master_agent = MasterAgent(history)
-        plan = master_agent.process_query()
-        
-        response_data = {
-            "message": plan,
-            "type" : 'code'
-        }
-        
-        return Response(json.dumps(response_data), status=200)
-    
+
+        return flask.Response(flask.stream_with_context(stream(master_agent)), mimetype="text/event-stream")
     except Exception as e:
-        return Response(json.dumps({"error": str(e)}), status=500)
+        print(f"Error in generate_plan: {str(e)}")
+        return flask.Response(json.dumps({"error": str(e)}), status=500)
 
 
 # --- CoderAgent Functions ---
 @http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
-def generate_code(req: Request) -> Response:
+def generate_code(req: Request) -> flask.Response:
     try:
         history = req.json.get("history")
-        history = History(history)
         language = req.json.get("language", "Python")
         
         if not history:
-            return Response(json.dumps({"error": "'history' is required"}), status=400)
+            return flask.Response(json.dumps({"error": "'history' is required"}), status=400)
         
-        coder_agent = CoderAgent(language=language)
-        
-        generated_code = coder_agent.generate(history)
-
-        response_data = {
-            "message": generated_code
-        }
-        
-        return Response(json.dumps(response_data), status=200)
+        history = History(history)
+        coder_agent = CoderAgent(language=language, history=history)
     
+        return flask.Response(flask.stream_with_context(stream(coder_agent)), mimetype="text/event-stream")
     except Exception as e:
-        return Response(json.dumps({"error": str(e)}), status=500)
+        print(f"Error in generate_code: {str(e)}")
+        return flask.Response(json.dumps({"error": str(e)}), status=500)
 
 
 
