@@ -189,14 +189,7 @@ class MasterAgent:
                                 result = self.function_map[function_name](**args_dict)
                             else:
                                 result = self.function_map[function_name]()
-                            response_type = ""
-                            if(function_name=="handle_simple_interaction"):
-                                response_type =  "text"
-                            elif(function_name=="write_basic_code"):
-                                response_type =  "code"
-                            elif(function_name=="create_sequential_plan"):
-                                response_type = "plan"
-                            return result , response_type
+                            return result
                         except Exception as e:
                             return {"error": f"Error calling function {function_name}: {str(e)}"}
                     else:
@@ -216,19 +209,28 @@ class MasterAgent:
         interaction_response = chat_completion_api(self.history, system_prompt)
         result = ""
         for chunk in interaction_response:
-            content = chunk.choices[0].delta.content
-            if content:
-                result += content
-            yield chunk
+            try:
+                content = chunk['choices'][0]['delta']['content']
+                if content:
+                    result += content
+                yield chunk
+            except:
+                continue
+        yield "Response: text"   
         self.history.log("assistant", result)
 
     def write_basic_code(self):
         result = ""
         for chunk in chat_completion_api(self.history, system_prompt):
-            content = chunk.choices[0].delta.content
-            if content:
-                result += content
-            yield chunk
+            try:
+                print(chunk)
+                content = chunk['choices'][0]['delta']['content']
+                if content:
+                    result += content
+                yield chunk
+            except:
+                continue
+        yield "Response: code"   
         self.history.log("assistant", result)
 
     def decompose_complicated_task(self):
@@ -244,20 +246,28 @@ class MasterAgent:
 
         result = ""
         for chunk in chat_completion_api(self.history, system_prompt):
-            content = chunk.choices[0].delta.content
-            if content:
-                result += content
-            yield chunk
+            try:
+                content = chunk['choices'][0]['delta']['content']
+                if content:
+                    result += content
+                yield chunk
+            except:
+                continue
+        yield "Response: task"   
         self.history.log("assistant", result)
 
     def create_sequential_plan(self):
         self.history.remove_system_messages()
         result = ""
         for chunk in chat_completion_plan(self.history, system_prompt):
-            content = chunk.choices[0].delta.content
-            if content:
-                result += content
-            yield chunk
+            try:
+                content = chunk['choices'][0]['delta']['content']
+                if content:
+                    result += content
+                yield chunk
+            except:
+                continue
+        yield "Response: plan"    
         self.history.log("assistant", result)
     
         

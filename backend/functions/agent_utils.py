@@ -9,16 +9,33 @@ client = OpenAI(api_key=api_key)
 
 def chat_completion(history, tools=None):
 
-    stream = client.chat.completions.create(
-        model="gpt-4o",
-        messages=history.get_history(),
-        temperature=0.1,
-        tools= tools,
-        stream=True,
-    )
+    headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
 
-    for chunk in stream:
-        yield chunk
+    payload = {
+        "model": "gpt-4o",
+        "messages": history.get_history(),
+        "temperature": 0.1,
+        "stream": True
+    }
+
+    response = requests.post(url, headers=headers, json=payload, stream=True)
+
+    if response.status_code == 200:
+        for chunk in response.iter_lines(decode_unicode=True):
+            if chunk:
+                try: 
+                    chunk = chunk.replace("data: ", "").strip()
+                    json_chunk = json.loads(chunk)
+                    yield json_chunk
+                except:
+                    continue
+
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        return None
 
     
 def chat_completion_function(history, tools=None):
@@ -38,32 +55,55 @@ def chat_completion_function(history, tools=None):
 
 def chat_completion_api(history, system_prompt, tools=None):
 
-    stream = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
+    headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+    payload = {
+        "model": "gpt-4o",
+        "messages": [
             {"role": "system", "content": system_prompt},
             *history.get_history(),
         ],
-        temperature=0.1,
-        tools= tools,
-        stream=True
-    )
+        "temperature": 0.1,
+        "tools": tools,
+        "stream": True
+    }
 
-    for chunk in stream:
-        yield chunk
+    response = requests.post(url, headers=headers, json=payload, stream=True)
+
+    if response.status_code == 200:
+        for chunk in response.iter_lines(decode_unicode=True):
+            if chunk:
+                try: 
+                    chunk = chunk.replace("data: ", "").strip()
+                    json_chunk = json.loads(chunk)
+                    yield json_chunk
+                except:
+                    continue
+
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        return None
     
 
 def chat_completion_plan(history, system_prompt, tools=None):
 
-    stream = client.chat.completions.create(
-        model="gpt-4o-2024-08-06",
-        messages=[
+    headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+    payload = {
+        "model": "gpt-4o-2024-08-06",
+        "messages": [
             {"role": "system", "content": system_prompt},
             *history.get_history(),
         ],
-        temperature=0.1,
-        tools=tools,
-        response_format={
+        "temperature": 0.1,
+        "tools": tools,
+        "response_format": {
             "type": "json_schema",
             "json_schema": {
                 "name": "plan_response",
@@ -104,11 +144,25 @@ def chat_completion_plan(history, system_prompt, tools=None):
                 "strict": True
             }
         },
-        stream=True,
-    )
+        "stream": True
+    }
 
-    for chunk in stream:
-        yield chunk
+    response = requests.post(url, headers=headers, json=payload, stream=True)
+
+    if response.status_code == 200:
+        for chunk in response.iter_lines(decode_unicode=True):
+            if chunk:
+                try: 
+                    chunk = chunk.replace("data: ", "").strip()
+                    json_chunk = json.loads(chunk)
+                    yield json_chunk
+                except:
+                    continue
+
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        return None
+
 
 def extract_python_code(text):
     """
@@ -131,8 +185,10 @@ def extract_python_code(text):
 
 def stream(agent):
     for chunk in agent.generate():
-        content = chunk.choices[0].delta.content
-        if content is not None:
+        try:
+            content = chunk['choices'][0]['delta']['content']
             yield content.encode('utf-8')
-        else:
+        except:
+            if (chunk.startswith("Response: ")):
+                yield chunk.replace("Response: ", "\n").encode('utf-8')
             continue
