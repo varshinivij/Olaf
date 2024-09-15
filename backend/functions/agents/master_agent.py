@@ -1,5 +1,6 @@
 from agent_utils import chat_completion_api
 from agent_utils import chat_completion_plan
+from agent_utils import chat_completion_function
 import json
 from firebase_functions.https_fn import Request, Response, on_request
 
@@ -202,7 +203,7 @@ class MasterAgent:
                         return {"error": f"Function {function_name} not found in function map."}
                 else:
                     # Return the content if no tool calls
-                    return message.get('content', '')
+                    return response.get('content', '')
             else:
                 # If response is not a dictionary, assume it's the direct content
                 return response
@@ -223,17 +224,17 @@ class MasterAgent:
         self.history.log("assistant", code_response)
         return code_response.strip()
 
-    def decompose_complicated_task(self, query, history):
+    def decompose_complicated_task(self):
         decomposition_prompt = (
             f"You are an expert in task decomposition, particularly in bioinformatics and machine learning. "
             f"The user has provided a complex query that needs to be broken down into smaller, manageable subtasks. "
             f"Here is the query:\n\n"
-            f"Query: '{query}'\n\n"
+            f"Query: '{self.history.most_recent_entry()}'\n\n"
             "Please identify the key components of this task and provide a step-by-step breakdown into smaller subtasks."
         )
-        history.remove_system_messages()
-        history.log("user", decomposition_prompt)
-        decomposition_response = chat_completion_api(decomposition_prompt, history.get_history(), system_prompt)
+        self.history.remove_system_messages()
+        self.history.log("user", decomposition_prompt)
+        decomposition_response = chat_completion_api(self.history, system_prompt)
         return decomposition_response.strip()
 
     def create_sequential_plan(self):

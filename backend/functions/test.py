@@ -1,5 +1,6 @@
 import requests
 from history import History
+
 def call_generate_code(history, language="Python"):
     url = "http://127.0.0.1:5001/twocube-web/us-central1/generate_plan"
     headers = {"Content-Type": "application/json"}
