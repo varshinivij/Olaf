@@ -35,9 +35,8 @@ def chat_completion_api(history, system_prompt, tools=None):
     }
     
     
-    print("this is the actual history : ", [
-            *history.get_history(),
-        ])
+
+
 
     payload = {
         "model": "gpt-4o-mini",
