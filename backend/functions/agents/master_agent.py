@@ -20,7 +20,7 @@ system_prompt = """
           Your response should be easy to understand and directly address the query.
 
 
-    2. Basic Code Writing:
+    2. Basic Code Writing: -> In this case please use write_basic_code function call please 
         - Write simple code snippets when necessary for straightforward tasks.
         - when simple code tasks are mentioned this is done
         - please create like basic code when needed
@@ -117,7 +117,7 @@ class MasterAgent:
                 "type": "function",
                 "function": {
                     "name": "write_basic_code",
-                    "description": "This function writes simple code queries where not a lot of computations or code is required",
+                    "description": "This function writes simple python code queries where not a lot of computations or code is required use this when going for very small functions . Use this function for creating code when very small piece of code is asked like simple functions code or simple class or anything.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -182,13 +182,21 @@ class MasterAgent:
 
                     # Check if the function exists in the function map
                     if function_name in self.function_map:
+                        print("function name : ",function_name)
                         try:
                             # Call the appropriate function with or without arguments
                             if args_dict:
                                 result = self.function_map[function_name](**args_dict)
                             else:
                                 result = self.function_map[function_name]()
-                            return result
+                            response_type = ""
+                            if(function_name=="handle_simple_interaction"):
+                                response_type =  "text"
+                            elif(function_name=="write_basic_code"):
+                                response_type =  "code"
+                            elif(function_name=="create_sequential_plan"):
+                                response_type = "plan"
+                            return result , response_type
                         except Exception as e:
                             return {"error": f"Error calling function {function_name}: {str(e)}"}
                     else:
