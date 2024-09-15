@@ -17,9 +17,8 @@ def call_generate_code(history, language="Python"):
         for line in response:
             line = line.decode('utf-8')
             if line:
-                result += line
+                print(type(line))
 
-        print(result)
 
 # Example usage
 history_data = [
