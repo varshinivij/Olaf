@@ -32,6 +32,11 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   uploadSubscription: Subscription | undefined;
   
   selectedTab: string = 'planner'; // Default tab
+  public latestPlanMessage: any;
+  public latestCodeMessage: any;
+  public latestResultMessage: any;
+  public latestErrorMessage: any;
+  public latestImageMessage: any;
 
   // message scheme ONLY FOR REFERENCE
   // messages: ChatMessage[] = [
@@ -74,6 +79,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       }
     ); 
     this.getUserFiles();
+    this.getLatestPlanMessage();
   }
 
   ngOnDestroy() {
@@ -193,18 +199,21 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    */
   sendMessage() {
     if(this.newMessage.trim()) {
-      this.addUserMessage()
+      this.addUserMessage();
 
       this.loading = true;
       this.chatService.sendMessage(this.sessionsService.activeSession.history).subscribe(
         (responnse:any) => {
+          console.log(responnse);
+          
           let responseMessages: ChatMessage = {
-            type: 'text',
+            type: responnse["type"],
             role: 'assistant',
             content: responnse["message"],
           };
           this.sessionsService.addMessageToActiveSession(responseMessages);
           this.loading = false;
+          this.getLatestPlanMessage();
           },
           (error) => {
             console.error('Error:', error);
@@ -213,6 +222,28 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         );
     }
   }
+
+
+  getLatestPlanMessage(): void {
+    const history = this.sessionsService.activeSession.history;
+    // Find the last message of type 'plan'
+    this.latestPlanMessage = history.slice().reverse().find(message => message.type === 'plan');
+    console.log(this.latestPlanMessage);
+    
+    
+  }
+
+  parseJson(content: string): any {
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      console.error('Error parsing JSON:', e);
+      return null; // Return null if parsing fails
+    }
+  }
+
+
+
 
   continue() {
     this.loading = true;

@@ -76,14 +76,31 @@
         <li class="cursor-pointer text-gray-600" [ngClass]="{'font-bold': selectedTab === 'files'}" (click)="selectTab('files')">Files</li>
       </ul>
     </div>
-    <div class="mt-4 h-full overflow-auto">
-      <div *ngIf="selectedTab === 'planner'">
-        <div *ngFor="let message of this.sessionsService.activeSession.history">
-          <div *ngIf="message.type === 'plan'" class="text-white bg-gray-700 p-2 rounded mb-2 max-w-full break-words">
-            <pre><code>{{ message.content }}</code></pre>
+    <div *ngIf="selectedTab === 'planner' && latestPlanMessage">
+      <div class="text-white bg-gray-700 p-4 rounded mb-2 max-w-full break-words">
+        <!-- Parse the JSON content -->
+        <ng-container *ngIf="parseJson(latestPlanMessage.content) as parsedContent">
+          <!-- Render the plan overview -->
+          <h3 class="font-bold text-lg mb-2">Plan Overview</h3>
+          <p>{{ parsedContent.overview }}</p>
+    
+          <!-- Render the steps -->
+          <h4 class="font-bold text-md mt-4 mb-2">Steps:</h4>
+          <div *ngFor="let step of parsedContent.steps">
+            <div class="mb-3">
+              <h5 class="font-semibold">Step {{ step.step_number }}: {{ step.title }}</h5>
+              <p><strong>Description:</strong> {{ step.description }}</p>
+              <p><strong>Dependencies:</strong> {{ step.dependencies.length > 0 ? step.dependencies.join(', ') : 'None' }}</p>
+              <p><strong>Expected Output:</strong> {{ step.expected_output }}</p>
+            </div>
           </div>
-        </div>
+    
+          <!-- Render the final check -->
+          <h4 class="font-bold text-md mt-4 mb-2">Final Check</h4>
+          <p>{{ parsedContent.final_check }}</p>
+        </ng-container>
       </div>
+    </div>
       <div *ngIf="selectedTab === 'terminal'">
         <!-- Terminal content here -->
         <p>Terminal content goes here...</p>
@@ -124,4 +141,3 @@
       </div>
     </div>
   </div>
-</div>
