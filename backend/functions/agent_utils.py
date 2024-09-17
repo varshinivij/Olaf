@@ -190,5 +190,5 @@ def stream(agent):
             yield content.encode('utf-8')
         except:
             if (chunk.startswith("Response: ")):
-                yield chunk.replace("Response: ", "\n").encode('utf-8')
+                yield chunk.replace("Response: ", "").encode('utf-8')
             continue

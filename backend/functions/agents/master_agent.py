@@ -206,6 +206,7 @@ class MasterAgent:
             return {"error": f"An unexpected error occurred: {str(e)}"}
 
     def handle_simple_interaction(self):
+        yield "Response: text" 
         interaction_response = chat_completion_api(self.history, system_prompt)
         result = ""
         for chunk in interaction_response:
@@ -215,11 +216,11 @@ class MasterAgent:
                     result += content
                 yield chunk
             except:
-                continue
-        yield "Response: text"   
+                continue  
         self.history.log("assistant", result)
 
     def write_basic_code(self):
+        yield "Response: code" 
         result = ""
         for chunk in chat_completion_api(self.history, system_prompt):
             try:
@@ -229,8 +230,7 @@ class MasterAgent:
                     result += content
                 yield chunk
             except:
-                continue
-        yield "Response: code"   
+                continue  
         self.history.log("assistant", result)
 
     def decompose_complicated_task(self):
@@ -243,7 +243,7 @@ class MasterAgent:
         )
         self.history.remove_system_messages()
         self.history.log("user", decomposition_prompt)
-
+        yield "Response: task"
         result = ""
         for chunk in chat_completion_api(self.history, system_prompt):
             try:
@@ -253,11 +253,11 @@ class MasterAgent:
                 yield chunk
             except:
                 continue
-        yield "Response: task"   
         self.history.log("assistant", result)
 
     def create_sequential_plan(self):
         self.history.remove_system_messages()
+        yield "Response: plan"
         result = ""
         for chunk in chat_completion_plan(self.history, system_prompt):
             try:
@@ -266,8 +266,7 @@ class MasterAgent:
                     result += content
                 yield chunk
             except:
-                continue
-        yield "Response: plan"    
+                continue    
         self.history.log("assistant", result)
     
         
