@@ -1,1 +1,17 @@
-{}
+{
+  "hosting": {
+    "source": ".",
+    // "public": "dist/two-cube-frontend",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
