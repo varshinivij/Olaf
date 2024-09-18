@@ -16,23 +16,23 @@ system = {
 
 class CoderAgent:
 
-    def __init__(self, language: str):
+    def __init__(self, language: str, history):
         """
         Initializes the CoderAgent with language and LLM instance.
         :param language: The programming language for code generation.
         """
         self.language = language
+        self.history = history
 
-    def generate(self, history: History) -> str | None:
+    def generate(self) -> str | None:
         """
         Generates code based on the provided requirements using the LLM.
         :param requirements: A dictionary containing the requirements for the code.
         :return: A string of the generated code.
         """
-        hidden_prompt = f"{few_shot_examples}\n\n\nGenerate {self.language} program that meets the specified requirements:\n{history.get_history()}"
-        history.log("user", hidden_prompt)
-        response = chat_completion(history)
-        return response
+        hidden_prompt = f"{few_shot_examples}\n\n\nGenerate {self.language} program that meets the specified requirements:\n{self.history.get_history()}"
+        self.history.log("user", hidden_prompt)
+        return chat_completion(self.history)
     
     def regenerate(self, history: History, code_result: str, test_result: str) -> str:
         """
