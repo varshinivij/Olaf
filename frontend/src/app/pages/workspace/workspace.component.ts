@@ -183,14 +183,14 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   /**
    * Add a new message to the active session from message bar
    **/
-  addUserMessage(): void {
+  async addUserMessage(): Promise<void> {
     if (this.newMessage.trim()) {
       const userMessage: ChatMessage = {
         type: 'text',
         role: 'user',
         content: this.newMessage,
       };
-      this.sessionsService.addMessageToActiveSession(userMessage);
+      await this.sessionsService.addMessageToActiveSession(userMessage);
       this.newMessage = '';
     }
   }
@@ -198,10 +198,10 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   /**
    * Send a message to the generalist chat service
    */
-  sendMessage() {
+  async sendMessage() {
     if (this.newMessage.trim()) {
-      this.addUserMessage();
-
+      await this.addUserMessage();
+      console.log(this.sessionsService.activeSession.history);
       this.loading = true;
       let responseType:
         | 'text'
@@ -218,9 +218,8 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         role: 'assistant',
         content: '', // Initially empty
       };
-
       // Add the placeholder message to the session and store a reference to it
-      this.sessionsService.addMessageToActiveSession(responseMessage);
+      await this.sessionsService.addMessageToActiveSession(responseMessage);
       const messageIndex =
         this.sessionsService.activeSession.history.length - 1; // Get the index of the added message
 

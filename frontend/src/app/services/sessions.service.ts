@@ -39,15 +39,15 @@ export class SessionsService {
     console.log("saving");
     await this.ensureUserIsSet();
     console.log("user set");
-    if (!this.activeSession.id) {
-      console.log(this.activeSession);
+    console.log(this.activeSession.id)
+    if (!this.activeSession.id || this.activeSession.id === '') {
       //this is a double write below - we should refactor this to only write once
       const newSessionRef = await this.addNewSession(this.activeSession);
       this.activeSession.id = newSessionRef.id;
-      this.userSessions.push(this.activeSession);
-    } else {
-      await this.updateSession(this.activeSession);
-    }
+      console.log(this.activeSession.id);
+      await this.userSessions.push(this.activeSession);
+    } 
+    await this.updateSession(this.activeSession);
   }
 
   private async ensureUserIsSet() {
@@ -92,9 +92,9 @@ export class SessionsService {
     this.activeSession = createNewSession();
   }
 
-  addMessageToActiveSession(message: ChatMessage) {
+  async addMessageToActiveSession(message: ChatMessage) {
     this.activeSession.history.push(message);
-    this.saveActiveSession();
+    await this.saveActiveSession();
   }
 
   setSessionSandBoxId(sandboxId: string) {
