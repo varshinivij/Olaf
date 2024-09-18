@@ -155,7 +155,7 @@ export class UserService {
   /**
    * Updates the account information for the current user.
    *
-   * @param data - An subset of a User object containing user properties to
+   * @param data A subset of a User object containing user properties to
    * update in Firestore. Updating user.id will have no effect.
    */
   async updateAccount(data: Partial<User>): Promise<void> {
@@ -177,8 +177,8 @@ export class UserService {
    * Updates user profile picture in Firestore record on completion.
    * Promise returns the downloadURL to the uploaded picture.
    *
-   * @param file - The file to be uploaded.
-   * @param onProgress - Callback to be run on progress snapshot.
+   * @param file The file to be uploaded.
+   * @param onProgress Callback to be run on progress snapshot.
    */
   async uploadProfilePicture(
     file: File,
@@ -220,7 +220,8 @@ export class UserService {
    * error message. A list of codes can be found here:
    * https://firebase.google.com/docs/auth/admin/errors
    *
-   * @param error - The error thrown by Firebase Auth.
+   * @param error The error thrown by Firebase Auth.
+   * @returns A user-friendly error message.
    */
   static convertAuthErrorToMessage(error: any) {
     switch (error.code) {

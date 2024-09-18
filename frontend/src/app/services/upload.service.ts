@@ -44,6 +44,8 @@ export class UploadService {
 
   /**
    * Retrieves the current upload progress queue as an observable.
+   *
+   * @returns The upload progress queue observable.
    */
   getUploadProgress(): Observable<UserUploadTask[]> {
     return this.uploadProgress$;
@@ -108,7 +110,7 @@ export class UploadService {
     path: string,
     onCompleted?: (uploadRef: UserUploadTask) => void,
     onError?: (uploadRef: UserUploadTask) => void
-  ) {
+  ): void {
     if (name == '') {
       return;
     }

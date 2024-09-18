@@ -76,7 +76,7 @@
     <tbody>
       <!-- display projects -->
       @for (project of displayedProjects; track project.id) {
-      <tr class="bg-white hover:brightness-90" (dblclick)="goToWorkspace()">
+      <tr class="bg-white hover:brightness-90 cursor-pointer" (dblclick)="goToWorkspace()">
         <td class="px-4 truncate py-2">
           {{ project.name }}
         </td>

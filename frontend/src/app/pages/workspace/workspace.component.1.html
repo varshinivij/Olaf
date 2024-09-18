@@ -1,0 +1,204 @@
+<div class="flex h-screen overflow-hidden">
+  <!-- Sidebar -->
+  <div id="sidebar" class="w-1/4 bg-gray-100 p-4 relative overflow-y-auto">
+    <div>
+      <input
+        type="text"
+        placeholder="Enter Project Name"
+        class="w-full p-2 border rounded mb-4"
+      />
+    </div>
+    <div class="mb-4">
+      <button
+        (click)="sessionsService.newSession()"
+        class="text-lg font-semibold mb-2"
+      >
+        New Session +
+      </button>
+    </div>
+    <!-- Refresh icon -->
+    <div *ngFor="let session of sessionsService.userSessions">
+      <button
+        href="#"
+        (click)="sessionsService.changeUserSessionById(session.id)"
+      >
+        {{ session.id }}
+      </button>
+      <button
+        (click)="sessionsService.deleteSession(session.id)"
+        class="ml-2 text-red-500"
+      >
+        &#x2716;
+      </button>
+    </div>
+    <div class="absolute bottom-4 left-4">
+      <button href="#" (click)="sessionsService.loadUserSessions()">
+        Refresh Sessions
+      </button>
+      <button class="flex items-center text-gray-500">Project Settings</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main-content" class="flex-1 flex flex-col relative overflow-hidden">
+    <!-- Chat Section -->
+    <div
+      class="flex-1 flex flex-col items-center justify-start overflow-y-auto p-4"
+      id="chatArea"
+    >
+      <ng-container
+        *ngFor="let message of this.sessionsService.activeSession.history"
+      >
+        <div
+          *ngIf="message.type === 'code' || message.type === 'plan' || message.type === 'text'"
+          [ngClass]="{'bg-blue-100 self-end': message.role === 'user', 'bg-gray-200 self-start': message.role === 'assistant'}"
+          class="p-2 rounded mb-2 max-w-full break-words"
+        >
+          <div *ngIf="message.type === 'text'">{{ message.content }}</div>
+          <div *ngIf="message.type === 'plan'">
+            I've put our plan in the planner! Let me know what you think.
+          </div>
+          <div *ngIf="message.type === 'code'">
+            I've put our code in the code editor! Let me know what you think.
+          </div>
+        </div>
+      </ng-container>
+      <div *ngIf="loading">... asking agent ...</div>
+    </div>
+
+    <!-- Chat Bar -->
+    <div
+      class="absolute bottom-0 left-0 right-0 p-4 bg-gray-100 flex items-center"
+    >
+      <input
+        type="text"
+        [(ngModel)]="newMessage"
+        placeholder="Ask Twocube"
+        class="flex-1 p-2 border rounded mr-2"
+        (keyup.enter)="sendMessage()"
+      />
+      <button
+        class="bg-blue-500 text-white p-2 rounded mr-2"
+        (click)="sendMessage()"
+      >
+        Send
+      </button>
+      <button
+        class="bg-green-500 text-white p-2 rounded mr-2"
+        (click)="requestPlan()"
+      >
+        Plan
+      </button>
+      <button
+        class="bg-purple-500 text-white p-2 rounded"
+        (click)="requestCode()"
+      >
+        Code
+      </button>
+    </div>
+  </div>
+
+  <!-- Twocube's Den Sidebar Section -->
+  <div id="den-sidebar" class="w-1/4 bg-gray-200 p-4 overflow-y-auto">
+    <h2 class="text-xl font-semibold">Twocube’s Den</h2>
+    <div class="mt-4">
+      <ul class="flex space-x-4">
+        <li
+          class="cursor-pointer text-gray-600"
+          [ngClass]="{'font-bold': selectedTab === 'planner'}"
+          (click)="selectTab('planner')"
+        >
+          Planner
+        </li>
+        <li
+          class="cursor-pointer text-gray-600"
+          [ngClass]="{'font-bold': selectedTab === 'terminal'}"
+          (click)="selectTab('terminal')"
+        >
+          Terminal
+        </li>
+        <li
+          class="cursor-pointer text-gray-600"
+          [ngClass]="{'font-bold': selectedTab === 'code'}"
+          (click)="selectTab('code')"
+        >
+          Code
+        </li>
+        <li
+          class="cursor-pointer text-gray-600"
+          [ngClass]="{'font-bold': selectedTab === 'files'}"
+          (click)="selectTab('files')"
+        >
+          Files
+        </li>
+      </ul>
+    </div>
+    <div class="mt-4 h-full overflow-auto">
+      <div *ngIf="selectedTab === 'planner'">
+        <div *ngFor="let message of this.sessionsService.activeSession.history">
+          <div
+            *ngIf="message.type === 'plan'"
+            class="text-white bg-gray-700 p-2 rounded mb-2 max-w-full break-words"
+          >
+            <pre><code>{{ message.content }}</code></pre>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="selectedTab === 'terminal'">
+        <!-- Terminal content here -->
+        <p>Terminal content goes here...</p>
+      </div>
+      <div *ngIf="selectedTab === 'code'" class="h-full overflow-auto">
+        <!-- Code content here -->
+        <div class="flex-1 flex flex-col relative h-full">
+          <div
+            class="flex-1 flex flex-col justify-start overflow-y-auto p-4"
+            id="codeArea"
+          >
+            <div
+              *ngFor="let message of this.sessionsService.activeSession.history"
+            >
+              <div
+                *ngIf="message.type === 'code'"
+                class="text-white bg-gray-700 p-2 rounded mb-2 max-w-full break-words"
+              >
+                <pre><code>{{ message.content }}</code></pre>
+              </div>
+              <div
+                *ngIf="message.type === 'result'"
+                class="text-white bg-gray-400 p-2 rounded mb-2 max-w-full break-words"
+              >
+                <pre>{{ message.content }}</pre>
+              </div>
+              <div
+                *ngIf="message.type === 'error'"
+                class="text-white bg-red-400 p-2 rounded mb-2 max-w-full break-words"
+              >
+                <pre>{{ message.content }}</pre>
+              </div>
+              <div
+                *ngIf="message.type === 'image'"
+                class="text-white bg-gray-400 p-2 rounded mb-2 max-w-full break-words"
+              >
+                <img [src]="message.content" alt="Result" />
+              </div>
+            </div>
+            <div *ngIf="executingCode">... executing code ...</div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="selectedTab === 'files'">
+        <div *ngFor="let file of this.userFiles">
+          <div class="flex items-center justify-between p-2 border-b">
+            <div>{{ file.name }}</div>
+            <div>
+              <button class="text-green-500" (click)="addFileToSandbox(file)">
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
