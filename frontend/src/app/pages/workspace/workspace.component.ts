@@ -195,6 +195,9 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    * Send a message to the generalist chat service
    */
   async sendMessage() {
+    if (!this.isConnected) {
+      this.connectToSandBox();
+    }
     if (this.newMessage.trim()) {
       await this.addUserMessage();
       console.log(this.sessionsService.activeSession.history);
@@ -247,7 +250,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
                   const jsonData = JSON.parse(responseContent);
                   responseContent = JSON.stringify(jsonData, null, 2);
                 }
-                console.log(responseContent);
                 this.sessionsService.activeSession.history[
                   messageIndex
                 ].content = responseContent;
@@ -261,8 +263,21 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
           complete: () => {
             this.loading = false;
             this.getLatestPlanMessage();
+            this.executeLatestCode();
           },
         });
+    }
+  }
+
+  executeLatestCode(): void{
+    const history = this.sessionsService.activeSession.history;
+    const latestCodeMessage = history
+      .slice()
+      .reverse()
+      .find((message) => message.type === 'code');
+    if (latestCodeMessage) {
+      let code = this.extractCode(latestCodeMessage.content);
+      this.executeCode(code);
     }
   }
 
@@ -382,18 +397,17 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       this.connectToSandBox();
     }
     this.addUserMessage();
-    console.log(this.sessionsService.activeSession.history);
     this.loading = true;
     this.chatService
       .requestCode(this.sessionsService.activeSession.history)
       .subscribe(
         (response: any) => {
           //add the code to message as a ChatMessage with type Code
-          let code = this.getCode(response['message']);
+          let code = this.extractCode(response['message']);
           let codeMessage: ChatMessage = {
             type: 'code',
             role: 'assistant',
-            content: this.getCode(response['message']), //TODO this is finicky because the agent is not always returning the code in the same format,
+            content: this.extractCode(response['message']), //TODO this is finicky because the agent is not always returning the code in the same format,
           };
           this.sessionsService.addMessageToActiveSession(codeMessage);
           console.log(this.sessionsService.activeSession.history);
@@ -410,46 +424,25 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   }
 
 
-  //TODO pick one version of code processing
-
-  getCode(message: string) {
-    console.log(message);
-    // Check if the message begins with ```python
-    if (message.includes('```python')) {
-      let code = message.split('```python\n');
-      // If there's any code after splitting, it should end before the next ```
-      if (code[1].includes('```')) {
-        return code[1].split('```')[0];
-      }
-      return code[1];
-    }
-    // If the message contains ``` but not starting with ```python
-    else if (message.includes('```')) {
-      let code = message.split('```\n');
-      // Return the code between the first and second ```
-      return code[1];
-    }
-    return message;
-  }
-
   convertNewlinesToBr(text: string): string {
     return text.replace(/\n/g, '<br>');
   }
 
   extractCode(response: string): string {
-    const codeRegex = /```python(?:\w*\n)?([\s\S]*?)```/g;
+    // Regular expression to match code blocks with or without 'python' tag
+    const codeRegex = /```(?:python\s*\n)?([\s\S]*?)```/g;
     let match;
     let codeParts: string[] = [];
-
+    
     while ((match = codeRegex.exec(response)) !== null) {
       codeParts.push(match[1].trim());
     }
-
+    console.log(codeParts.join('\n\n'));
     return codeParts.join('\n\n');
   }
 
   extractTextWithoutCode(response: string): string {
-    const codeRegex = /```[\s\S]*?```/g;
+    const codeRegex = /```(?:python\s*\n)?([\s\S]*?)```/g;
     let textWithoutCode = response.replace(codeRegex, '').trim();
     textWithoutCode = textWithoutCode.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     textWithoutCode = textWithoutCode.replace(

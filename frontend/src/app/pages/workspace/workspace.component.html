@@ -73,9 +73,9 @@
           <div
             class="typewriter"
             *ngIf="message.type === 'code'"
-            [innerHTML]="extractTextWithoutCode(message.content).trim()"
+            innerHTML="{{extractTextWithoutCode(message.content).trim()}}"
           >
-            <pre>{{ message.content }}</pre>
+            <pre></pre>
           </div>
         </div>
       </ng-container>
@@ -209,8 +209,7 @@
                 *ngIf="message.type === 'code'"
                 class="text-white bg-gray-700 p-2 rounded mb-2 max-w-full break-words"
               >
-                <pre><code [innerHTML]="convertNewlinesToBr(extractCode(message.content))"
-                class="typewriter">{{ message.content }}</code></pre>
+                <pre><code>{{(extractCode(message.content))}} </code></pre>
               </div>
               <div
                 *ngIf="message.type === 'result'"
