@@ -3,3 +3,4 @@ e2b-code-interpreter==0.0.10a0
 e2b
 EnvVars
 functions_framework
+openAI
