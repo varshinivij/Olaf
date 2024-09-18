@@ -270,100 +270,85 @@ def request_user_delete_path(req: CallableRequest) -> None:
 @on_object_finalized(bucket="twocube-web.appspot.com")
 def handle_user_file_upload(event: CloudEvent[StorageObjectData]) -> None:
     """
-    Handles file uploads to Cloud Storage and creates corresponding Firestore documents.
-    
-    Triggered when a file is uploaded to the 'twocube-web.appspot.com' bucket.
-    Handles two types of paths:
-        - "uploads/{userID}/{uploadPath}" for user files
-        - "sessionImages/{userID}/{imageName}" for session images
-    
-    For user files, the Firestore document will be created under 'users/{userID}/files/{documentID}'.
-    For session images, the Firestore document will be created in the 'sessionImage' collection.
+    Receives a user-uploaded Cloud Storage file and creates a Firestore
+    document under users/{userID}/files/{documentID} accordingly.
+
+    Triggered when a file is uploaded to the twocube-web.appspot.com bucket.
+    If upload path doesn't match the pattern "uploads/{userID}/{uploadPath}",
+    does nothing.
+
+    The newly created Firestore document will contain a random UID. It will
+    have the following properties:
+        "id": the file's unique UID
+        "name": the name of the file,
+        "path": the path to the file on the user's dashboard (up to the parent),
+                format '/folder1/folder2/file.txt'. '/' path means root dir.
+        "isFolder": whether the document is a folder or not
+        "size": the size of the document in bytes
+        "storageLink": the path to the file in Cloud Storage
+        "uploadedOn": the timestamp of when the file was uploaded
+
+    If the Firestore document for the path already exists (overwriting a file
+    in Cloud Storage), it will overwrite the corresponding Firestore record
+    instead and overwrite it as well. In this way, we are mimicking Cloud
+    Storage's mechanics of overwriting duplicate file names.
+
+    One potentially unsolved edge case to consider is what happens if Cloud
+    Storage upload succeeds on the frontend but the Firestore record fails to
+    create here. For now, it does nothing and re-uploading the same file to
+    Cloud Storage should re-run this function and potentially fix it.
     """
-    # Retrieve cloud storage path
+    # retrieve cloud storage path
     cloud_storage_path = event.data.name
 
-    # Define regex patterns for both paths
-    user_file_pattern = r"^uploads/([^/]+)(.+)$"
-    session_image_pattern = r"^sessionImages/([^/]+)(.+)$"
+    # verify that cloud storage path matches the format "uploads/{userID}/{uploadPath}"
+    match = re.match(r"^uploads/([^/]+)(.+)$", cloud_storage_path)
+    if match is None:
+        return
 
-    # Match the path with appropriate pattern
-    user_file_match = re.match(user_file_pattern, cloud_storage_path)
-    session_image_match = re.match(session_image_pattern, cloud_storage_path)
+    # retrieve {userID} and {uploadPath} from the above regex
+    user_uid, upload_path = match.groups()
+    upload_path = Path(upload_path)
 
-    # Initialize Firestore client
+    upload_name = upload_path.name
+    upload_parent = upload_path.parent.as_posix()
+
+    # verify user ID exists
     db = firestore.client()
+    transaction = db.transaction()
+    user_doc = db.collection("users").document(user_uid)
+    if not user_doc.get().exists:
+        raise KeyError(f"User ID {user_uid} does not exist")
 
-    if user_file_match:
-        # Handle user file upload
-        user_uid, upload_path = user_file_match.groups()
-        upload_path = Path(upload_path)
-        upload_name = upload_path.name
-        upload_parent = upload_path.parent.as_posix()
+    # check if uploaded file already exists
+    file_ref = db.collection("users", user_uid, "files")
 
-        # Verify user ID exists
-        transaction = db.transaction()
-        user_doc = db.collection("users").document(user_uid)
-        if not user_doc.get().exists:
-            raise KeyError(f"User ID {user_uid} does not exist")
+    query = (
+        file_ref.where(filter=FieldFilter("path", "==", upload_parent))
+        .where(filter=FieldFilter("name", "==", upload_name))
+        .limit(1)
+    ).stream()
 
-        # Check if uploaded file already exists
-        file_ref = db.collection("users", user_uid, "files")
-        query = (
-            file_ref.where(filter=FieldFilter("path", "==", upload_parent))
-            .where(filter=FieldFilter("name", "==", upload_name))
-            .limit(1)
-        ).stream()
-
-        # If file exists, use the existing DocumentReference; otherwise, create a new one
-        for doc in query:
-            file_doc = doc.reference
-            break
-        else:
-            file_doc = file_ref.document()
-
-        # Create or update the Firestore document
-        file_doc.set(
-            {
-                "id": file_doc.id,
-                "name": upload_name,
-                "path": upload_parent,
-                "size": int(event.data.size),
-                "extension": upload_path.suffix,
-                "isFolder": False,
-                "storageLink": event.data.name,
-                "uploadedOn": firestore.SERVER_TIMESTAMP,
-            }
-        )
-
-        # Ensure folders exist in Firestore
-        ensure_folder_exists(transaction, db, user_uid, upload_parent)
-
-    elif session_image_match:
-        # Handle session image upload
-        user_uid, upload_name = session_image_match.groups()
-        upload_path = Path(f"sessionImages/{upload_name}")
-        upload_parent = upload_path.parent.as_posix()
-        upload_name = upload_name.lstrip('/')
-
-        # Verify user ID exists
-        user_doc = db.collection("users").document(user_uid)
-        if not user_doc.get().exists:
-            raise KeyError(f"User ID {user_uid} does not exist")
-
-        # Create a new Firestore document in the 'sessionImage' collection
-        image_doc_ref = db.collection("sessionImage").document()
-        image_doc_ref.set(
-            {
-                "id": image_doc_ref.id,
-                "name": upload_name,
-                "path": upload_parent,
-                "size": int(event.data.size),
-                "storageLink": cloud_storage_path,
-                "uploadedOn": firestore.SERVER_TIMESTAMP,
-                "owner": user_uid,
-            }
-        )
-
+    # if file exists with the same name and path, use that DocumentReference.
+    # else, create a new file.
+    for doc in query:
+        file_doc = doc.reference
+        break
     else:
-        print("Path does not match any expected pattern. Exiting function.")
+        file_doc = file_ref.document()
+
+    file_doc.set(
+        {
+            "id": file_doc.id,
+            "name": upload_name,
+            "path": upload_parent,
+            "size": int(event.data.size),
+            "extension": upload_path.suffix,
+            "isFolder": False,
+            "storageLink": event.data.name,
+            "uploadedOn": firestore.SERVER_TIMESTAMP,
+        }
+    )
+
+    # after creating document, run the batch job to create folders
+    ensure_folder_exists(transaction, db, user_uid, upload_parent)
