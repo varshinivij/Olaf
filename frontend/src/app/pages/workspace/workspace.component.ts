@@ -1,10 +1,11 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpEventType } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
 import Split from 'split.js';
+import { jsonrepair } from 'jsonrepair';
 
 import { ChatService } from '../../services/chat.service';
 import { SandboxService } from '../../services/sandbox.service';
@@ -14,7 +15,7 @@ import { UserService } from '../../services/user.service';
 import { SessionsService } from '../../services/sessions.service';
 import { ChatMessage } from '../../models/chat-message';
 import { UserFile } from '../../models/user-file';
-
+import { response } from 'express';
 
 @Component({
   selector: 'app-chat',
@@ -30,8 +31,9 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   userFiles: UserFile[] = [];
   selectedUploadFiles: File[] = [];
   uploadSubscription: Subscription | undefined;
-  
+
   selectedTab: string = 'planner'; // Default tab
+  public latestPlanMessage: any;
 
   // message scheme ONLY FOR REFERENCE
   // messages: ChatMessage[] = [
@@ -42,8 +44,8 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   //   },
   // ];
 
-  plans: string[] = []
-  codes: string[] = []
+  plans: string[] = [];
+  codes: string[] = [];
 
   newMessage: string = '';
 
@@ -55,7 +57,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     public sessionsService: SessionsService,
     public uploadService: UploadService,
     public userService: UserService,
-    private fileStorageService: FileStorageService,
+    private fileStorageService: FileStorageService
   ) {}
 
   ngAfterViewInit() {
@@ -68,12 +70,13 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.uploadSubscription = this.uploadService.getUploadProgress().subscribe(
-      (uploads) => {
+    this.uploadSubscription = this.uploadService
+      .getUploadProgress()
+      .subscribe((uploads) => {
         console.log(uploads);
-      }
-    ); 
+      });
     this.getUserFiles();
+    this.getLatestPlanMessage();
   }
 
   ngOnDestroy() {
@@ -85,12 +88,10 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   }
 
   getUserFiles() {
-    this.fileStorageService.getFiles().subscribe(
-      (files) => {
-        console.log(files);
-        this.userFiles = files || [];
-      }
-    );
+    this.fileStorageService.getFiles().subscribe((files) => {
+      console.log(files);
+      this.userFiles = files || [];
+    });
   }
 
   /**
@@ -129,7 +130,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     // Destroy the sandbox when the tab is closed
     window.addEventListener('unload', () => this.sandboxService.closeSandbox());
   }
-  
+
   private checkSandboxConnection() {
     this.sandboxService.isSandboxConnected().subscribe(
       (response: any) => {
@@ -145,15 +146,17 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       }
     );
   }
-  
+
   private onSandboxConnected() {
     this.isConnected = true;
     this.loading = false;
     if (this.sessionsService.activeSession.sandboxId) {
-      this.sandboxService.setSandboxId(this.sessionsService.activeSession.sandboxId);
+      this.sandboxService.setSandboxId(
+        this.sessionsService.activeSession.sandboxId
+      );
     }
   }
-  
+
   private createSandbox() {
     this.sandboxService.createSandbox().subscribe(
       (response: any) => {
@@ -166,7 +169,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       }
     );
   }
-  
+
   private onSandboxCreated() {
     this.isConnected = true;
     this.loading = false;
@@ -175,57 +178,145 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   /**
    * Add a new message to the active session from message bar
-  **/
-  addUserMessage(): void {
+   **/
+  async addUserMessage(): Promise<void> {
     if (this.newMessage.trim()) {
       const userMessage: ChatMessage = {
         type: 'text',
         role: 'user',
         content: this.newMessage,
       };
-      this.sessionsService.addMessageToActiveSession(userMessage);
+      await this.sessionsService.addMessageToActiveSession(userMessage);
       this.newMessage = '';
     }
   }
- 
+
   /**
    * Send a message to the generalist chat service
    */
-  sendMessage() {
-    if(this.newMessage.trim()) {
-      this.addUserMessage()
-
+  async sendMessage() {
+    if (!this.isConnected) {
+      this.connectToSandBox();
+    }
+    if (this.newMessage.trim()) {
+      await this.addUserMessage();
+      console.log(this.sessionsService.activeSession.history);
       this.loading = true;
-      this.chatService.sendMessage(this.sessionsService.activeSession.history).subscribe(
-        (responnse:any) => {
-          let responseMessages: ChatMessage = {
-            type: 'text',
-            role: 'assistant',
-            content: responnse["message"],
-          };
-          this.sessionsService.addMessageToActiveSession(responseMessages);
-          this.loading = false;
+      let responseType:
+        | 'text'
+        | 'code'
+        | 'plan'
+        | 'error'
+        | 'image'
+        | 'result' = 'text'; // Default type
+      let responseContent = ''; // To store the content from the rest of the chunks
+
+      // Create an initial placeholder message in the chat
+      const responseMessage: ChatMessage = {
+        type: responseType,
+        role: 'assistant',
+        content: '', // Initially empty
+      };
+      // Add the placeholder message to the session and store a reference to it
+      await this.sessionsService.addMessageToActiveSession(responseMessage);
+      const messageIndex =
+        this.sessionsService.activeSession.history.length - 1; // Get the index of the added message
+
+      this.chatService
+        .sendMessage(this.sessionsService.activeSession.history)
+        .subscribe({
+          next: (event: any) => {
+            if (event.type === HttpEventType.DownloadProgress && event.loaded) {
+              const chunk = event.partialText || ''; // Handle the chunked text
+
+              if (responseContent === '') {
+                // First chunk is the type
+                responseType = chunk;
+                responseMessage.type = responseType;
+                responseContent += ' ';
+              } else {
+                // Append subsequent chunks to the content
+                responseContent = chunk;
+                if (
+                  responseType === 'text' ||
+                  responseType === 'code' ||
+                  responseType === 'plan'
+                ) {
+                  // Remove the first four letters from the content (the "code" identifier)
+                  responseContent = responseContent.slice(4).trim();
+                }
+                if (responseType === 'plan') {
+                  responseContent = jsonrepair(responseContent);
+                  const jsonData = JSON.parse(responseContent);
+                  responseContent = JSON.stringify(jsonData, null, 2);
+                }
+                this.sessionsService.activeSession.history[
+                  messageIndex
+                ].content = responseContent;
+              }
+            }
           },
-          (error) => {
+          error: (error) => {
             console.error('Error:', error);
             this.loading = false;
-          }
-        );
+          },
+          complete: () => {
+            this.loading = false;
+            this.getLatestPlanMessage();
+            this.executeLatestCode();
+          },
+        });
+    }
+  }
+
+  executeLatestCode(): void{
+    const history = this.sessionsService.activeSession.history;
+    const latestCodeMessage = history
+      .slice()
+      .reverse()
+      .find((message) => message.type === 'code');
+    if (latestCodeMessage) {
+      let code = this.extractCode(latestCodeMessage.content);
+      this.executeCode(code);
+    }
+  }
+
+  getLatestPlanMessage(): void {
+    const history = this.sessionsService.activeSession.history;
+    // Find the last message of type 'plan'
+    this.latestPlanMessage = history
+      .slice()
+      .reverse()
+      .find((message) => message.type === 'plan');
+    console.log(this.latestPlanMessage);
+  }
+
+  parseJson(content: string): any {
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      console.error('Error parsing JSON:', e);
+      return null; // Return null if parsing fails
     }
   }
 
   continue() {
     this.loading = true;
-    this.chatService.sendMessage(this.sessionsService.activeSession.history).subscribe(
-      (response: ChatMessage[]) => {
-        this.sessionsService.activeSession.history = [...this.sessionsService.activeSession.history, ...response];
-        this.loading = false;
-      },
-      (error) => {
-        console.error('Error:', error);
-        this.loading = false;
-      }
-    );
+    this.chatService
+      .sendMessage(this.sessionsService.activeSession.history)
+      .subscribe(
+        (response: ChatMessage[]) => {
+          this.sessionsService.activeSession.history = [
+            ...this.sessionsService.activeSession.history,
+            ...response,
+          ];
+          this.loading = false;
+        },
+        (error) => {
+          console.error('Error:', error);
+          this.loading = false;
+        }
+      );
   }
 
   executeCode(code: string) {
@@ -234,7 +325,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       (result: any) => {
         console.log(result);
         // if result stdout is not empty, add it to the chat
-        if(result.logs.stdout && result.logs.stdout.length > 0) {
+        if (result.logs.stdout && result.logs.stdout.length > 0) {
           const stdoutContent = result.logs.stdout.join('\n');
           const codeResultMessage: ChatMessage = {
             type: 'result',
@@ -244,8 +335,8 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
           this.sessionsService.addMessageToActiveSession(codeResultMessage);
         }
         if (result.results && result.results.length > 0) {
-          if(result.results[0]["image/png"]) {
-            const base64Image = `data:image/png;base64,${result.results[0]["image/png"]}`;
+          if (result.results[0]['image/png']) {
+            const base64Image = `data:image/png;base64,${result.results[0]['image/png']}`;
             const imageMessage: ChatMessage = {
               type: 'image',
               role: 'assistant',
@@ -262,14 +353,13 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
           };
           this.sessionsService.addMessageToActiveSession(errorMessage);
         }
-      this.executingCode = false;
+        this.executingCode = false;
       },
       (error) => {
         console.error('Error:', error);
         this.executingCode = false;
       }
     );
-
   }
 
   processResponse(response: ChatMessage[]) {
@@ -281,73 +371,88 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   }
 
   requestPlan() {
-    this.addUserMessage()
+    this.addUserMessage();
     this.loading = true;
-    this.chatService.requestPlan(this.sessionsService.activeSession.history).subscribe(
-      (response: any) => {
-        //add the plan to message as a ChatMessage with type Plan
-        let planMessage: ChatMessage = {
-          type: 'plan',
-          role: 'assistant',
-          content: response["message"],
+    this.chatService
+      .requestPlan(this.sessionsService.activeSession.history)
+      .subscribe(
+        (response: any) => {
+          //add the plan to message as a ChatMessage with type Plan
+          let planMessage: ChatMessage = {
+            type: 'plan',
+            role: 'assistant',
+            content: response['message'],
+          };
+          this.sessionsService.addMessageToActiveSession(planMessage);
+        },
+        (error) => {
+          console.error('Error:', error);
+          this.loading = false;
         }
-        this.sessionsService.addMessageToActiveSession(planMessage);
-
-      },
-      (error) => {
-        console.error('Error:', error);
-        this.loading = false;
-      }
-    );
+      );
   }
 
-  requestCode(withExecute:boolean = true) {
-    if(!this.isConnected){
+  requestCode(withExecute: boolean = true) {
+    if (!this.isConnected) {
       this.connectToSandBox();
     }
-    this.addUserMessage()
-    console.log(this.sessionsService.activeSession.history);
+    this.addUserMessage();
     this.loading = true;
-    this.chatService.requestCode(this.sessionsService.activeSession.history).subscribe(
-      (response: any) => {
-        //add the code to message as a ChatMessage with type Code
-        let code = this.getCode(response["message"]);
-        let codeMessage: ChatMessage = {
-          type: 'code',
-          role: 'assistant',
-          content: this.getCode(response["message"]) //TODO this is finicky because the agent is not always returning the code in the same format,
+    this.chatService
+      .requestCode(this.sessionsService.activeSession.history)
+      .subscribe(
+        (response: any) => {
+          //add the code to message as a ChatMessage with type Code
+          let code = this.extractCode(response['message']);
+          let codeMessage: ChatMessage = {
+            type: 'code',
+            role: 'assistant',
+            content: this.extractCode(response['message']), //TODO this is finicky because the agent is not always returning the code in the same format,
+          };
+          this.sessionsService.addMessageToActiveSession(codeMessage);
+          console.log(this.sessionsService.activeSession.history);
+          this.loading = false;
+          if (withExecute) {
+            this.executeCode(code);
+          }
+        },
+        (error) => {
+          console.error('Error:', error);
+          this.loading = false;
         }
-        this.sessionsService.addMessageToActiveSession(codeMessage);
-        console.log(this.sessionsService.activeSession.history);
-        this.loading = false
-        if(withExecute){
-          this.executeCode(code)
-        }
-      },
-      (error) => {
-        console.error('Error:', error);
-        this.loading = false;
-      }
-    );
+      );
   }
 
-  getCode(message: string) {
-    console.log(message);
-    // Check if the message begins with ```python
-    if(message.includes("```python")) {
-      let code = message.split("```python\n");
-      // If there's any code after splitting, it should end before the next ```
-      if (code[1].includes("```")) {
-        return code[1].split("```")[0];
-      }
-      return code[1];
+
+  convertNewlinesToBr(text: string): string {
+    return text.replace(/\n/g, '<br>');
+  }
+
+  extractCode(response: string): string {
+    // Regular expression to match code blocks with or without 'python' tag
+    const codeRegex = /```(?:python\s*\n)?([\s\S]*?)```/g;
+    let match;
+    let codeParts: string[] = [];
+    
+    while ((match = codeRegex.exec(response)) !== null) {
+      codeParts.push(match[1].trim());
     }
-    // If the message contains ``` but not starting with ```python
-    else if(message.includes("```")) {
-      let code = message.split("```\n");
-      // Return the code between the first and second ```
-      return code[1];
-    }
-    return message;
+    console.log(codeParts.join('\n\n'));
+    return codeParts.join('\n\n');
+  }
+
+  extractTextWithoutCode(response: string): string {
+    const codeRegex = /```(?:python\s*\n)?([\s\S]*?)```/g;
+    let textWithoutCode = response.replace(codeRegex, '').trim();
+    textWithoutCode = textWithoutCode.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    textWithoutCode = textWithoutCode.replace(
+      /###\s*(.*?)(\n|$)/g,
+      '<b>$1</b>'
+    );
+    textWithoutCode = textWithoutCode.replace(/##\s*(.*?)(\n|$)/g, '<b>$1</b>');
+    textWithoutCode = textWithoutCode.replace(/#\s*(.*?)(\n|$)/g, '<b>$1</b>');
+    textWithoutCode = textWithoutCode.replace(/\n{2,}/g, '<br/><br/>');
+
+    return '<br/>' + textWithoutCode;
   }
 }
