@@ -9,7 +9,7 @@
 
 .typewriter {
   overflow: hidden;
-  white-space: nowrap;
+  white-space: pre-wrap;
   width: 0;
   animation: typewriter 1.5s steps(40, end) forwards;
 }

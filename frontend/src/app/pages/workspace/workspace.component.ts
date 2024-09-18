@@ -437,4 +437,31 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   convertNewlinesToBr(text: string): string {
     return text.replace(/\n/g, '<br>');
   }
+
+  extractCode(response: string): string {
+    const codeRegex = /```python(?:\w*\n)?([\s\S]*?)```/g;
+    let match;
+    let codeParts: string[] = [];
+
+    while ((match = codeRegex.exec(response)) !== null) {
+      codeParts.push(match[1].trim());
+    }
+
+    return codeParts.join('\n\n');
+  }
+
+  extractTextWithoutCode(response: string): string {
+    const codeRegex = /```[\s\S]*?```/g;
+    let textWithoutCode = response.replace(codeRegex, '').trim();
+    textWithoutCode = textWithoutCode.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    textWithoutCode = textWithoutCode.replace(
+      /###\s*(.*?)(\n|$)/g,
+      '<b>$1</b>'
+    );
+    textWithoutCode = textWithoutCode.replace(/##\s*(.*?)(\n|$)/g, '<b>$1</b>');
+    textWithoutCode = textWithoutCode.replace(/#\s*(.*?)(\n|$)/g, '<b>$1</b>');
+    textWithoutCode = textWithoutCode.replace(/\n{2,}/g, '<br/><br/>');
+
+    return '<br/>' + textWithoutCode;
+  }
 }

@@ -70,6 +70,13 @@
           <div class="typewriter" *ngIf="message.type === 'code'">
             I've put our code in the code editor! Let me know what you think.
           </div>
+          <div
+            class="typewriter"
+            *ngIf="message.type === 'code'"
+            [innerHTML]="extractTextWithoutCode(message.content).trim()"
+          >
+            <pre>{{ message.content }}</pre>
+          </div>
         </div>
       </ng-container>
       <div *ngIf="loading">... asking agent ...</div>
@@ -202,7 +209,7 @@
                 *ngIf="message.type === 'code'"
                 class="text-white bg-gray-700 p-2 rounded mb-2 max-w-full break-words"
               >
-                <pre><code [innerHTML]="convertNewlinesToBr(message.content)"
+                <pre><code [innerHTML]="convertNewlinesToBr(extractCode(message.content))"
                 class="typewriter">{{ message.content }}</code></pre>
               </div>
               <div
