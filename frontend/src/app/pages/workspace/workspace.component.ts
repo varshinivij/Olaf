@@ -34,10 +34,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   selectedTab: string = 'planner'; // Default tab
   public latestPlanMessage: any;
-  public latestCodeMessage: any;
-  public latestResultMessage: any;
-  public latestErrorMessage: any;
-  public latestImageMessage: any;
 
   // message scheme ONLY FOR REFERENCE
   // messages: ChatMessage[] = [
@@ -412,6 +408,9 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         }
       );
   }
+
+
+  //TODO pick one version of code processing
 
   getCode(message: string) {
     console.log(message);
