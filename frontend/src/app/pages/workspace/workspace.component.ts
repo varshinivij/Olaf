@@ -257,10 +257,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
                   messageIndex
                 ].content = responseContent;
               }
-              // console.log(
-              //   'Updated session history:',
-              //   this.sessionsService.activeSession.history
-              // );
             }
           },
           error: (error) => {
