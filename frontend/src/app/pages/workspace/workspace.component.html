@@ -25,12 +25,16 @@
       @for (session of sessionsService.userSessions; track session.id) {
       <button
         hlmBtn
-        [variant]="sessionsService.activeSession.id === session.id ? 'secondary' : 'ghost'"
+        [variant]="
+          sessionsService.activeSession.id === session.id
+            ? 'secondary'
+            : 'ghost'
+        "
         size="sm"
         class="justify-between pl-3 pr-0"
         (click)="sessionsService.changeUserSessionById(session.id)"
       >
-        <p class="truncate">{{session.id || ''}}</p>
+        <p class="truncate">{{ session.id || "" }}</p>
         <button hlmBtn variant="float" size="icon" [brnMenuTriggerFor]="menu">
           <hlm-icon size="xs" name="lucideEllipsisVertical" />
         </button>
@@ -98,21 +102,31 @@
       </button>
     </div>
     <!-- message screen -->
-    <div class="flex flex-col h-full bg-green-400 rounded-md overflow-y-scroll">
-      @for (message of this.sessionsService.activeSession.history; track $index) {
-        <div
-          *ngIf="message.type === 'code' || message.type === 'plan' || message.type === 'text'"
-          [ngClass]="{'bg-blue-100 self-end': message.role === 'user', 'bg-gray-200 self-start': message.role === 'assistant'}"
-          class="p-2 rounded mb-2 max-w-full break-words"
-        >
-          <div *ngIf="message.type === 'text'">{{ message.content }}</div>
-          <div *ngIf="message.type === 'plan'">
-            I've put our plan in the planner! Let me know what you think.
-          </div>
-          <div *ngIf="message.type === 'code'">
-            I've put our code in the code editor! Let me know what you think.
-          </div>
+    <div class="flex flex-col h-full bg-green-400 rounded-md overflow-y-auto">
+      @for (message of this.sessionsService.activeSession.history.slice(1);
+      track $index) {
+      <div
+        *ngIf="
+          message.type === 'code' ||
+          message.type === 'plan' ||
+          message.type === 'text'
+        "
+        [ngClass]="{
+          'bg-blue-100 self-end': message.role === 'user',
+          'bg-gray-200 self-start': message.role === 'assistant'
+        }"
+        class="p-2 rounded mb-2 max-w-full break-words"
+      >
+        <div *ngIf="message.type === 'text'">{{ message.content }}</div>
+        <div *ngIf="message.type === 'plan'">
+          I've put our plan in the planner! Let me know what you think.
         </div>
+        <div *ngIf="message.type === 'code'">
+          I've put our code in the code editor! Let me know what you think.
+        </div>
+      </div>
+      } @empty {
+      <img src="assets/twocube-logo-gray-bg.svg" />
       }
     </div>
     <!-- chat bar -->

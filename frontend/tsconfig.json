@@ -54,6 +54,9 @@
       ],
       "@spartan-ng/ui-toggle-helm": [
         ".\\src/app/components/ui/ui-toggle-helm/src/index.ts"
+      ],
+      "@spartan-ng/ui-avatar-helm": [
+        ".\\src/app/components/ui/ui-avatar-helm/src/index.ts"
       ]
     }
   },

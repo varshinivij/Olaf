@@ -28,6 +28,7 @@
     "@ng-icons/core": "^25.6.1",
     "@ng-icons/lucide": "^29.5.0",
     "@spartan-ng/ui-accordion-brain": "0.0.1-alpha.355",
+    "@spartan-ng/ui-avatar-brain": "0.0.1-alpha.355",
     "@spartan-ng/ui-core": "^0.0.1-alpha.355",
     "@spartan-ng/ui-dialog-brain": "0.0.1-alpha.355",
     "@spartan-ng/ui-formfield-brain": "0.0.1-alpha.355",
