@@ -102,31 +102,62 @@
       </button>
     </div>
     <!-- message screen -->
-    <div class="flex flex-col h-full bg-green-400 rounded-md overflow-y-auto">
+    <div class="flex flex-col h-full gap-y-3 overflow-y-auto">
       @for (message of this.sessionsService.activeSession.history.slice(1);
       track $index) {
-      <div
-        *ngIf="
-          message.type === 'code' ||
-          message.type === 'plan' ||
-          message.type === 'text'
-        "
-        [ngClass]="{
-          'bg-blue-100 self-end': message.role === 'user',
-          'bg-gray-200 self-start': message.role === 'assistant'
-        }"
-        class="p-2 rounded mb-2 max-w-full break-words"
-      >
-        <div *ngIf="message.type === 'text'">{{ message.content }}</div>
-        <div *ngIf="message.type === 'plan'">
-          I've put our plan in the planner! Let me know what you think.
+        <!-- display user messages -->
+        @if (message.role === 'user') {
+        <p
+          hlmSmall
+          class="self-end max-w-full px-2 py-1 bg-secondary rounded-lg break-words"
+        >
+          {{ message.content }}
+        </p>
+        }
+        <!-- display assistant messages -->
+        @else if (message.type === 'text' || message.type === 'code' || message.type === 'plan') {
+        <div class="flex gap-x-2.5">
+          <!-- twocube avatar -->
+          <img src="assets/twocube-logo-gray-bg.svg" class="h-9 rounded-lg" />
+          <!-- twocube name/message -->
+          <div class="flex flex-col gap-y-0.5">
+            <p hlmLarge hlmSmall>TwoCube</p>
+            <p hlmSmall class="self-start rounded-lg break-words">
+              {{
+                message.type === "code"
+                  ? "I've put our code in the code editor! Let me know what you think."
+                  : message.type === "plan"
+                  ? "I've put our plan in the planner! Let me know what you think."
+                  : message.content
+              }}
+            </p>
+          </div>
         </div>
-        <div *ngIf="message.type === 'code'">
-          I've put our code in the code editor! Let me know what you think.
+        }
+      }
+      <!-- empty session state -->
+      @empty {
+      <img
+        src="assets/twocube-logo-gray-bg.svg"
+        class="mt-auto h-12 rounded-sm"
+      />
+      <p hlmSmall hlmMuted class="self-center mb-auto">
+        Hello, how can I help you today?
+      </p>
+      }
+      <!-- loading state -->
+      @if (loading) {
+      <div class="flex gap-x-2.5">
+        <!-- twocube avatar -->
+        <img src="assets/twocube-logo-gray-bg.svg" class="h-9 rounded-lg" />
+        <!-- twocube name/message -->
+        <div class="flex flex-col gap-y-0.5">
+          <p hlmLarge hlmSmall>TwoCube</p>
+          <p hlmSmall hlmMuted class="self-start rounded-lg break-words">
+            Asking agent...
+          </p>
         </div>
       </div>
-      } @empty {
-      <img src="assets/twocube-logo-gray-bg.svg" />
       }
     </div>
     <!-- chat bar -->
@@ -134,7 +165,8 @@
       <textarea
         hlmInput
         placeholder="Ask TwoCube..."
-        class="w-full max-h-40 pr-[7.5rem] py-2.5 bg-accent border-0"
+        class="w-full max-h-40 pr-10 py-2.5 bg-accent border-0"
+        [(ngModel)]="newMessage"
         (input)="adjustTextareaHeight($event)"
       ></textarea>
       <button
@@ -142,26 +174,33 @@
         variant="float"
         size="icon"
         class="absolute bottom-1 right-1"
+        (click)="sendMessage()"
       >
         <hlm-icon size="sm" name="lucideSendHorizontal" />
       </button>
-      <button
-        hlmBtn
-        variant="link"
-        size="icon"
-        class="absolute bottom-1 right-20"
-      >
-        Plan
-      </button>
-      <button
-        hlmBtn
-        variant="link"
-        size="icon"
-        class="absolute bottom-1 right-9"
-      >
-        Code
-      </button>
     </div>
   </div>
-  <div id="den-sidebar" class="px-4 py-4 bg-foreground rounded-md"></div>
+  <!-- twocube den -->
+  <div id="den-sidebar" class="p-3 bg-foreground rounded-md">
+    <hlm-tabs tab='planner' class="h-full bg-blue-500">
+      <hlm-tabs-list class='w-full grid grid-cols-4'>
+        <button hlmTabsTrigger='planner'>Planner</button>
+        <button hlmTabsTrigger='terminal'>Terminal</button>
+        <button hlmTabsTrigger='code'>Code</button>
+        <button hlmTabsTrigger='files'>Files</button>
+      </hlm-tabs-list>
+      <div hlmTabsContent='planner' class="">
+        Planner content goes here...
+      </div>
+      <div hlmTabsContent='terminal'>
+        Terminal content goes here...
+      </div>
+      <div hlmTabsContent='code'>
+        Code content goes here...
+      </div>
+      <div hlmTabsContent='files'>
+        Files content goes here...
+      </div>
+    </hlm-tabs>
+  </div>
 </div>

@@ -49,6 +49,13 @@ import {
   HlmDialogHeaderComponent,
   HlmDialogTitleDirective,
 } from '@spartan-ng/ui-dialog-helm';
+import { HlmScrollAreaComponent } from '@spartan-ng/ui-scrollarea-helm';
+import {
+  HlmTabsComponent,
+  HlmTabsContentDirective,
+  HlmTabsListComponent,
+  HlmTabsTriggerDirective,
+} from '@spartan-ng/ui-tabs-helm';
 
 import { provideIcons } from '@ng-icons/core';
 import {
@@ -97,6 +104,12 @@ import {
     HlmDialogFooterComponent,
     HlmDialogHeaderComponent,
     HlmDialogTitleDirective,
+
+    HlmScrollAreaComponent,
+    HlmTabsComponent,
+    HlmTabsContentDirective,
+    HlmTabsListComponent,
+    HlmTabsTriggerDirective,
   ],
   providers: [
     provideIcons({
@@ -140,6 +153,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   codes: string[] = [];
 
   newMessage: string = '';
+  console = console;
 
   constructor(
     private http: HttpClient,
