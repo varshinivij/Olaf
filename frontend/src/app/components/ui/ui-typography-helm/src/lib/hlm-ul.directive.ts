@@ -2,7 +2,7 @@ import { Directive, computed, input } from '@angular/core';
 import { hlm } from '@spartan-ng/ui-core';
 import type { ClassValue } from 'clsx';
 
-export const hlmUl = 'my-6 ml-6 list-disc [&>li]:mt-2';
+export const hlmUl = 'py-2.5 pl-4 text-sm list-disc [&>li]:pt-0.5';
 
 @Directive({
 	selector: '[hlmUl]',

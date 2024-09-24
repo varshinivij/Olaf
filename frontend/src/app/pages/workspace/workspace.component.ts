@@ -26,6 +26,11 @@ import {
   HlmMutedDirective,
   HlmSmallDirective,
   HlmPDirective,
+  HlmH1Directive,
+  HlmH2Directive,
+  HlmH3Directive,
+  HlmH4Directive,
+  HlmUlDirective,
 } from '@spartan-ng/ui-typography-helm';
 import { HlmSeparatorDirective } from '@spartan-ng/ui-separator-helm';
 import { HlmToggleDirective } from '@spartan-ng/ui-toggle-helm';
@@ -78,12 +83,18 @@ import {
     CommonModule,
     FormsModule,
 
-    HlmButtonDirective,
-    HlmIconComponent,
     HlmLargeDirective,
     HlmMutedDirective,
     HlmSmallDirective,
     HlmPDirective,
+    HlmH1Directive,
+    HlmH2Directive,
+    HlmH3Directive,
+    HlmH4Directive,
+    HlmUlDirective,
+
+    HlmButtonDirective,
+    HlmIconComponent,
     HlmSeparatorDirective,
     HlmInputDirective,
 

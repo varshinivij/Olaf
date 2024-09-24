@@ -3,7 +3,7 @@
   <div id="sidebar" class="flex flex-col p-3 bg-foreground rounded-md gap-y-2">
     <!-- header/collapse button row -->
     <div class="flex-none flex pl-2 items-center justify-between">
-      <h1 hlmLarge>TwoCube</h1>
+      <p hlmLarge>TwoCube</p>
       <button brnToggle hlmToggle size="sm" class="px-1.5">
         <hlm-icon size="sm" name="lucidePanelLeftDashed" />
       </button>
@@ -58,7 +58,7 @@
           <!-- rename session dialog -->
           <hlm-dialog-content *brnDialogContent="let ctx">
             <hlm-dialog-header>
-              <h3 hlmDialogTitle>Rename Session</h3>
+              <p hlmDialogTitle>Rename Session</p>
             </hlm-dialog-header>
             <input hlmInput size="sm" value="@peduarte" class="w-96" />
             <hlm-dialog-footer>
@@ -190,13 +190,28 @@
       <button hlmTabsTrigger='files'>Files</button>
     </hlm-tabs-list>
     <!-- planner tab content -->
-    <div hlmTabsContent='planner' class="h-full p-2 border rounded-md overflow-y-auto">
-      <div class="flex flex-col">
-
-        hi
+    <div hlmTabsContent='planner' class="h-full overflow-auto">
+      <div class="flex flex-col p-3 border rounded-md break-words">
         <!-- plan overview -->
-         <!-- plan steps -->
-          <!-- final check -->
+        <h2 hlmH2>Plan Overview</h2>
+        <p hlmP>This plan outlines the steps required to analyze DNA sequences, focusing on quality control, alignment, variant calling, and interpretation.</p>
+        <!-- plan steps -->
+        <h2 hlmH2>Steps</h2>
+        <h3 hlmH3>Step 1: Data Acquisition</h3>
+        <ul hlmUl>
+          <li><strong>Description:</strong> Obtain the DNA sequence data from a reliable source, such as a sequencing facility or a public database.</li>
+          <li><strong>Dependencies:</strong> None</li>
+          <li><strong>Expected Output:</strong> Raw DNA sequence files in FASTQ or FASTA format.</li>
+        </ul>
+        <h3 hlmH3>Step 2: Quality Control</h3>
+        <ul hlmUl>
+          <li><strong>Description:</strong> Perform quality control checks on the raw DNA data to ensure accuracy and reliability. This includes checking for sequencing errors and removing low-quality reads.</li>
+          <li><strong>Dependencies:</strong> Data Acquisition</li>
+          <li><strong>Expected Output:</strong> Cleaned and high-quality DNA sequence data.</li>
+        </ul>
+        <!-- final check -->
+        <h2 hlmH2>Final Check</h2>
+        <p hlmP>Ensure all steps are completed and results are validated against known data or benchmarks. Review the entire analysis for consistency and accuracy.</p>
       </div>
     </div>
     <!-- terminal tab content -->
