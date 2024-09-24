@@ -2,7 +2,7 @@ import { Directive, computed, input } from '@angular/core';
 import { hlm } from '@spartan-ng/ui-core';
 import type { ClassValue } from 'clsx';
 
-export const hlmP = 'py-2.5 text-sm';
+export const hlmP = 'py-3 text-sm';
 
 @Directive({
 	selector: '[hlmP]',
