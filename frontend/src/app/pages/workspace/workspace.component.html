@@ -23,51 +23,51 @@
     <!-- sessions list -->
     <div class="flex flex-col gap-y-1 overflow-y-auto">
       @for (session of sessionsService.userSessions; track session.id) {
-      <button
-        hlmBtn
-        [variant]="
-          sessionsService.activeSession.id === session.id
-            ? 'secondary'
-            : 'ghost'
-        "
-        size="sm"
-        class="justify-between pl-3 pr-0"
-        (click)="sessionsService.changeUserSessionById(session.id)"
-      >
-        <p class="truncate">{{ session.id || "" }}</p>
-        <button hlmBtn variant="float" size="icon" [brnMenuTriggerFor]="menu">
-          <hlm-icon size="xs" name="lucideEllipsisVertical" />
+        <button
+          hlmBtn
+          [variant]="
+            sessionsService.activeSession.id === session.id
+              ? 'secondary'
+              : 'ghost'
+          "
+          size="sm"
+          class="justify-between pl-3 pr-0"
+          (click)="sessionsService.changeUserSessionById(session.id)"
+        >
+          <p class="truncate">{{ session.id || "" }}</p>
+          <button hlmBtn variant="float" size="icon" [brnMenuTriggerFor]="menu">
+            <hlm-icon size="xs" name="lucideEllipsisVertical" />
+          </button>
+          <hlm-dialog class="absolute">
+            <!-- session options menu -->
+            <ng-template #menu>
+              <hlm-menu>
+                <button hlmMenuItem brnDialogTrigger>
+                  <hlm-icon name="lucidePencil" hlmMenuIcon />
+                  Rename
+                </button>
+                <button
+                  hlmMenuItem
+                  class="text-destructive hover:text-destructive"
+                >
+                  <hlm-icon name="lucideTrash2" hlmMenuIcon />
+                  Delete
+                </button>
+              </hlm-menu>
+            </ng-template>
+            <!-- rename session dialog -->
+            <hlm-dialog-content *brnDialogContent="let ctx">
+              <hlm-dialog-header>
+                <p hlmDialogTitle>Rename Session</p>
+              </hlm-dialog-header>
+              <input hlmInput size="sm" value="@peduarte" class="w-96" />
+              <hlm-dialog-footer>
+                <button hlmBtn brnDialogClose size="sm">Cancel</button>
+                <button hlmBtn brnDialogClose size="sm">Save</button>
+              </hlm-dialog-footer>
+            </hlm-dialog-content>
+          </hlm-dialog>
         </button>
-        <hlm-dialog class="absolute">
-          <!-- session options menu -->
-          <ng-template #menu>
-            <hlm-menu>
-              <button hlmMenuItem brnDialogTrigger>
-                <hlm-icon name="lucidePencil" hlmMenuIcon />
-                Rename
-              </button>
-              <button
-                hlmMenuItem
-                class="text-destructive hover:text-destructive"
-              >
-                <hlm-icon name="lucideTrash2" hlmMenuIcon />
-                Delete
-              </button>
-            </hlm-menu>
-          </ng-template>
-          <!-- rename session dialog -->
-          <hlm-dialog-content *brnDialogContent="let ctx">
-            <hlm-dialog-header>
-              <p hlmDialogTitle>Rename Session</p>
-            </hlm-dialog-header>
-            <input hlmInput size="sm" value="@peduarte" class="w-96" />
-            <hlm-dialog-footer>
-              <button hlmBtn brnDialogClose size="sm">Cancel</button>
-              <button hlmBtn brnDialogClose size="sm">Save</button>
-            </hlm-dialog-footer>
-          </hlm-dialog-content>
-        </hlm-dialog>
-      </button>
       }
     </div>
     <!-- project settings button -->
@@ -103,61 +103,67 @@
     </div>
     <!-- message screen -->
     <div class="flex flex-col h-full gap-y-3 overflow-y-auto">
-      @for (message of this.sessionsService.activeSession.history.slice(1);
-      track $index) {
+      @for (
+        message of this.sessionsService.activeSession.history.slice(1);
+        track $index
+      ) {
         <!-- display user messages -->
-        @if (message.role === 'user') {
-        <p
-          hlmSmall
-          class="self-end max-w-full px-2 py-1 bg-secondary rounded-lg break-words"
-        >
-          {{ message.content }}
-        </p>
+        @if (message.role === "user") {
+          <p
+            hlmSmall
+            class="self-end max-w-full px-2 py-1 bg-secondary rounded-lg break-words"
+          >
+            {{ message.content }}
+          </p>
         }
         <!-- display assistant messages -->
-        @else if (message.type === 'text' || message.type === 'code' || message.type === 'plan') {
+        @else if (
+          message.type === "text" ||
+          message.type === "code" ||
+          message.type === "plan"
+        ) {
+          <div class="flex gap-x-2.5">
+            <!-- twocube avatar -->
+            <img src="assets/twocube-logo-gray-bg.svg" class="h-9 rounded-lg" />
+            <!-- twocube name/message -->
+            <div class="flex flex-col gap-y-0.5">
+              <p hlmLarge hlmSmall>TwoCube</p>
+              <p hlmSmall class="self-start rounded-lg break-words">
+                {{
+                  message.type === "code"
+                    ? "I've put our code in the code editor! Let me know what you think."
+                    : message.type === "plan"
+                      ? "I've put our plan in the planner! Let me know what you think."
+                      : message.content
+                }}
+              </p>
+            </div>
+          </div>
+        }
+      }
+      <!-- empty session state -->
+      @empty {
+        <img
+          src="assets/twocube-logo-gray-bg.svg"
+          class="mt-auto h-12 rounded-sm"
+        />
+        <p hlmSmall hlmMuted class="self-center mb-auto text-center">
+          Hello, how can I help you today?
+        </p>
+      }
+      <!-- loading state -->
+      @if (loading) {
         <div class="flex gap-x-2.5">
           <!-- twocube avatar -->
           <img src="assets/twocube-logo-gray-bg.svg" class="h-9 rounded-lg" />
           <!-- twocube name/message -->
           <div class="flex flex-col gap-y-0.5">
             <p hlmLarge hlmSmall>TwoCube</p>
-            <p hlmSmall class="self-start rounded-lg break-words">
-              {{
-                message.type === "code"
-                  ? "I've put our code in the code editor! Let me know what you think."
-                  : message.type === "plan"
-                  ? "I've put our plan in the planner! Let me know what you think."
-                  : message.content
-              }}
+            <p hlmSmall hlmMuted class="self-start rounded-lg break-words">
+              Asking agent...
             </p>
           </div>
         </div>
-        }
-      }
-      <!-- empty session state -->
-      @empty {
-      <img
-        src="assets/twocube-logo-gray-bg.svg"
-        class="mt-auto h-12 rounded-sm"
-      />
-      <p hlmSmall hlmMuted class="self-center mb-auto text-center">
-        Hello, how can I help you today?
-      </p>
-      }
-      <!-- loading state -->
-      @if (loading) {
-      <div class="flex gap-x-2.5">
-        <!-- twocube avatar -->
-        <img src="assets/twocube-logo-gray-bg.svg" class="h-9 rounded-lg" />
-        <!-- twocube name/message -->
-        <div class="flex flex-col gap-y-0.5">
-          <p hlmLarge hlmSmall>TwoCube</p>
-          <p hlmSmall hlmMuted class="self-start rounded-lg break-words">
-            Asking agent...
-          </p>
-        </div>
-      </div>
       }
     </div>
     <!-- chat bar -->
@@ -181,22 +187,26 @@
     </div>
   </div>
   <!-- twocube den -->
-  <hlm-tabs id="den-sidebar" tab='planner' class="flex flex-col p-3 bg-foreground rounded-md">
+  <hlm-tabs
+    id="den-sidebar"
+    tab="planner"
+    class="flex flex-col p-3 bg-foreground rounded-md"
+  >
     <!-- header tab buttons -->
-    <hlm-tabs-list class='w-full grid grid-cols-4'>
-      <button hlmTabsTrigger='planner'>Planner</button>
-      <button hlmTabsTrigger='terminal'>Terminal</button>
-      <button hlmTabsTrigger='code'>Code</button>
-      <button hlmTabsTrigger='files'>Files</button>
+    <hlm-tabs-list class="w-full grid grid-cols-4">
+      <button hlmTabsTrigger="planner">Planner</button>
+      <button hlmTabsTrigger="terminal">Terminal</button>
+      <button hlmTabsTrigger="code">Code</button>
+      <button hlmTabsTrigger="files">Files</button>
     </hlm-tabs-list>
     <!-- planner tab content -->
-    <div hlmTabsContent='planner' class="h-full overflow-auto">
-      <div class="flex flex-col p-3 border rounded-md break-words">
-        <!-- plan overview -->
-        <h2 hlmH2>Plan Overview</h2>
-        <p hlmP>This plan outlines the steps required to analyze DNA sequences, focusing on quality control, alignment, variant calling, and interpretation.</p>
-        <!-- plan steps -->
-        <h2 hlmH2>Steps</h2>
+    <div hlmTabsContent="planner" class="h-full overflow-auto">
+      <!-- <div class="flex flex-col p-3 border rounded-md break-words"> -->
+      <!-- plan overview -->
+      <!-- <h2 hlmH2>Plan Overview</h2>
+        <p hlmP>This plan outlines the steps required to analyze DNA sequences, focusing on quality control, alignment, variant calling, and interpretation.</p> -->
+      <!-- plan steps -->
+      <!-- <h2 hlmH2>Required Steps</h2>
         <h3 hlmH3>Step 1: Data Acquisition</h3>
         <ul hlmUl>
           <li><strong>Description:</strong> Obtain the DNA sequence data from a reliable source, such as a sequencing facility or a public database.</li>
@@ -208,23 +218,47 @@
           <li><strong>Description:</strong> Perform quality control checks on the raw DNA data to ensure accuracy and reliability. This includes checking for sequencing errors and removing low-quality reads.</li>
           <li><strong>Dependencies:</strong> Data Acquisition</li>
           <li><strong>Expected Output:</strong> Cleaned and high-quality DNA sequence data.</li>
-        </ul>
-        <!-- final check -->
-        <h2 hlmH2>Final Check</h2>
-        <p hlmP>Ensure all steps are completed and results are validated against known data or benchmarks. Review the entire analysis for consistency and accuracy.</p>
+        </ul> -->
+      <!-- final check -->
+      <!-- <h2 hlmH2>Final Check</h2>
+        <p hlmP>Ensure all steps are completed and results are validated against known data or benchmarks. Review the entire analysis for consistency and accuracy.</p> -->
+      <!-- </div> -->
+      <!-- empty state -->
+      <div
+        class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
+      >
+        <div class="w-20 h-20 bg-background rounded-full"></div>
+        <p hlmSmall hlmMuted>Nothing to plan yet.</p>
       </div>
     </div>
     <!-- terminal tab content -->
-    <div hlmTabsContent='terminal' class="h-full p-2 border rounded-md overflow-y-auto">
-      Terminal content goes here...
+    <div hlmTabsContent="terminal" class="h-full overflow-auto">
+      <div
+        class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
+      >
+        <div class="w-20 h-20 bg-background rounded-full"></div>
+        <p hlmSmall hlmMuted>Terminal coming soon!</p>
+      </div>
     </div>
     <!-- code tab content -->
-    <div hlmTabsContent='code' class="h-full p-2 border rounded-md overflow-y-auto">
-      Code content goes here...
+    <div hlmTabsContent="code" class="h-full overflow-auto">
+      <!-- empty state -->
+      <div
+        class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
+      >
+        <div class="w-20 h-20 bg-background rounded-full"></div>
+        <p hlmSmall hlmMuted>Nothing to code yet.</p>
+      </div>
     </div>
     <!-- files tab content -->
-    <div hlmTabsContent='files' class="h-full p-2 border rounded-md overflow-y-auto">
-      Files content goes here...
+    <div hlmTabsContent="files" class="h-full overflow-auto">
+      <!-- empty state -->
+      <div
+        class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
+      >
+        <div class="w-20 h-20 bg-background rounded-full"></div>
+        <p hlmSmall hlmMuted>No files found.</p>
+      </div>
     </div>
   </hlm-tabs>
 </div>
