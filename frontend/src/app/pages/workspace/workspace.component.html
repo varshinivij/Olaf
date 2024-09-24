@@ -200,7 +200,7 @@
       <button hlmTabsTrigger="files">Files</button>
     </hlm-tabs-list>
     <!-- planner tab content -->
-    <div hlmTabsContent="planner" class="h-full overflow-auto">
+    <div hlmTabsContent="planner" class="h-full overflow-y-auto">
       <!-- <div class="flex flex-col p-3 border rounded-md break-words"> -->
       <!-- plan overview -->
       <!-- <h2 hlmH2>Plan Overview</h2>
@@ -251,13 +251,25 @@
       </div>
     </div>
     <!-- files tab content -->
-    <div hlmTabsContent="files" class="h-full overflow-auto">
-      <!-- empty state -->
-      <div
-        class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
-      >
-        <div class="w-20 h-20 bg-background rounded-full"></div>
-        <p hlmSmall hlmMuted>No files found.</p>
+    <div hlmTabsContent="files" class="h-full overflow-y-auto">
+      <div class="flex flex-col h-full p-3 border rounded-md gap-y-1">
+        @for (file of this.userFiles; track file.id) {
+          <div class="flex justify-between px-2 py-1.5 bg-muted rounded-md">
+            <p hlmSmall class="truncate">{{ file.name }}</p>
+            <button hlmSmall class="flex-none text-green-500" (click)="addFileToSandbox(file)">
+              Upload file
+            </button>
+          </div>
+        }
+        <!-- empty state -->
+        @empty {
+          <div
+            class="self-center w-20 h-20 mt-auto bg-background rounded-full"
+          ></div>
+          <p hlmSmall hlmMuted class="self-center mb-auto text-center">
+            No files found.
+          </p>
+        }
       </div>
     </div>
   </hlm-tabs>
