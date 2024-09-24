@@ -169,7 +169,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   ngAfterViewInit() {
     Split(['#sidebar', '#main-content', '#den-sidebar'], {
       sizes: [20, 45, 35], // Initial sizes of the columns in percentage
-      minSize: 200, // Minimum size of each column in pixels
+      minSize: [200, 200, 300], // Minimum size of each column in pixels
       gutterSize: 12, // Size of the gutter (the draggable area between columns)
       cursor: 'col-resize', // Cursor to show when hovering over the gutter
       snapOffset: 0,

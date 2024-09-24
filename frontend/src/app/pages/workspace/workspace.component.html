@@ -2,7 +2,7 @@
   <!-- sidebar -->
   <div id="sidebar" class="flex flex-col p-3 bg-foreground rounded-md gap-y-2">
     <!-- header/collapse button row -->
-    <div class="flex-shrink-0 flex pl-2 items-center justify-between">
+    <div class="flex-none flex pl-2 items-center justify-between">
       <h1 hlmLarge>TwoCube</h1>
       <button brnToggle hlmToggle size="sm" class="px-1.5">
         <hlm-icon size="sm" name="lucidePanelLeftDashed" />
@@ -14,7 +14,7 @@
       hlmBtn
       variant="secondary"
       size="sm"
-      class="flex-shrink-0 justify-start pl-2 gap-x-2"
+      class="flex-none justify-start pl-2 gap-x-2"
       (click)="sessionsService.newSession()"
     >
       <hlm-icon size="sm" name="lucidePlus" />
@@ -75,7 +75,7 @@
       hlmBtn
       variant="ghost"
       size="sm"
-      class="flex-shrink-0 justify-start mt-auto pl-2 gap-x-2"
+      class="flex-none justify-start mt-auto pl-2 gap-x-2"
     >
       <hlm-icon size="sm" name="lucideSettings" />
       Project Settings
@@ -87,7 +87,7 @@
     class="flex flex-col px-4 py-3 bg-foreground rounded-md gap-y-2"
   >
     <!-- top header row -->
-    <div class="flex-shrink-0 flex -mx-1 items-center gap-x-1">
+    <div class="flex-none flex -mx-1 items-center gap-x-1">
       <button hlmBtn variant="ghost" size="icon">
         <hlm-icon size="sm" name="lucideHouse" />
       </button>
@@ -141,7 +141,7 @@
         src="assets/twocube-logo-gray-bg.svg"
         class="mt-auto h-12 rounded-sm"
       />
-      <p hlmSmall hlmMuted class="self-center mb-auto">
+      <p hlmSmall hlmMuted class="self-center mb-auto text-center">
         Hello, how can I help you today?
       </p>
       }
@@ -161,7 +161,7 @@
       }
     </div>
     <!-- chat bar -->
-    <div class="flex-shrink-0 relative mt-auto">
+    <div class="flex-none relative mt-auto">
       <textarea
         hlmInput
         placeholder="Ask TwoCube..."
@@ -181,26 +181,35 @@
     </div>
   </div>
   <!-- twocube den -->
-  <div id="den-sidebar" class="p-3 bg-foreground rounded-md">
-    <hlm-tabs tab='planner' class="h-full bg-blue-500">
-      <hlm-tabs-list class='w-full grid grid-cols-4'>
-        <button hlmTabsTrigger='planner'>Planner</button>
-        <button hlmTabsTrigger='terminal'>Terminal</button>
-        <button hlmTabsTrigger='code'>Code</button>
-        <button hlmTabsTrigger='files'>Files</button>
-      </hlm-tabs-list>
-      <div hlmTabsContent='planner' class="">
-        Planner content goes here...
+  <hlm-tabs id="den-sidebar" tab='planner' class="flex flex-col p-3 bg-foreground rounded-md">
+    <!-- header tab buttons -->
+    <hlm-tabs-list class='w-full grid grid-cols-4'>
+      <button hlmTabsTrigger='planner'>Planner</button>
+      <button hlmTabsTrigger='terminal'>Terminal</button>
+      <button hlmTabsTrigger='code'>Code</button>
+      <button hlmTabsTrigger='files'>Files</button>
+    </hlm-tabs-list>
+    <!-- planner tab content -->
+    <div hlmTabsContent='planner' class="h-full p-2 border rounded-md overflow-y-auto">
+      <div class="flex flex-col">
+
+        hi
+        <!-- plan overview -->
+         <!-- plan steps -->
+          <!-- final check -->
       </div>
-      <div hlmTabsContent='terminal'>
-        Terminal content goes here...
-      </div>
-      <div hlmTabsContent='code'>
-        Code content goes here...
-      </div>
-      <div hlmTabsContent='files'>
-        Files content goes here...
-      </div>
-    </hlm-tabs>
-  </div>
+    </div>
+    <!-- terminal tab content -->
+    <div hlmTabsContent='terminal' class="h-full p-2 border rounded-md overflow-y-auto">
+      Terminal content goes here...
+    </div>
+    <!-- code tab content -->
+    <div hlmTabsContent='code' class="h-full p-2 border rounded-md overflow-y-auto">
+      Code content goes here...
+    </div>
+    <!-- files tab content -->
+    <div hlmTabsContent='files' class="h-full p-2 border rounded-md overflow-y-auto">
+      Files content goes here...
+    </div>
+  </hlm-tabs>
 </div>
