@@ -1,4 +1,5 @@
 import http
+import time
 from firebase_functions import https_fn, options
 from e2b_code_interpreter import CodeInterpreter
 from flask import send_file
@@ -7,6 +8,9 @@ from werkzeug.utils import secure_filename
 from pathlib import Path
 import io
 import json
+
+from google.cloud import storage
+from flask import jsonify
 
 
 E2B_API_KEY = "REMOVED"
@@ -112,6 +116,47 @@ def upload_to_sandbox(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         json_error = json.dumps({"error": str(e)})
         return https_fn.Response(json_error, status=500)
+
+@https_fn.on_request(cors=options.CorsOptions(cors_origins="*", cors_methods=["post"]))
+def firebase_storage_to_sandbox(req: https_fn.Request) -> https_fn.Response:
+    """
+    Moves files from Firebase Storage to the E2B instance.
+    """
+    try:
+        sandbox_id = req.json.get("sandboxId")
+        file_paths = req.json.get("filePaths")
+
+        if not sandbox_id or not file_paths:
+            return jsonify({"error": "Missing sandboxId or filePaths"}), 400
+
+        storage_client = storage.Client()
+        bucket = storage_client.bucket("twocube-web.appspot.com")
+
+        sandbox = CodeInterpreter.reconnect(sandbox_id, api_key=E2B_API_KEY)
+
+        for file_path in file_paths:
+            blob = bucket.blob(file_path)
+            file_size = blob.size
+            print(f"Downloading file: {file_path}, size: {file_size} bytes")
+            file_name = file_path.split('/')[-1]
+            blob.download_to_filename(file_name)
+
+            #go from file name to file object
+            file_name = Path(file_name)
+
+            with open(file_name, "rb") as f:
+                remote_path = sandbox.upload_file(f) 
+                print(remote_path) 
+
+        return jsonify({"message": "Files successfully moved to sandbox"}), 200
+    
+    except requests.exceptions.Timeout as e:
+        # Handle timeout errors separately
+        return jsonify({"error": "Request timed out", "details": str(e)}), 500
+
+    except Exception as e:
+        print(f"Error occurred: {str(e)}")
+        return https_fn.Response(json.dumps({"error": "An error occurred", "details": str(e)}), status=500)
 
 
 @https_fn.on_request(cors=options.CorsOptions(cors_origins="*", cors_methods=["post"]))
