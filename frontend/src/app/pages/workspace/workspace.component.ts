@@ -17,16 +17,14 @@ import { ChatMessage } from '../../models/chat-message';
 import { UserFile } from '../../models/user-file';
 import { response } from 'express';
 
-
 interface CodeStream {
   isOpen: boolean; // Indicates if a code block has started
-  buffer: string;  // Temporary buffer to hold incomplete code
+  buffer: string; // Temporary buffer to hold incomplete code
 }
-
 
 const codeStream: CodeStream = {
   isOpen: false,
-  buffer: ''
+  buffer: '',
 };
 
 @Component({
@@ -70,7 +68,11 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     public uploadService: UploadService,
     public userService: UserService,
     private fileStorageService: FileStorageService
-  ) { }
+  ) {}
+
+  changeTab(tab: string) {
+    this.selectedTab = tab;
+  }
 
   ngAfterViewInit() {
     Split(['#sidebar', '#main-content', '#den-sidebar'], {
@@ -197,6 +199,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         type: 'text',
         role: 'user',
         content: this.newMessage,
+        isLive: true,
       };
       await this.sessionsService.addMessageToActiveSession(userMessage);
       this.newMessage = '';
@@ -228,6 +231,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         type: responseType,
         role: 'assistant',
         content: '', // Initially empty
+        isLive: true,
       };
       // Add the placeholder message to the session and store a reference to it
       await this.sessionsService.addMessageToActiveSession(responseMessage);
@@ -246,6 +250,12 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
                 responseType = chunk;
                 responseMessage.type = responseType;
                 responseContent += ' ';
+
+                if (responseType === 'code') {
+                  this.changeTab('code');
+                } else if (responseType === 'plan') {
+                  this.changeTab('planner');
+                }
               } else {
                 // Append subsequent chunks to the content
                 responseContent = chunk;
@@ -293,8 +303,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-
-
   getLatestPlanMessage(): void {
     const history = this.sessionsService.activeSession.history;
     // Find the last message of type 'plan'
@@ -305,8 +313,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     console.log(this.latestPlanMessage);
   }
 
-
-
   parseJson(content: string): any {
     try {
       return JSON.parse(content);
@@ -315,8 +321,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       return null; // Return null if parsing fails
     }
   }
-
-
 
   continue() {
     this.loading = true;
@@ -441,7 +445,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       );
   }
 
-
   convertNewlinesToBr(text: string): string {
     return text.replace(/\n/g, '<br>');
   }
@@ -461,7 +464,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         // Complete code block found
         codeParts.push((buffer + match[1].trim()).trim());
         isOpen = false; // Reset state
-        buffer = '';    // Clear the buffer
+        buffer = ''; // Clear the buffer
       } else {
         // Incomplete code block found
         isOpen = true;
@@ -478,37 +481,33 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     return codeParts.join('\n\n');
   }
 
-
-
-
-
-  extractTextWithoutCode(response:string) {
+  extractTextWithoutCode(response: string) {
     let isInCodeBlock = false; // To track whether we're inside a code block
     let result = ''; // To store the processed text
     const lines = response.split('\n'); // Split response by lines to process them one by one
 
     for (let line of lines) {
-        if (line.startsWith('```')) {
-            // Toggle the code block state when encountering ```
-            isInCodeBlock = !isInCodeBlock;
-            continue; // Skip the line containing ```
-        }
+      if (line.startsWith('```')) {
+        // Toggle the code block state when encountering ```
+        isInCodeBlock = !isInCodeBlock;
+        continue; // Skip the line containing ```
+      }
 
-        if (!isInCodeBlock) {
-            // Process text lines outside of code blocks
-            result += line + '\n';
-        }
+      if (!isInCodeBlock) {
+        // Process text lines outside of code blocks
+        result += line + '\n';
+      }
     }
 
     // Bold formatting for headers
     result = result.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); // Bold formatting
     result = result.replace(/###\s*(.*?)(\n|$)/g, '<b>$1</b>'); // H3 style
-    result = result.replace(/##\s*(.*?)(\n|$)/g, '<b>$1</b>');  // H2 style
-    result = result.replace(/#\s*(.*?)(\n|$)/g, '<b>$1</b>');   // H1 style
+    result = result.replace(/##\s*(.*?)(\n|$)/g, '<b>$1</b>'); // H2 style
+    result = result.replace(/#\s*(.*?)(\n|$)/g, '<b>$1</b>'); // H1 style
 
     // Replace multiple newlines with <br/> for better line break handling in HTML
     result = result.replace(/\n{2,}/g, '<br/><br/>');
 
     return '<br/>' + result.trim();
-}
+  }
 }

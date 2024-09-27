@@ -7,9 +7,18 @@
   }
 }
 
-.typewriter {
+typewriter {
   overflow: hidden;
   white-space: pre-wrap;
+  border-right: 2px solid #000;
   width: 0;
-  animation: typewriter 1.5s steps(40, end) forwards;
+  animation: 
+    typewriter 2s ease-out forwards,
+    blink 0.7s step-end infinite alternate;
+}
+
+@keyframes blink {
+  50% {
+    border-color: transparent;
+  }
 }
