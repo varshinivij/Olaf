@@ -17,6 +17,9 @@ import { ChatMessage } from '../../models/chat-message';
 import { UserFile } from '../../models/user-file';
 import { response } from 'express';
 
+import { firstValueFrom } from 'rxjs';
+import {delay} from '../../utils/time-utils';
+
 @Component({
   selector: 'app-chat',
   standalone: true,
@@ -98,7 +101,11 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    * Add a file to the e2b sandbox using the firebase storage link
    * @param fileUrl storage download link url of the file
    */
-  addFileToSandbox(file: UserFile) {
+  async addFirebaseFileToSandbox(file: UserFile) {
+    if (!this.isConnected) {
+      await this.connectToSandbox();
+    }
+
     const uploadText = `Uploaded ${file.name}`;
     const uploadMessage: ChatMessage = {
       type: 'text',
@@ -106,45 +113,57 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       content: uploadText,
     };
     this.sessionsService.addMessageToActiveSession(uploadMessage);
-    // this.loading = true;
-    // const downloadUrl = this.fileStorageService.getDownloadUrl(file);
-    // this.sandboxService.uploadFile(downloadUrl).subscribe(
-    //   (response: any) => {
-    //     console.log(response);
-    //     this.loading = false;
-    //   },
-    //   (error) => {
-    //     console.error('Error:', error);
-    //     this.loading = false;
-    //   }
-    // );
-  }
-
-  connectToSandBox() {
     this.loading = true;
-    if (this.sessionsService.activeSession.sandboxId) {
-      this.checkSandboxConnection();
-    } else {
-      this.createSandbox();
-    }
-    // Destroy the sandbox when the tab is closed
-    window.addEventListener('unload', () => this.sandboxService.closeSandbox());
-  }
-
-  private checkSandboxConnection() {
-    this.sandboxService.isSandboxConnected().subscribe(
+    const filePath = file.storageLink;
+    console.log("adding file to sandbox " + filePath);
+    this.sandboxService.addFirebaseFilesToSandBox([filePath]).subscribe(
       (response: any) => {
-        if (response.alive) {
-          this.onSandboxConnected();
-        } else {
-          this.createSandbox();
-        }
+        console.log(response);
+        this.loading = false;
       },
       (error) => {
         console.error('Error:', error);
         this.loading = false;
       }
     );
+  }
+
+  async connectToSandbox() {
+    this.loading = true;
+    try {
+      if (this.sessionsService.activeSession.sandboxId) {
+        await this.checkSandboxConnection();
+      } else {
+        await this.createSandbox();
+      }
+      // TODO find a better solution, but right now we give the e2b box an
+      // extra second to get ready to recieve code
+      await this.delay(1000);
+    } catch (error) {
+      console.error('Error connecting to sandbox:', error);
+    } finally {
+      this.loading = false;
+    }
+    window.addEventListener('unload', () => this.sandboxService.closeSandbox());
+  }
+  
+  // Utility function to add a delay (1 second)
+  delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private async checkSandboxConnection(): Promise<void> {
+    try {
+      const response: any = await firstValueFrom(this.sandboxService.isSandboxConnected());
+      if (response.alive) {
+        this.onSandboxConnected();
+      } else {
+        await this.createSandbox();
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      this.loading = false;
+    }
   }
 
   private onSandboxConnected() {
@@ -157,17 +176,15 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  private createSandbox() {
-    this.sandboxService.createSandbox().subscribe(
-      (response: any) => {
-        this.sandboxService.setSandboxId(response.sandboxId);
-        this.onSandboxCreated();
-      },
-      (error) => {
-        console.error('Error:', error);
-        this.loading = false;
-      }
-    );
+  private async createSandbox() {
+    try {
+      const response: any = await firstValueFrom(this.sandboxService.createSandbox());
+      this.sandboxService.setSandboxId(response.sandboxId);
+      this.onSandboxCreated();
+    } catch (error) {
+      console.error('Error:', error);
+      this.loading = false;
+    }
   }
 
   private onSandboxCreated() {
@@ -196,7 +213,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    */
   async sendMessage() {
     if (!this.isConnected) {
-      this.connectToSandBox();
+      await this.connectToSandbox();
     }
     if (this.newMessage.trim()) {
       await this.addUserMessage();
@@ -394,7 +411,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   requestCode(withExecute: boolean = true) {
     if (!this.isConnected) {
-      this.connectToSandBox();
+      this.connectToSandbox();
     }
     this.addUserMessage();
     this.loading = true;
