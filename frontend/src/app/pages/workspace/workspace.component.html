@@ -235,11 +235,14 @@
         </div>
       </div>
       <div *ngIf="selectedTab === 'files'">
+        <p class="text-red-500">
+          Warning: This feature is still in development files are currenlty not persistent across logins.
+        </p>
         <div *ngFor="let file of this.userFiles">
           <div class="flex items-center justify-between p-2 border-b">
             <div>{{ file.name }}</div>
             <div>
-              <button class="text-green-500" (click)="addFileToSandbox(file)">
+              <button class="text-green-500" (click)="addFirebaseFileToSandbox(file)">
                 Add
               </button>
             </div>
