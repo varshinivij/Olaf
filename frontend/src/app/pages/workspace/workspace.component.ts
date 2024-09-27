@@ -17,6 +17,18 @@ import { ChatMessage } from '../../models/chat-message';
 import { UserFile } from '../../models/user-file';
 import { response } from 'express';
 
+
+interface CodeStream {
+  isOpen: boolean; // Indicates if a code block has started
+  buffer: string;  // Temporary buffer to hold incomplete code
+}
+
+
+const codeStream: CodeStream = {
+  isOpen: false,
+  buffer: ''
+};
+
 @Component({
   selector: 'app-chat',
   standalone: true,
@@ -58,7 +70,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     public uploadService: UploadService,
     public userService: UserService,
     private fileStorageService: FileStorageService
-  ) {}
+  ) { }
 
   ngAfterViewInit() {
     Split(['#sidebar', '#main-content', '#den-sidebar'], {
@@ -269,7 +281,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  executeLatestCode(): void{
+  executeLatestCode(): void {
     const history = this.sessionsService.activeSession.history;
     const latestCodeMessage = history
       .slice()
@@ -281,6 +293,8 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
+
+
   getLatestPlanMessage(): void {
     const history = this.sessionsService.activeSession.history;
     // Find the last message of type 'plan'
@@ -291,6 +305,8 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     console.log(this.latestPlanMessage);
   }
 
+
+
   parseJson(content: string): any {
     try {
       return JSON.parse(content);
@@ -299,6 +315,8 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       return null; // Return null if parsing fails
     }
   }
+
+
 
   continue() {
     this.loading = true;
@@ -429,30 +447,68 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   }
 
   extractCode(response: string): string {
-    // Regular expression to match code blocks with or without 'python' tag
-    const codeRegex = /```(?:python\s*\n)?([\s\S]*?)```/g;
+    // Static variables to store the state between function calls
+    let isOpen = false;
+    let buffer = '';
+
+    // Regular expression to match complete and incomplete code blocks
+    const codeRegex = /```(?:python\s*\n)?([\s\S]*?)(```|$)/g;
     let match;
     let codeParts: string[] = [];
-    
+
     while ((match = codeRegex.exec(response)) !== null) {
-      codeParts.push(match[1].trim());
+      if (match[2] === '```') {
+        // Complete code block found
+        codeParts.push((buffer + match[1].trim()).trim());
+        isOpen = false; // Reset state
+        buffer = '';    // Clear the buffer
+      } else {
+        // Incomplete code block found
+        isOpen = true;
+        buffer += match[1].trim() + '\n'; // Append to buffer
+      }
     }
-    console.log(codeParts.join('\n\n'));
+
+    // If the stream is still open (no closing ```), return buffer for incomplete code
+    if (isOpen) {
+      return buffer;
+    }
+
+    // Return the complete code parts
     return codeParts.join('\n\n');
   }
 
-  extractTextWithoutCode(response: string): string {
-    const codeRegex = /```(?:python\s*\n)?([\s\S]*?)```/g;
-    let textWithoutCode = response.replace(codeRegex, '').trim();
-    textWithoutCode = textWithoutCode.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-    textWithoutCode = textWithoutCode.replace(
-      /###\s*(.*?)(\n|$)/g,
-      '<b>$1</b>'
-    );
-    textWithoutCode = textWithoutCode.replace(/##\s*(.*?)(\n|$)/g, '<b>$1</b>');
-    textWithoutCode = textWithoutCode.replace(/#\s*(.*?)(\n|$)/g, '<b>$1</b>');
-    textWithoutCode = textWithoutCode.replace(/\n{2,}/g, '<br/><br/>');
 
-    return '<br/>' + textWithoutCode;
-  }
+
+
+
+  extractTextWithoutCode(response:string) {
+    let isInCodeBlock = false; // To track whether we're inside a code block
+    let result = ''; // To store the processed text
+    const lines = response.split('\n'); // Split response by lines to process them one by one
+
+    for (let line of lines) {
+        if (line.startsWith('```')) {
+            // Toggle the code block state when encountering ```
+            isInCodeBlock = !isInCodeBlock;
+            continue; // Skip the line containing ```
+        }
+
+        if (!isInCodeBlock) {
+            // Process text lines outside of code blocks
+            result += line + '\n';
+        }
+    }
+
+    // Bold formatting for headers
+    result = result.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); // Bold formatting
+    result = result.replace(/###\s*(.*?)(\n|$)/g, '<b>$1</b>'); // H3 style
+    result = result.replace(/##\s*(.*?)(\n|$)/g, '<b>$1</b>');  // H2 style
+    result = result.replace(/#\s*(.*?)(\n|$)/g, '<b>$1</b>');   // H1 style
+
+    // Replace multiple newlines with <br/> for better line break handling in HTML
+    result = result.replace(/\n{2,}/g, '<br/><br/>');
+
+    return '<br/>' + result.trim();
+}
 }

@@ -8,7 +8,9 @@ import { ChatMessage } from '../models/chat-message';
 })
 export class ChatService {
   private chatAPIEndpoint =
-    'https://generate-plan-7drpntdska-uc.a.run.app'; // generalist chat
+    'http://127.0.0.1:5001/twocube-web/us-central1/master_agent_interaction'; // generalist chat
+    // https://generate-plan-7drpntdska-uc.a.run.app
+    // http://127.0.0.1:5001/twocube-web/us-central1/generate_plan
   private plannerAPIEndpoint = 'https://generate-plan-7drpntdska-uc.a.run.app';
   private coderAPIEndpoint = 'https://generate-code-7drpntdska-uc.a.run.app'; // coder agent
 
