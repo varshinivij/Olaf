@@ -42,7 +42,7 @@ def on_request_example(req: Request) -> Response:
 
 
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
-def generate_plan(req: Request) -> Response:
+def master_agent_interaction(req: Request) -> Response:
     try:
         history = req.json.get("history")
         
