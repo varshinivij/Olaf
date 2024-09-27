@@ -95,6 +95,11 @@ export class FileStorageService {
     return '';
   }
 
+  getFileBlob(file: UserFile): Promise<Blob> {
+    const storageRef = ref(this.storage, file.storageLink);
+    return getBlob(storageRef);
+  }
+
   // TODO: these functions don't work. downloadFile() seems
   // to work occasionally (sometimes downloads, other times opens a new
   // window with file contents). since the saveAs package says it's meant
