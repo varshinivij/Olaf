@@ -8,7 +8,7 @@ import { ChatMessage } from '../models/chat-message';
 })
 export class ChatService {
   private chatAPIEndpoint =
-    'https://generate-plan-7drpntdska-uc.a.run.app'; // generalist chat
+    'REMOVED'; // generalist chat
   private plannerAPIEndpoint = 'https://generate-plan-7drpntdska-uc.a.run.app';
   private coderAPIEndpoint = 'https://generate-code-7drpntdska-uc.a.run.app'; // coder agent
 

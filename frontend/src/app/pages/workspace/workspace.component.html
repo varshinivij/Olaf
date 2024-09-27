@@ -61,22 +61,29 @@
           }"
           class="p-2 rounded mb-2 max-w-full break-words"
         >
-          <div *ngIf="message.type === 'text'">
+          <div
+            *ngIf="message.type === 'text'"
+            [ngClass]="{ typewriter: message.isLive }"
+          >
             {{ message.content }}
           </div>
-          <div class="typewriter" *ngIf="message.type === 'plan'">
+          <div
+            *ngIf="message.type === 'plan'"
+            [ngClass]="{ typewriter: message.isLive }"
+          >
             I've put our plan in the planner! Let me know what you think.
           </div>
-          <div class="typewriter" *ngIf="message.type === 'code'">
+          <div
+            *ngIf="message.type === 'code'"
+            [ngClass]="{ typewriter: message.isLive }"
+          >
             I've put our code in the code editor! Let me know what you think.
           </div>
           <div
-            class="typewriter"
             *ngIf="message.type === 'code'"
-            innerHTML="{{extractTextWithoutCode(message.content).trim()}}"
-          >
-            <pre></pre>
-          </div>
+            [ngClass]="{ typewriter: message.isLive }"
+            [innerHTML]="extractTextWithoutCode(message.content).trim()"
+          ></div>
         </div>
       </ng-container>
       <div *ngIf="loading">... asking agent ...</div>

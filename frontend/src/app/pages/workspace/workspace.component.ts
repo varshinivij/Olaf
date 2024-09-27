@@ -3,10 +3,8 @@ import { AsyncPipe, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders, HttpEventType } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, Subscription } from 'rxjs';
 import Split from 'split.js';
 import { jsonrepair } from 'jsonrepair';
-
 import { ChatService } from '../../services/chat.service';
 import { SandboxService } from '../../services/sandbox.service';
 import { FileStorageService } from '../../services/file-storage.service';
@@ -15,10 +13,19 @@ import { UserService } from '../../services/user.service';
 import { SessionsService } from '../../services/sessions.service';
 import { ChatMessage } from '../../models/chat-message';
 import { UserFile } from '../../models/user-file';
-import { response } from 'express';
+import { firstValueFrom, Subscription } from 'rxjs';
+import { delay } from '../../utils/time-utils';
+import { CodeStream } from '../../models/code-stream';
 
-import { firstValueFrom } from 'rxjs';
-import {delay} from '../../utils/time-utils';
+// interface CodeStream {
+//   isOpen: boolean; // Indicates if a code block has started
+//   buffer: string; // Temporary buffer to hold incomplete code
+// }
+
+// const codeStream: CodeStream = {
+//   isOpen: false,
+//   buffer: '',
+// };
 
 @Component({
   selector: 'app-chat',
@@ -34,6 +41,11 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   userFiles: UserFile[] = [];
   selectedUploadFiles: File[] = [];
   uploadSubscription: Subscription | undefined;
+
+  codeStream: CodeStream = {
+    isOpen: false,
+    buffer: '',
+  };
 
   selectedTab: string = 'planner'; // Default tab
   public latestPlanMessage: any;
@@ -62,6 +74,10 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     public userService: UserService,
     private fileStorageService: FileStorageService
   ) {}
+
+  changeTab(tab: string) {
+    this.selectedTab = tab;
+  }
 
   ngAfterViewInit() {
     Split(['#sidebar', '#main-content', '#den-sidebar'], {
@@ -115,7 +131,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     this.sessionsService.addMessageToActiveSession(uploadMessage);
     this.loading = true;
     const filePath = file.storageLink;
-    console.log("adding file to sandbox " + filePath);
+    console.log('adding file to sandbox ' + filePath);
     this.sandboxService.addFirebaseFilesToSandBox([filePath]).subscribe(
       (response: any) => {
         console.log(response);
@@ -138,7 +154,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       }
       // TODO find a better solution, but right now we give the e2b box an
       // extra second to get ready to recieve code
-      await this.delay(1000);
+      await delay(1000);
     } catch (error) {
       console.error('Error connecting to sandbox:', error);
     } finally {
@@ -146,15 +162,12 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     }
     window.addEventListener('unload', () => this.sandboxService.closeSandbox());
   }
-  
-  // Utility function to add a delay (1 second)
-  delay(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
 
   private async checkSandboxConnection(): Promise<void> {
     try {
-      const response: any = await firstValueFrom(this.sandboxService.isSandboxConnected());
+      const response: any = await firstValueFrom(
+        this.sandboxService.isSandboxConnected()
+      );
       if (response.alive) {
         this.onSandboxConnected();
       } else {
@@ -178,7 +191,9 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   private async createSandbox() {
     try {
-      const response: any = await firstValueFrom(this.sandboxService.createSandbox());
+      const response: any = await firstValueFrom(
+        this.sandboxService.createSandbox()
+      );
       this.sandboxService.setSandboxId(response.sandboxId);
       this.onSandboxCreated();
     } catch (error) {
@@ -202,6 +217,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         type: 'text',
         role: 'user',
         content: this.newMessage,
+        isLive: true,
       };
       await this.sessionsService.addMessageToActiveSession(userMessage);
       this.newMessage = '';
@@ -233,6 +249,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         type: responseType,
         role: 'assistant',
         content: '', // Initially empty
+        isLive: true,
       };
       // Add the placeholder message to the session and store a reference to it
       await this.sessionsService.addMessageToActiveSession(responseMessage);
@@ -251,6 +268,12 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
                 responseType = chunk;
                 responseMessage.type = responseType;
                 responseContent += ' ';
+
+                if (responseType === 'code') {
+                  this.changeTab('code');
+                } else if (responseType === 'plan') {
+                  this.changeTab('planner');
+                }
               } else {
                 // Append subsequent chunks to the content
                 responseContent = chunk;
@@ -286,7 +309,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  executeLatestCode(): void{
+  executeLatestCode(): void {
     const history = this.sessionsService.activeSession.history;
     const latestCodeMessage = history
       .slice()
@@ -440,36 +463,69 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       );
   }
 
-
   convertNewlinesToBr(text: string): string {
     return text.replace(/\n/g, '<br>');
   }
 
   extractCode(response: string): string {
-    // Regular expression to match code blocks with or without 'python' tag
-    const codeRegex = /```(?:python\s*\n)?([\s\S]*?)```/g;
+    // Static variables to store the state between function calls
+    let isOpen = false;
+    let buffer = '';
+
+    // Regular expression to match complete and incomplete code blocks
+    const codeRegex = /```(?:python\s*\n)?([\s\S]*?)(```|$)/g;
     let match;
     let codeParts: string[] = [];
-    
+
     while ((match = codeRegex.exec(response)) !== null) {
-      codeParts.push(match[1].trim());
+      if (match[2] === '```') {
+        // Complete code block found
+        codeParts.push((buffer + match[1].trim()).trim());
+        isOpen = false; // Reset state
+        buffer = ''; // Clear the buffer
+      } else {
+        // Incomplete code block found
+        isOpen = true;
+        buffer += match[1].trim() + '\n'; // Append to buffer
+      }
     }
-    console.log(codeParts.join('\n\n'));
+
+    // If the stream is still open (no closing ```), return buffer for incomplete code
+    if (isOpen) {
+      return buffer;
+    }
+
+    // Return the complete code parts
     return codeParts.join('\n\n');
   }
 
-  extractTextWithoutCode(response: string): string {
-    const codeRegex = /```(?:python\s*\n)?([\s\S]*?)```/g;
-    let textWithoutCode = response.replace(codeRegex, '').trim();
-    textWithoutCode = textWithoutCode.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-    textWithoutCode = textWithoutCode.replace(
-      /###\s*(.*?)(\n|$)/g,
-      '<b>$1</b>'
-    );
-    textWithoutCode = textWithoutCode.replace(/##\s*(.*?)(\n|$)/g, '<b>$1</b>');
-    textWithoutCode = textWithoutCode.replace(/#\s*(.*?)(\n|$)/g, '<b>$1</b>');
-    textWithoutCode = textWithoutCode.replace(/\n{2,}/g, '<br/><br/>');
+  extractTextWithoutCode(response: string) {
+    let isInCodeBlock = false; // To track whether we're inside a code block
+    let result = ''; // To store the processed text
+    const lines = response.split('\n'); // Split response by lines to process them one by one
 
-    return '<br/>' + textWithoutCode;
+    for (let line of lines) {
+      if (line.startsWith('```')) {
+        // Toggle the code block state when encountering ```
+        isInCodeBlock = !isInCodeBlock;
+        continue; // Skip the line containing ```
+      }
+
+      if (!isInCodeBlock) {
+        // Process text lines outside of code blocks
+        result += line + '\n';
+      }
+    }
+
+    // Bold formatting for headers
+    result = result.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); // Bold formatting
+    result = result.replace(/###\s*(.*?)(\n|$)/g, '<b>$1</b>'); // H3 style
+    result = result.replace(/##\s*(.*?)(\n|$)/g, '<b>$1</b>'); // H2 style
+    result = result.replace(/#\s*(.*?)(\n|$)/g, '<b>$1</b>'); // H1 style
+
+    // Replace multiple newlines with <br/> for better line break handling in HTML
+    result = result.replace(/\n{2,}/g, '<br/><br/>');
+
+    return '<br/>' + result.trim();
   }
 }
