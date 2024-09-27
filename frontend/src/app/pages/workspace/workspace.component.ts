@@ -3,10 +3,8 @@ import { AsyncPipe, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders, HttpEventType } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, Subscription } from 'rxjs';
 import Split from 'split.js';
 import { jsonrepair } from 'jsonrepair';
-
 import { ChatService } from '../../services/chat.service';
 import { SandboxService } from '../../services/sandbox.service';
 import { FileStorageService } from '../../services/file-storage.service';
@@ -15,14 +13,11 @@ import { UserService } from '../../services/user.service';
 import { SessionsService } from '../../services/sessions.service';
 import { ChatMessage } from '../../models/chat-message';
 import { UserFile } from '../../models/user-file';
-import { response } from 'express';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import {delay} from '../../utils/time-utils';
+import { CodeStream } from '../../models/code-stream';
 
-interface CodeStream {
-  isOpen: boolean; // Indicates if a code block has started
-  buffer: string;  // Temporary buffer to hold incomplete code
-}
+
 
 @Component({
   selector: 'app-chat',
@@ -147,18 +142,13 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       }
       // TODO find a better solution, but right now we give the e2b box an
       // extra second to get ready to recieve code
-      await this.delay(1000);
+      await delay(1000);
     } catch (error) {
       console.error('Error connecting to sandbox:', error);
     } finally {
       this.loading = false;
     }
     window.addEventListener('unload', () => this.sandboxService.closeSandbox());
-  }
-  
-  // Utility function to add a delay (1 second)
-  delay(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   private async checkSandboxConnection(): Promise<void> {
