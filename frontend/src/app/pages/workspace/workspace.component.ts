@@ -17,15 +17,15 @@ import { firstValueFrom, Subscription } from 'rxjs';
 import { delay } from '../../utils/time-utils';
 import { CodeStream } from '../../models/code-stream';
 
-interface CodeStream {
-  isOpen: boolean; // Indicates if a code block has started
-  buffer: string; // Temporary buffer to hold incomplete code
-}
+// interface CodeStream {
+//   isOpen: boolean; // Indicates if a code block has started
+//   buffer: string; // Temporary buffer to hold incomplete code
+// }
 
-const codeStream: CodeStream = {
-  isOpen: false,
-  buffer: '',
-};
+// const codeStream: CodeStream = {
+//   isOpen: false,
+//   buffer: '',
+// };
 
 @Component({
   selector: 'app-chat',
