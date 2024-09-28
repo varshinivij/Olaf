@@ -201,35 +201,56 @@
     </hlm-tabs-list>
     <!-- planner tab content -->
     <div hlmTabsContent="planner" class="h-full overflow-y-auto">
-      <!-- <div class="flex flex-col p-3 border rounded-md break-words"> -->
-      <!-- plan overview -->
-      <!-- <h2 hlmH2>Plan Overview</h2>
-        <p hlmP>This plan outlines the steps required to analyze DNA sequences, focusing on quality control, alignment, variant calling, and interpretation.</p> -->
-      <!-- plan steps -->
-      <!-- <h2 hlmH2>Required Steps</h2>
+      <div class="flex flex-col p-3 border rounded-md break-words">
+        <!-- plan overview -->
+        <h2 hlmH2>Plan Overview</h2>
+        <p hlmP>
+          This plan outlines the steps required to analyze DNA sequences,
+          focusing on quality control, alignment, variant calling, and
+          interpretation.
+        </p>
+        <!-- plan steps -->
+        <h2 hlmH2>Required Steps</h2>
         <h3 hlmH3>Step 1: Data Acquisition</h3>
         <ul hlmUl>
-          <li><strong>Description:</strong> Obtain the DNA sequence data from a reliable source, such as a sequencing facility or a public database.</li>
+          <li>
+            <strong>Description:</strong> Obtain the DNA sequence data from a
+            reliable source, such as a sequencing facility or a public database.
+          </li>
           <li><strong>Dependencies:</strong> None</li>
-          <li><strong>Expected Output:</strong> Raw DNA sequence files in FASTQ or FASTA format.</li>
+          <li>
+            <strong>Expected Output:</strong> Raw DNA sequence files in FASTQ or
+            FASTA format.
+          </li>
         </ul>
         <h3 hlmH3>Step 2: Quality Control</h3>
         <ul hlmUl>
-          <li><strong>Description:</strong> Perform quality control checks on the raw DNA data to ensure accuracy and reliability. This includes checking for sequencing errors and removing low-quality reads.</li>
+          <li>
+            <strong>Description:</strong> Perform quality control checks on the
+            raw DNA data to ensure accuracy and reliability. This includes
+            checking for sequencing errors and removing low-quality reads.
+          </li>
           <li><strong>Dependencies:</strong> Data Acquisition</li>
-          <li><strong>Expected Output:</strong> Cleaned and high-quality DNA sequence data.</li>
-        </ul> -->
-      <!-- final check -->
-      <!-- <h2 hlmH2>Final Check</h2>
-        <p hlmP>Ensure all steps are completed and results are validated against known data or benchmarks. Review the entire analysis for consistency and accuracy.</p> -->
-      <!-- </div> -->
+          <li>
+            <strong>Expected Output:</strong> Cleaned and high-quality DNA
+            sequence data.
+          </li>
+        </ul>
+        <!-- final check -->
+        <h2 hlmH2>Final Check</h2>
+        <p hlmP>
+          Ensure all steps are completed and results are validated against known
+          data or benchmarks. Review the entire analysis for consistency and
+          accuracy.
+        </p>
+      </div>
       <!-- empty state -->
-      <div
+      <!-- <div
         class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
       >
         <div class="w-20 h-20 bg-background rounded-full"></div>
         <div hlmSmall hlmMuted>Nothing to plan yet.</div>
-      </div>
+      </div> -->
     </div>
     <!-- terminal tab content -->
     <div hlmTabsContent="terminal" class="h-full overflow-y-auto">
@@ -248,7 +269,9 @@
       <!-- image sample -->
       <img [src]="data" class="max-h-72 mt-3 p-2 border rounded-md" />
       <!-- error sample -->
-      <pre class="mt-3"><code hlmSmall [highlight]="error" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
+      <pre
+        class="mt-3"
+      ><code hlmSmall [highlight]="error" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
       <!-- empty state -->
       <!-- <div
         class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"

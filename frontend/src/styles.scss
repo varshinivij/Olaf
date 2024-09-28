@@ -11,7 +11,6 @@ body {
 }
 
 :root {
-  color-scheme: light;
   --font-sans: "Roboto";
   --background: 0 0% 94%; // main gray background
   --foreground: 0 0% 99%; // main white foreground
@@ -35,35 +34,18 @@ body {
   --radius: 0.5rem;
 }
 
-.dark {
-  color-scheme: dark;
-  --background: 0 0% 3.9%;
-  --foreground: 0 0% 98%;
-  --muted: 0 0% 14.9%;
-  --muted-foreground: 0 0% 63.9%;
-  --popover: 0 0% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  --card: 0 0% 3.9%;
-  --card-foreground: 0 0% 98%;
-  --border: 0 0% 14.9%;
-  --input: 0 0% 14.9%;
-  --primary: 0 0% 98%;
-  --primary-foreground: 0 0% 9%;
-  --secondary: 0 0% 14.9%;
-  --secondary-foreground: 0 0% 98%;
-  --accent: 0 0% 14.9%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  --ring: 0 0% 83.1%;
-}
-
 .gutter {
   background-repeat: no-repeat;
   background-position: 50%;
+  transition: background-color 0.2s ease;
+  border-radius: 4px;
+
+  &:hover {
+    background-color: hsl(0 0% 90%);
+  }
 
   &.gutter-horizontal {
-    background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAzMCI+CiAgPGNpcmNsZSBjeD0iMTAiIGN5PSI2IiByPSIyLjUiIGZpbGw9IiNDMEMwQzAiLz4KICA8Y2lyY2xlIGN4PSIxMCIgY3k9IjE1IiByPSIyLjUiIGZpbGw9IiNDMEMwQzAiLz4KICA8Y2lyY2xlIGN4PSIxMCIgY3k9IjI0IiByPSIyLjUiIGZpbGw9IiNDMEMwQzAiLz4KPC9zdmc+");
+    background-image: url("../public/assets/vertical-dots.svg");
     cursor: col-resize;
   }
 }
