@@ -41,6 +41,7 @@
     "clsx": "^2.1.1",
     "express": "^4.18.2",
     "file-saver": "^2.0.5",
+    "jsonrepair": "^3.8.1",
     "highlight.js": "^11.10.0",
     "jszip": "^3.10.1",
     "ngx-highlightjs": "^12.0.0",

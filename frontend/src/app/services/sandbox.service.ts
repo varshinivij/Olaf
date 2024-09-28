@@ -15,6 +15,7 @@ export class SandboxService {
   boxCloseApi: string = 'REMOVED'
   boxStatusApi: string = 'REMOVED'
   boxUploadApi: string = 'REMOVED'
+  addFirebaseFileApi: string = 'http://127.0.0.1:5001/twocube-web/us-central1/firebase_storage_to_sandbox'
 
   createSandbox(): Observable<any> {
     const headers = new HttpHeaders({
@@ -52,11 +53,18 @@ export class SandboxService {
     return this.http.post<any>(this.boxStatusApi, { sandboxId: this.sandboxId }, { headers });
   }
 
-  uploadFile(file: File): Observable<any> {
+  uploadFile(file: File|Blob): Observable<any> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('sandboxId', this.sandboxId || '');
     return this.http.post<any>(this.boxUploadApi, formData);
+  }
+
+  addFirebaseFilesToSandBox(filepaths: [string]): Observable<any> {
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+    return this.http.post<any>(this.addFirebaseFileApi,  { sandboxId: this.sandboxId, filePaths: filepaths}, { headers });
   }
 
 }

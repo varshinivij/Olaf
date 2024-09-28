@@ -100,6 +100,7 @@
       <button hlmBtn variant="ghost" size="icon">
         <hlm-icon size="sm" name="lucideRotateCw" />
       </button>
+      <button class="flex items-center text-gray-500">Project Settings</button>
     </div>
     <!-- message screen -->
     <div class="flex flex-col h-full gap-y-3 overflow-y-auto">
@@ -163,6 +164,11 @@
               Asking agent...
             </div>
           </div>
+          <div
+            *ngIf="message.type === 'code'"
+            [ngClass]="{ typewriter: message.isLive }"
+            [innerHTML]="extractTextWithoutCode(message.content).trim()"
+          ></div>
         </div>
       }
     </div>
