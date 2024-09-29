@@ -1,48 +1,49 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpEventType } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpEventType } from '@angular/common/http';
-import Split from 'split.js';
+import { Router } from '@angular/router';
+import { Subscription, firstValueFrom } from 'rxjs';
+
 import { jsonrepair } from 'jsonrepair';
+import { Highlight } from 'ngx-highlightjs';
+import Split from 'split.js';
+
 import { ChatService } from '../../services/chat.service';
-import { SandboxService } from '../../services/sandbox.service';
 import { FileStorageService } from '../../services/file-storage.service';
+import { SandboxService } from '../../services/sandbox.service';
+import { SessionsService } from '../../services/sessions.service';
 import { UploadService } from '../../services/upload.service';
 import { UserService } from '../../services/user.service';
-import { SessionsService } from '../../services/sessions.service';
 
 import { ChatMessage } from '../../models/chat-message';
-import { UserFile } from '../../models/user-file';
-import { firstValueFrom, Subscription } from 'rxjs';
-import { delay } from '../../utils/time-utils';
 import { CodeStream } from '../../models/code-stream';
+import { Session } from '../../models/session';
+import { UserFile } from '../../models/user-file';
 
 import { adjustTextareaHeight } from '../../utils/adjust-textarea-height';
+import { delay } from '../../utils/time-utils';
 
+import { CodeMessagePipe } from '../../pipes/codemessage.pipe';
+import { PlanMessagePipe } from '../../pipes/planmessage.pipe';
+
+// icon imports
+import { provideIcons } from '@ng-icons/core';
+import {
+  lucideCircleStop,
+  lucideEllipsisVertical,
+  lucideHouse,
+  lucidePanelLeftDashed,
+  lucidePencil,
+  lucidePlus,
+  lucideRotateCw,
+  lucideSendHorizontal,
+  lucideSettings,
+  lucideTrash2,
+} from '@ng-icons/lucide';
+
+// ui imports
 import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
-import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
-import { HlmIconComponent } from '@spartan-ng/ui-icon-helm';
-import {
-  HlmLargeDirective,
-  HlmMutedDirective,
-  HlmSmallDirective,
-  HlmPDirective,
-  HlmH1Directive,
-  HlmH2Directive,
-  HlmH3Directive,
-  HlmH4Directive,
-  HlmUlDirective,
-  HlmCodeDirective,
-} from '@spartan-ng/ui-typography-helm';
-import { HlmSeparatorDirective } from '@spartan-ng/ui-separator-helm';
-import { HlmToggleDirective } from '@spartan-ng/ui-toggle-helm';
-import { BrnToggleDirective } from '@spartan-ng/ui-toggle-brain';
-import { BrnMenuTriggerDirective } from '@spartan-ng/ui-menu-brain';
-import {
-  HlmMenuComponent,
-  HlmMenuItemDirective,
-  HlmMenuItemIconDirective,
-} from '@spartan-ng/ui-menu-helm';
 import {
   BrnDialogCloseDirective,
   BrnDialogContentDirective,
@@ -51,125 +52,123 @@ import {
 import {
   HlmDialogComponent,
   HlmDialogContentComponent,
-  HlmDialogDescriptionDirective,
   HlmDialogFooterComponent,
   HlmDialogHeaderComponent,
   HlmDialogTitleDirective,
 } from '@spartan-ng/ui-dialog-helm';
+import { HlmIconComponent } from '@spartan-ng/ui-icon-helm';
+import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
+import { BrnMenuTriggerDirective } from '@spartan-ng/ui-menu-brain';
+import {
+  HlmMenuComponent,
+  HlmMenuItemDirective,
+  HlmMenuItemIconDirective,
+} from '@spartan-ng/ui-menu-helm';
 import { HlmScrollAreaComponent } from '@spartan-ng/ui-scrollarea-helm';
+import { HlmSeparatorDirective } from '@spartan-ng/ui-separator-helm';
+import { HlmSpinnerComponent } from '@spartan-ng/ui-spinner-helm';
 import {
   HlmTabsComponent,
   HlmTabsContentDirective,
   HlmTabsListComponent,
   HlmTabsTriggerDirective,
 } from '@spartan-ng/ui-tabs-helm';
-
-import { provideIcons } from '@ng-icons/core';
+import { BrnToggleDirective } from '@spartan-ng/ui-toggle-brain';
+import { HlmToggleDirective } from '@spartan-ng/ui-toggle-helm';
 import {
-  lucidePlus,
-  lucidePencil,
-  lucideEllipsisVertical,
-  lucideSettings,
-  lucideTrash2,
-  lucidePanelLeftDashed,
-  lucideHouse,
-  lucideCircleStop,
-  lucideRotateCw,
-  lucideSendHorizontal,
-} from '@ng-icons/lucide';
-
-import { Highlight, HighlightAuto } from 'ngx-highlightjs';
-import { Router } from '@angular/router';
-import { PlanMessagePipe } from '../../pipes/planmessage.pipe';
-import { CodeMessagePipe } from '../../pipes/codemessage.pipe';
-import { Session } from '../../models/session';
+  HlmCodeDirective,
+  HlmH2Directive,
+  HlmH3Directive,
+  HlmLargeDirective,
+  HlmMutedDirective,
+  HlmPDirective,
+  HlmSmallDirective,
+  HlmUlDirective,
+} from '@spartan-ng/ui-typography-helm';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
+  templateUrl: './workspace.component.html',
+  styleUrls: ['./workspace.component.scss'],
   imports: [
     CommonModule,
     FormsModule,
+    Highlight,
     PlanMessagePipe,
     CodeMessagePipe,
 
-    Highlight,
-    HighlightAuto,
-
-    HlmLargeDirective,
-    HlmMutedDirective,
-    HlmSmallDirective,
-    HlmPDirective,
-    HlmH1Directive,
-    HlmH2Directive,
-    HlmH3Directive,
-    HlmH4Directive,
-    HlmUlDirective,
-    HlmCodeDirective,
-
     HlmButtonDirective,
-    HlmIconComponent,
-    HlmSeparatorDirective,
-    HlmInputDirective,
 
-    HlmToggleDirective,
-    BrnToggleDirective,
+    BrnDialogContentDirective,
+    BrnDialogCloseDirective,
+    BrnDialogTriggerDirective,
+    HlmDialogComponent,
+    HlmDialogContentComponent,
+    HlmDialogFooterComponent,
+    HlmDialogHeaderComponent,
+    HlmDialogTitleDirective,
+
+    HlmIconComponent,
+    HlmInputDirective,
 
     BrnMenuTriggerDirective,
     HlmMenuComponent,
     HlmMenuItemDirective,
     HlmMenuItemIconDirective,
 
-    BrnDialogContentDirective,
-    BrnDialogTriggerDirective,
-    BrnDialogCloseDirective,
-    HlmDialogComponent,
-    HlmDialogContentComponent,
-    HlmDialogDescriptionDirective,
-    HlmDialogFooterComponent,
-    HlmDialogHeaderComponent,
-    HlmDialogTitleDirective,
-
     HlmScrollAreaComponent,
+    HlmSeparatorDirective,
+    HlmSpinnerComponent,
+
     HlmTabsComponent,
     HlmTabsContentDirective,
     HlmTabsListComponent,
     HlmTabsTriggerDirective,
+
+    BrnToggleDirective,
+    HlmToggleDirective,
+
+    HlmCodeDirective,
+    HlmH2Directive,
+    HlmH3Directive,
+    HlmLargeDirective,
+    HlmMutedDirective,
+    HlmPDirective,
+    HlmSmallDirective,
+    HlmUlDirective,
   ],
   providers: [
     provideIcons({
-      lucidePlus,
-      lucidePencil,
-      lucideEllipsisVertical,
-      lucideSettings,
-      lucideTrash2,
-      lucidePanelLeftDashed,
-      lucideHouse,
       lucideCircleStop,
+      lucideEllipsisVertical,
+      lucideHouse,
+      lucidePanelLeftDashed,
+      lucidePencil,
+      lucidePlus,
       lucideRotateCw,
       lucideSendHorizontal,
+      lucideSettings,
+      lucideTrash2,
     }),
   ],
-  templateUrl: './workspace.component.html',
-  styleUrls: ['./workspace.component.scss'],
 })
 export class WorkspaceComponent implements OnInit, OnDestroy {
-  adjustTextareaHeight = adjustTextareaHeight;
   fileStorageSubscription?: Subscription;
+  adjustTextareaHeight = adjustTextareaHeight;
 
+  newMessage: string = ''; // ngModel variable
+  newSessionName: string = ''; // ngModel variable
   loading: boolean = false;
   executingCode: boolean = false;
   isConnected: boolean = false;
   userFiles: UserFile[] = [];
   selectedUploadFiles: File[] = [];
-  uploadSubscription: Subscription | undefined;
 
   codeStream: CodeStream = {
     isOpen: false,
     buffer: '',
   };
-
-  public latestPlanMessage: any;
 
   // message scheme ONLY FOR REFERENCE
   // messages: ChatMessage[] = [
@@ -180,21 +179,12 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   //   },
   // ];
 
-  plans: string[] = [];
-  codes: string[] = [];
-
-  newMessage: string = '';
-  newSessionName: string = '';
-
   constructor(
-    private http: HttpClient,
     public router: Router,
     private chatService: ChatService,
+    private fileStorageService: FileStorageService,
     private sandboxService: SandboxService,
     public sessionsService: SessionsService,
-    public uploadService: UploadService,
-    public userService: UserService,
-    private fileStorageService: FileStorageService,
   ) {}
 
   ngAfterViewInit() {
@@ -207,22 +197,15 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.uploadSubscription = this.uploadService
-      .getUploadProgress()
-      .subscribe((uploads) => {
-        console.log(uploads);
-      });
     this.fileStorageSubscription = this.fileStorageService
       .getFiles()
       .subscribe((files) => {
         console.log(files);
         this.userFiles = files || [];
       });
-    this.getLatestPlanMessage();
   }
 
   ngOnDestroy() {
-    this.uploadSubscription?.unsubscribe();
     this.fileStorageSubscription?.unsubscribe();
   }
 
@@ -284,7 +267,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   private async checkSandboxConnection(): Promise<void> {
     try {
       const response: any = await firstValueFrom(
-        this.sandboxService.isSandboxConnected()
+        this.sandboxService.isSandboxConnected(),
       );
       if (response.alive) {
         this.onSandboxConnected();
@@ -310,7 +293,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   private async createSandbox() {
     try {
       const response: any = await firstValueFrom(
-        this.sandboxService.createSandbox()
+        this.sandboxService.createSandbox(),
       );
       this.sandboxService.setSandboxId(response.sandboxId);
       this.onSandboxCreated();
@@ -418,7 +401,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
           },
           complete: () => {
             this.loading = false;
-            this.getLatestPlanMessage();
             this.executeLatestCode();
           },
         });
@@ -435,16 +417,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       let code = this.extractCode(latestCodeMessage.content);
       this.executeCode(code);
     }
-  }
-
-  getLatestPlanMessage(): void {
-    const history = this.sessionsService.activeSession.history;
-    // Find the last message of type 'plan'
-    this.latestPlanMessage = history
-      .slice()
-      .reverse()
-      .find((message) => message.type === 'plan');
-    console.log(this.latestPlanMessage);
   }
 
   parseJson(content: string): any {

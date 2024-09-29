@@ -101,11 +101,17 @@
   >
     <!-- top header row -->
     <div class="flex-none flex -mx-1 items-center gap-x-1">
-      <button hlmBtn variant="ghost" size="icon">
+      <button
+        hlmBtn
+        variant="ghost"
+        size="icon"
+        (click)="router.navigate(['dashboard'])"
+      >
         <hlm-icon size="sm" name="lucideHouse" />
       </button>
       <div hlmSmall hlmMuted class="truncate overflow-visible">
-        / Sample Project / Session 1
+        / Sample Project /
+        {{ sessionsService.activeSession.name || "(new session)" }}
       </div>
       <button hlmBtn variant="ghost" size="icon" class="ml-auto">
         <hlm-icon size="sm" name="lucideCircleStop" />
@@ -161,13 +167,15 @@
       }
       <!-- empty session state -->
       @empty {
-        <img
-          src="assets/twocube-logo-gray-bg.svg"
-          class="mt-auto h-12 rounded-sm"
-        />
-        <div hlmSmall hlmMuted class="self-center mb-auto text-center">
-          Hello, how can I help you today?
-        </div>
+        @if (!loading) {
+          <img
+            src="assets/twocube-logo-gray-bg.svg"
+            class="mt-auto h-12 rounded-sm"
+          />
+          <div hlmSmall hlmMuted class="self-center mb-auto text-center">
+            Hello, how can I help you today?
+          </div>
+        }
       }
       <!-- loading state -->
       @if (loading) {
@@ -192,14 +200,14 @@
         class="w-full max-h-40 pr-10 py-2.5 bg-accent border-0"
         [(ngModel)]="newMessage"
         (input)="adjustTextareaHeight($event)"
-        (keydown.enter)="$event.preventDefault(); sendMessage()"
+        (keydown.enter)="$event.preventDefault(); sendMessage(); adjustTextareaHeight($event)"
       ></textarea>
       <button
         hlmBtn
         variant="float"
         size="icon"
         class="absolute bottom-1 right-1"
-        (click)="sendMessage()"
+        (click)="sendMessage(); adjustTextareaHeight($event)"
       >
         <hlm-icon size="sm" name="lucideSendHorizontal" />
       </button>
@@ -222,13 +230,13 @@
     <div hlmTabsContent="planner" class="h-full overflow-y-auto">
       @for (
         message of this.sessionsService.activeSession.history | planmessage;
-        track message.content
+        track $index
       ) {
         @if (parseJson(message.content); as plan) {
           <div
             class="flex flex-col p-3 border rounded-md break-words"
             [ngClass]="{
-              'mt-3': !$first
+              'mt-3': !$first,
             }"
           >
             <!-- plan overview -->
@@ -245,9 +253,7 @@
                 <li>
                   <strong>Dependencies: </strong
                   >{{
-                    step.dependencies.length > 0
-                      ? step.dependencies.join(", ")
-                      : "None"
+                    step.dependencies ? step.dependencies.join(", ") : "None"
                   }}
                 </li>
                 <li>
@@ -285,59 +291,61 @@
     </div>
     <!-- code tab content -->
     <div hlmTabsContent="code" class="h-full overflow-y-auto">
-      @for (
-        message of this.sessionsService.activeSession.history | codemessage;
-        track $index
-      ) {
-        <!-- code block -->
-        @if (message.type === "code") {
-          <pre
-            [ngClass]="{
-              'mt-3': !$first
-            }"
-          ><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
+      <div class="flex flex-col gap-y-3 h-full">
+        @for (
+          message of this.sessionsService.activeSession.history | codemessage;
+          track $index
+        ) {
+          <!-- code block -->
+          @if (message.type === "code") {
+            <pre><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
+          }
+          <!-- result block -->
+          @else if (message.type === "result") {
+            <pre><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md"></code></pre>
+          }
+          <!-- image block -->
+          @else if (message.type === "image") {
+            <img
+              [src]="message.content"
+              class="max-h-72 border rounded-md object-contain"
+            />
+          }
+          <!-- error block -->
+          @else if (message.type === "error") {
+            <pre><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
+          }
         }
-        <!-- resukt block -->
-        @else if (message.type === "result") {
-          <pre
-            [ngClass]="{
-              'mt-3': !$first
-            }"
-          ><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md"></code></pre>
+        <!-- empty state -->
+        @empty {
+          @if (!executingCode) {
+            <div
+              class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
+            >
+              <div class="w-20 h-20 bg-background rounded-full"></div>
+              <div hlmSmall hlmMuted>Nothing to code yet.</div>
+            </div>
+          }
         }
-        <!-- image block -->
-        @else if (message.type === "image") {
-          <img
-            [src]="message.content"
-            class="max-h-72 mt-3 p-2 border rounded-md"
-            [ngClass]="{
-              'mt-3': !$first
-            }"
-          />
+        @if (executingCode) {
+          <span
+            hlmCode
+            class="flex items-center mb-1 p-2 bg-transparent border rounded-md gap-x-3"
+          >
+            Executing code...
+            <hlm-spinner size="xs" />
+          </span>
         }
-        <!-- error block -->
-        @else if (message.type === "error") {
-          <pre
-            [ngClass]="{
-              'mt-3': !$first
-            }"
-          ><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
-        }
-      }
-      <!-- empty state -->
-      @empty {
-        <div
-          class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
-        >
-          <div class="w-20 h-20 bg-background rounded-full"></div>
-          <div hlmSmall hlmMuted>Nothing to code yet.</div>
-        </div>
-      }
+      </div>
     </div>
     <!-- files tab content -->
     <div hlmTabsContent="files" class="h-full overflow-y-auto">
       <!-- files list -->
       <div class="flex flex-col h-full p-3 border rounded-md gap-y-1">
+        <div hlmSmall class="text-destructive">
+          Warning: This feature is in development and files currently do not
+          persist across logins.
+        </div>
         @for (file of this.userFiles; track file.id) {
           <div class="flex justify-between px-2 py-1 bg-muted rounded-md">
             <div hlmSmall class="truncate">{{ file.name }}</div>
