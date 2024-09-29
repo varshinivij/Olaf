@@ -46,8 +46,13 @@ export class SessionsService {
       this.activeSession.id = newSessionRef.id;
       console.log(this.activeSession.id);
       await this.userSessions.push(this.activeSession);
-    } 
+    }
     await this.updateSession(this.activeSession);
+  }
+
+  renameSession(session: Session, name: string) {
+    session.name = name;
+    this.updateSession(session);
   }
 
   private async ensureUserIsSet() {
@@ -104,7 +109,7 @@ export class SessionsService {
 
   async deleteSession(sessionId: string) {
     await deleteDoc(doc(this.firestore, 'sessions', sessionId));
-    
+
     this.userSessions = this.userSessions.filter(session => session.id !== sessionId);
 
     if (this.activeSession.id === sessionId) {

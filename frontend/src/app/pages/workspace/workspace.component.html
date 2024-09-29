@@ -34,7 +34,7 @@
           class="justify-between pl-3 pr-0"
           (click)="sessionsService.changeUserSessionById(session.id)"
         >
-          <div class="truncate">{{ session.id || "" }}</div>
+          <div class="truncate">{{ session.name || "(new session)" }}</div>
           <button hlmBtn variant="float" size="icon" [brnMenuTriggerFor]="menu">
             <hlm-icon size="xs" name="lucideEllipsisVertical" />
           </button>
@@ -49,6 +49,7 @@
                 <button
                   hlmMenuItem
                   class="text-destructive hover:text-destructive"
+                  (click)="sessionsService.deleteSession(session.id)"
                 >
                   <hlm-icon name="lucideTrash2" hlmMenuIcon />
                   Delete
@@ -60,10 +61,22 @@
               <hlm-dialog-header>
                 <div hlmDialogTitle>Rename Session</div>
               </hlm-dialog-header>
-              <input hlmInput size="sm" value="@peduarte" class="w-96" />
+              <input
+                hlmInput
+                size="sm"
+                class="w-96"
+                [(ngModel)]="newSessionName"
+              />
               <hlm-dialog-footer>
                 <button hlmBtn brnDialogClose size="sm">Cancel</button>
-                <button hlmBtn brnDialogClose size="sm">Save</button>
+                <button
+                  hlmBtn
+                  brnDialogClose
+                  size="sm"
+                  (click)="renameSession(session)"
+                >
+                  Save
+                </button>
               </hlm-dialog-footer>
             </hlm-dialog-content>
           </hlm-dialog>
@@ -100,7 +113,6 @@
       <button hlmBtn variant="ghost" size="icon">
         <hlm-icon size="sm" name="lucideRotateCw" />
       </button>
-      <button class="flex items-center text-gray-500">Project Settings</button>
     </div>
     <!-- message screen -->
     <div class="flex flex-col h-full gap-y-3 overflow-y-auto">
@@ -137,6 +149,11 @@
                       ? "I've put our plan in the planner! Let me know what you think."
                       : message.content
                 }}
+                @if (message.type === "code") {
+                  <div
+                    [innerHTML]="extractTextWithoutCode(message.content).trim()"
+                  ></div>
+                }
               </div>
             </div>
           </div>
@@ -164,11 +181,6 @@
               Asking agent...
             </div>
           </div>
-          <div
-            *ngIf="message.type === 'code'"
-            [ngClass]="{ typewriter: message.isLive }"
-            [innerHTML]="extractTextWithoutCode(message.content).trim()"
-          ></div>
         </div>
       }
     </div>
@@ -176,10 +188,11 @@
     <div class="flex-none relative mt-auto">
       <textarea
         hlmInput
-        placeholder="Ask TwoCube..."
+        placeholder="Ask TwoCube... (shift + enter for new line)"
         class="w-full max-h-40 pr-10 py-2.5 bg-accent border-0"
         [(ngModel)]="newMessage"
         (input)="adjustTextareaHeight($event)"
+        (keydown.enter)="$event.preventDefault(); sendMessage()"
       ></textarea>
       <button
         hlmBtn
@@ -207,56 +220,58 @@
     </hlm-tabs-list>
     <!-- planner tab content -->
     <div hlmTabsContent="planner" class="h-full overflow-y-auto">
-      <div class="flex flex-col p-3 border rounded-md break-words">
-        <!-- plan overview -->
-        <h2 hlmH2>Plan Overview</h2>
-        <p hlmP>
-          This plan outlines the steps required to analyze DNA sequences,
-          focusing on quality control, alignment, variant calling, and
-          interpretation.
-        </p>
-        <!-- plan steps -->
-        <h2 hlmH2>Required Steps</h2>
-        <h3 hlmH3>Step 1: Data Acquisition</h3>
-        <ul hlmUl>
-          <li>
-            <strong>Description:</strong> Obtain the DNA sequence data from a
-            reliable source, such as a sequencing facility or a public database.
-          </li>
-          <li><strong>Dependencies:</strong> None</li>
-          <li>
-            <strong>Expected Output:</strong> Raw DNA sequence files in FASTQ or
-            FASTA format.
-          </li>
-        </ul>
-        <h3 hlmH3>Step 2: Quality Control</h3>
-        <ul hlmUl>
-          <li>
-            <strong>Description:</strong> Perform quality control checks on the
-            raw DNA data to ensure accuracy and reliability. This includes
-            checking for sequencing errors and removing low-quality reads.
-          </li>
-          <li><strong>Dependencies:</strong> Data Acquisition</li>
-          <li>
-            <strong>Expected Output:</strong> Cleaned and high-quality DNA
-            sequence data.
-          </li>
-        </ul>
-        <!-- final check -->
-        <h2 hlmH2>Final Check</h2>
-        <p hlmP>
-          Ensure all steps are completed and results are validated against known
-          data or benchmarks. Review the entire analysis for consistency and
-          accuracy.
-        </p>
-      </div>
+      @for (
+        message of this.sessionsService.activeSession.history | planmessage;
+        track $index
+      ) {
+        @if (parseJson(message.content); as plan) {
+          <div
+            class="flex flex-col p-3 border rounded-md break-words"
+            [ngClass]="{
+              'mt-3': !$first
+            }"
+          >
+            <!-- plan overview -->
+            <h2 hlmH2>Plan Overview</h2>
+            <p hlmP>
+              {{ plan.overview }}
+            </p>
+            <!-- plan steps -->
+            <h2 hlmH2>Required Steps</h2>
+            @for (step of plan.steps; track $index) {
+              <h3 hlmH3>Step {{ step.step_number }}: {{ step.title }}</h3>
+              <ul hlmUl>
+                <li><strong>Description: </strong>{{ step.description }}</li>
+                <li>
+                  <strong>Dependencies: </strong
+                  >{{
+                    step.dependencies.length > 0
+                      ? step.dependencies.join(", ")
+                      : "None"
+                  }}
+                </li>
+                <li>
+                  <strong>Expected Output: </strong>{{ step.expected_output }}
+                </li>
+              </ul>
+            }
+            <!-- final check -->
+            <h2 hlmH2>Final Check</h2>
+            <p hlmP>
+              {{ plan.final_check }}
+            </p>
+          </div>
+        }
+      }
       <!-- empty state -->
-      <!-- <div
-        class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
-      >
-        <div class="w-20 h-20 bg-background rounded-full"></div>
-        <div hlmSmall hlmMuted>Nothing to plan yet.</div>
-      </div> -->
+      @empty {
+        <div
+          class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
+        >
+          <div class="w-20 h-20 bg-background rounded-full"></div>
+          <div hlmSmall hlmMuted>Nothing to plan yet.</div>
+        </div>
+      }
     </div>
     <!-- terminal tab content -->
     <div hlmTabsContent="terminal" class="h-full overflow-y-auto">
@@ -270,21 +285,54 @@
     </div>
     <!-- code tab content -->
     <div hlmTabsContent="code" class="h-full overflow-y-auto">
-      <!-- code/result sample -->
-      <pre><code hlmSmall [highlight]="code" language="python" class="bg-transparent border rounded-md"></code></pre>
-      <!-- image sample -->
-      <img [src]="data" class="max-h-72 mt-3 p-2 border rounded-md" />
-      <!-- error sample -->
-      <pre
-        class="mt-3"
-      ><code hlmSmall [highlight]="error" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
+      @for (
+        message of this.sessionsService.activeSession.history | codemessage;
+        track $index
+      ) {
+        <!-- code block -->
+        @if (message.type === "code") {
+          <pre
+            [ngClass]="{
+              'mt-3': !$first
+            }"
+          ><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
+        }
+        <!-- resukt block -->
+        @else if (message.type === "result") {
+          <pre
+            [ngClass]="{
+              'mt-3': !$first
+            }"
+          ><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md"></code></pre>
+        }
+        <!-- image block -->
+        @else if (message.type === "image") {
+          <img
+            [src]="message.content"
+            class="max-h-72 mt-3 p-2 border rounded-md"
+            [ngClass]="{
+              'mt-3': !$first
+            }"
+          />
+        }
+        <!-- error block -->
+        @else if (message.type === "error") {
+          <pre
+            [ngClass]="{
+              'mt-3': !$first
+            }"
+          ><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
+        }
+      }
       <!-- empty state -->
-      <!-- <div
-        class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
-      >
-        <div class="w-20 h-20 bg-background rounded-full"></div>
-        <div hlmSmall hlmMuted>Nothing to code yet.</div>
-      </div> -->
+      @empty {
+        <div
+          class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
+        >
+          <div class="w-20 h-20 bg-background rounded-full"></div>
+          <div hlmSmall hlmMuted>Nothing to code yet.</div>
+        </div>
+      }
     </div>
     <!-- files tab content -->
     <div hlmTabsContent="files" class="h-full overflow-y-auto">
@@ -296,7 +344,7 @@
             <button
               hlmSmall
               class="flex-none text-green-500"
-              (click)="addFileToSandbox(file)"
+              (click)="addFirebaseFileToSandbox(file)"
             >
               Upload file
             </button>

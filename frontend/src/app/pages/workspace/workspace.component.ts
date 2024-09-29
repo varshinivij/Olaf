@@ -1,9 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders, HttpEventType } from '@angular/common/http';
-import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { HttpEventType } from '@angular/common/http';
 import Split from 'split.js';
 import { jsonrepair } from 'jsonrepair';
 import { ChatService } from '../../services/chat.service';
@@ -19,15 +17,6 @@ import { firstValueFrom, Subscription } from 'rxjs';
 import { delay } from '../../utils/time-utils';
 import { CodeStream } from '../../models/code-stream';
 
-// interface CodeStream {
-//   isOpen: boolean; // Indicates if a code block has started
-//   buffer: string; // Temporary buffer to hold incomplete code
-// }
-
-// const codeStream: CodeStream = {
-//   isOpen: false,
-//   buffer: '',
-// };
 import { adjustTextareaHeight } from '../../utils/adjust-textarea-height';
 
 import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
@@ -90,6 +79,10 @@ import {
 } from '@ng-icons/lucide';
 
 import { Highlight, HighlightAuto } from 'ngx-highlightjs';
+import { Router } from '@angular/router';
+import { PlanMessagePipe } from '../../pipes/planmessage.pipe';
+import { CodeMessagePipe } from '../../pipes/codemessage.pipe';
+import { Session } from '../../models/session';
 
 @Component({
   selector: 'app-chat',
@@ -97,6 +90,8 @@ import { Highlight, HighlightAuto } from 'ngx-highlightjs';
   imports: [
     CommonModule,
     FormsModule,
+    PlanMessagePipe,
+    CodeMessagePipe,
 
     Highlight,
     HighlightAuto,
@@ -164,14 +159,16 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   isConnected: boolean = false;
   userFiles: UserFile[] = [];
   selectedUploadFiles: File[] = [];
-  uploadSubscription: Subscription | undefined;
+  uploadSubscription?: Subscription;
+  fileStorageSubscription?: Subscription;
+
   codeStream: CodeStream = {
     isOpen: false,
     buffer: '',
   };
+
   adjustTextareaHeight = adjustTextareaHeight;
-  selectedTab: string = 'planner'; // Default tab
-  public latestPlanMessage: any;
+  public latestPlanMessage?: any;
 
   // message scheme ONLY FOR REFERENCE
   // messages: ChatMessage[] = [
@@ -186,22 +183,17 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   codes: string[] = [];
 
   newMessage: string = '';
-  console = console;
+  newSessionName: string = '';
 
   constructor(
-    private http: HttpClient,
-    private router: Router,
+    public router: Router,
     private chatService: ChatService,
     private sandboxService: SandboxService,
     public sessionsService: SessionsService,
     public uploadService: UploadService,
     public userService: UserService,
-    private fileStorageService: FileStorageService
+    private fileStorageService: FileStorageService,
   ) {}
-
-  changeTab(tab: string) {
-    this.selectedTab = tab;
-  }
 
   ngAfterViewInit() {
     Split(['#sidebar', '#main-content', '#den-sidebar'], {
@@ -218,23 +210,23 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       .subscribe((uploads) => {
         console.log(uploads);
       });
-    this.getUserFiles();
+    this.fileStorageSubscription = this.fileStorageService
+      .getFiles()
+      .subscribe((files) => {
+        console.log(files);
+        this.userFiles = files || [];
+      });
     this.getLatestPlanMessage();
   }
 
   ngOnDestroy() {
     this.uploadSubscription?.unsubscribe();
+    this.fileStorageSubscription?.unsubscribe();
   }
 
-  selectTab(tab: string) {
-    this.selectedTab = tab;
-  }
-
-  getUserFiles() {
-    this.fileStorageService.getFiles().subscribe((files) => {
-      console.log(files);
-      this.userFiles = files || [];
-    });
+  renameSession(session: Session) {
+    this.sessionsService.renameSession(session, this.newSessionName);
+    this.newSessionName = '';
   }
 
   /**
@@ -254,17 +246,9 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     };
     this.sessionsService.addMessageToActiveSession(uploadMessage);
     this.loading = true;
-    if (this.sessionsService.activeSession.sandboxId) {
-      this.checkSandboxConnection();
-    } else {
-      this.createSandbox();
-    }
-    // Destroy the sandbox when the tab is closed
-    window.addEventListener('unload', () => this.sandboxService.closeSandbox());
-  }
-
-  private checkSandboxConnection() {
-    this.sandboxService.isSandboxConnected().subscribe(
+    const filePath = file.storageLink;
+    console.log('adding file to sandbox ' + filePath);
+    this.sandboxService.addFirebaseFilesToSandBox([filePath]).subscribe(
       (response: any) => {
         console.log(response);
         this.loading = false;
@@ -275,7 +259,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       },
     );
   }
-
 
   async connectToSandbox() {
     this.loading = true;
@@ -299,7 +282,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   private async checkSandboxConnection(): Promise<void> {
     try {
       const response: any = await firstValueFrom(
-        this.sandboxService.isSandboxConnected()
+        this.sandboxService.isSandboxConnected(),
       );
       if (response.alive) {
         this.onSandboxConnected();
@@ -319,16 +302,13 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       this.sandboxService.setSandboxId(
         this.sessionsService.activeSession.sandboxId,
       );
-      this.sandboxService.setSandboxId(
-        this.sessionsService.activeSession.sandboxId
-      );
     }
   }
 
   private async createSandbox() {
     try {
       const response: any = await firstValueFrom(
-        this.sandboxService.createSandbox()
+        this.sandboxService.createSandbox(),
       );
       this.sandboxService.setSandboxId(response.sandboxId);
       this.onSandboxCreated();
@@ -347,16 +327,15 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   /**
    * Add a new message to the active session from message bar
    **/
-  async addUserMessage(): Promise<void> {
-    if (this.newMessage.trim()) {
+  async addUserMessage(message: string): Promise<void> {
+    if (message.trim()) {
       const userMessage: ChatMessage = {
         type: 'text',
         role: 'user',
-        content: this.newMessage,
+        content: message,
         isLive: true,
       };
       await this.sessionsService.addMessageToActiveSession(userMessage);
-      this.newMessage = '';
     }
   }
 
@@ -364,13 +343,18 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    * Send a message to the generalist chat service
    */
   async sendMessage() {
+    const message = this.newMessage;
+    this.newMessage = '';
+
     if (!this.isConnected) {
       await this.connectToSandbox();
     }
-    if (this.newMessage.trim()) {
-      await this.addUserMessage();
+    if (message.trim()) {
       console.log(this.sessionsService.activeSession.history);
+
       this.loading = true;
+      await this.addUserMessage(message);
+
       let responseType:
         | 'text'
         | 'code'
@@ -404,12 +388,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
                 responseType = chunk;
                 responseMessage.type = responseType;
                 responseContent += ' ';
-
-                if (responseType === 'code') {
-                  this.changeTab('code');
-                } else if (responseType === 'plan') {
-                  this.changeTab('planner');
-                }
               } else {
                 // Append subsequent chunks to the content
                 responseContent = chunk;
@@ -491,7 +469,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         (error) => {
           console.error('Error:', error);
           this.loading = false;
-        }
+        },
       );
   }
 
@@ -544,59 +522,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         this.executeCode(message.content);
       }
     });
-  }
-
-  requestPlan() {
-    this.addUserMessage();
-    this.loading = true;
-    this.chatService
-      .requestPlan(this.sessionsService.activeSession.history)
-      .subscribe(
-        (response: any) => {
-          //add the plan to message as a ChatMessage with type Plan
-          let planMessage: ChatMessage = {
-            type: 'plan',
-            role: 'assistant',
-            content: response['message'],
-          };
-          this.sessionsService.addMessageToActiveSession(planMessage);
-        },
-        (error) => {
-          console.error('Error:', error);
-          this.loading = false;
-        }
-      );
-  }
-
-  requestCode(withExecute: boolean = true) {
-    if (!this.isConnected) {
-      this.connectToSandbox();
-    }
-    this.addUserMessage();
-    this.loading = true;
-    this.chatService
-      .requestCode(this.sessionsService.activeSession.history)
-      .subscribe(
-        (response: any) => {
-          //add the code to message as a ChatMessage with type Code
-          let code = this.extractCode(response['message']);
-          let codeMessage: ChatMessage = {
-            type: 'code',
-            role: 'assistant',
-            content: this.extractCode(response['message']), //TODO this is finicky because the agent is not always returning the code in the same format,
-          };
-          this.sessionsService.addMessageToActiveSession(codeMessage);
-          console.log(this.sessionsService.activeSession.history);
-          this.loading = false;
-          if (withExecute) {
-            this.executeCode(code);
-          }
-        },
-        (error) => {
-          console.error('Error:', error);
-          this.loading = false;
-        }
-      );
   }
 
   convertNewlinesToBr(text: string): string {
