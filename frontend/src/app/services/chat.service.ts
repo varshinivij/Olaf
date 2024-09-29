@@ -29,7 +29,7 @@ export class ChatService {
         observe: 'events',
         reportProgress: true,
         responseType: 'text',
-      }
+      },
     );
   }
 
@@ -42,7 +42,7 @@ export class ChatService {
     return this.http.post<ChatMessage[]>(
       this.plannerAPIEndpoint,
       { history },
-      { headers }
+      { headers },
     );
   }
 
@@ -55,7 +55,7 @@ export class ChatService {
     return this.http.post<ChatMessage[]>(
       this.coderAPIEndpoint,
       { history },
-      { headers }
+      { headers },
     );
   }
 }

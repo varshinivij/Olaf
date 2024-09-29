@@ -222,7 +222,7 @@
     <div hlmTabsContent="planner" class="h-full overflow-y-auto">
       @for (
         message of this.sessionsService.activeSession.history | planmessage;
-        track $index
+        track message.content
       ) {
         @if (parseJson(message.content); as plan) {
           <div

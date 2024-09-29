@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpEventType } from '@angular/common/http';
+import { HttpClient, HttpEventType } from '@angular/common/http';
 import Split from 'split.js';
 import { jsonrepair } from 'jsonrepair';
 import { ChatService } from '../../services/chat.service';
@@ -154,21 +154,22 @@ import { Session } from '../../models/session';
   styleUrls: ['./workspace.component.scss'],
 })
 export class WorkspaceComponent implements OnInit, OnDestroy {
+  adjustTextareaHeight = adjustTextareaHeight;
+  fileStorageSubscription?: Subscription;
+
   loading: boolean = false;
   executingCode: boolean = false;
   isConnected: boolean = false;
   userFiles: UserFile[] = [];
   selectedUploadFiles: File[] = [];
-  uploadSubscription?: Subscription;
-  fileStorageSubscription?: Subscription;
+  uploadSubscription: Subscription | undefined;
 
   codeStream: CodeStream = {
     isOpen: false,
     buffer: '',
   };
 
-  adjustTextareaHeight = adjustTextareaHeight;
-  public latestPlanMessage?: any;
+  public latestPlanMessage: any;
 
   // message scheme ONLY FOR REFERENCE
   // messages: ChatMessage[] = [
@@ -186,6 +187,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   newSessionName: string = '';
 
   constructor(
+    private http: HttpClient,
     public router: Router,
     private chatService: ChatService,
     private sandboxService: SandboxService,
@@ -282,7 +284,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   private async checkSandboxConnection(): Promise<void> {
     try {
       const response: any = await firstValueFrom(
-        this.sandboxService.isSandboxConnected(),
+        this.sandboxService.isSandboxConnected()
       );
       if (response.alive) {
         this.onSandboxConnected();
@@ -308,7 +310,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   private async createSandbox() {
     try {
       const response: any = await firstValueFrom(
-        this.sandboxService.createSandbox(),
+        this.sandboxService.createSandbox()
       );
       this.sandboxService.setSandboxId(response.sandboxId);
       this.onSandboxCreated();
