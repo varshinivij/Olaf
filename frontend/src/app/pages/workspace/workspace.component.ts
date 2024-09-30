@@ -401,6 +401,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
           },
           complete: () => {
             this.loading = false;
+            this.sessionsService.saveActiveSession()
             this.executeLatestCode();
           },
         });

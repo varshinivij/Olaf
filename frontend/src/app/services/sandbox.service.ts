@@ -15,7 +15,7 @@ export class SandboxService {
   boxCloseApi: string = 'REMOVED'
   boxStatusApi: string = 'REMOVED'
   boxUploadApi: string = 'REMOVED'
-  addFirebaseFileApi: string = 'http://127.0.0.1:5001/twocube-web/us-central1/firebase_storage_to_sandbox'
+  addFirebaseFileApi: string = 'REMOVED'
 
   createSandbox(): Observable<any> {
     const headers = new HttpHeaders({
