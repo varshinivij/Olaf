@@ -14,7 +14,7 @@ import Split from 'split.js';
   styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent implements AfterViewInit {
-  selectedPage: PageName = 'data';
+  selectedPage: PageName = 'projects';
 
   ngAfterViewInit() {
     Split(['#sidebar', '#main-content'], {

@@ -1,54 +1,174 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { AsyncPipe, CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
+import { HttpEventType } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders, HttpEventType } from '@angular/common/http';
 import { Router } from '@angular/router';
-import Split from 'split.js';
+import { Subscription, firstValueFrom } from 'rxjs';
+
 import { jsonrepair } from 'jsonrepair';
+import { Highlight } from 'ngx-highlightjs';
+import Split from 'split.js';
+
 import { ChatService } from '../../services/chat.service';
-import { SandboxService } from '../../services/sandbox.service';
 import { FileStorageService } from '../../services/file-storage.service';
+import { SandboxService } from '../../services/sandbox.service';
+import { SessionsService } from '../../services/sessions.service';
 import { UploadService } from '../../services/upload.service';
 import { UserService } from '../../services/user.service';
-import { SessionsService } from '../../services/sessions.service';
+
 import { ChatMessage } from '../../models/chat-message';
-import { UserFile } from '../../models/user-file';
-import { firstValueFrom, Subscription } from 'rxjs';
-import { delay } from '../../utils/time-utils';
 import { CodeStream } from '../../models/code-stream';
+import { Session } from '../../models/session';
+import { UserFile } from '../../models/user-file';
 
-// interface CodeStream {
-//   isOpen: boolean; // Indicates if a code block has started
-//   buffer: string; // Temporary buffer to hold incomplete code
-// }
+import { adjustTextareaHeight } from '../../utils/adjust-textarea-height';
+import { delay } from '../../utils/time-utils';
 
-// const codeStream: CodeStream = {
-//   isOpen: false,
-//   buffer: '',
-// };
+import { CodeMessagePipe } from '../../pipes/codemessage.pipe';
+import { PlanMessagePipe } from '../../pipes/planmessage.pipe';
+
+// icon imports
+import { provideIcons } from '@ng-icons/core';
+import {
+  lucideCircleStop,
+  lucideEllipsisVertical,
+  lucideHouse,
+  lucidePanelLeftDashed,
+  lucidePencil,
+  lucidePlus,
+  lucideRotateCw,
+  lucideSendHorizontal,
+  lucideSettings,
+  lucideTrash2,
+} from '@ng-icons/lucide';
+
+// ui imports
+import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
+import {
+  BrnDialogCloseDirective,
+  BrnDialogContentDirective,
+  BrnDialogTriggerDirective,
+} from '@spartan-ng/ui-dialog-brain';
+import {
+  HlmDialogComponent,
+  HlmDialogContentComponent,
+  HlmDialogFooterComponent,
+  HlmDialogHeaderComponent,
+  HlmDialogTitleDirective,
+} from '@spartan-ng/ui-dialog-helm';
+import { HlmIconComponent } from '@spartan-ng/ui-icon-helm';
+import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
+import { BrnMenuTriggerDirective } from '@spartan-ng/ui-menu-brain';
+import {
+  HlmMenuComponent,
+  HlmMenuItemDirective,
+  HlmMenuItemIconDirective,
+} from '@spartan-ng/ui-menu-helm';
+import { HlmScrollAreaComponent } from '@spartan-ng/ui-scrollarea-helm';
+import { HlmSeparatorDirective } from '@spartan-ng/ui-separator-helm';
+import { HlmSpinnerComponent } from '@spartan-ng/ui-spinner-helm';
+import {
+  HlmTabsComponent,
+  HlmTabsContentDirective,
+  HlmTabsListComponent,
+  HlmTabsTriggerDirective,
+} from '@spartan-ng/ui-tabs-helm';
+import { BrnToggleDirective } from '@spartan-ng/ui-toggle-brain';
+import { HlmToggleDirective } from '@spartan-ng/ui-toggle-helm';
+import {
+  HlmCodeDirective,
+  HlmH2Directive,
+  HlmH3Directive,
+  HlmLargeDirective,
+  HlmMutedDirective,
+  HlmPDirective,
+  HlmSmallDirective,
+  HlmUlDirective,
+} from '@spartan-ng/ui-typography-helm';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule],
   templateUrl: './workspace.component.html',
   styleUrls: ['./workspace.component.scss'],
+  imports: [
+    CommonModule,
+    FormsModule,
+    Highlight,
+    PlanMessagePipe,
+    CodeMessagePipe,
+
+    HlmButtonDirective,
+
+    BrnDialogContentDirective,
+    BrnDialogCloseDirective,
+    BrnDialogTriggerDirective,
+    HlmDialogComponent,
+    HlmDialogContentComponent,
+    HlmDialogFooterComponent,
+    HlmDialogHeaderComponent,
+    HlmDialogTitleDirective,
+
+    HlmIconComponent,
+    HlmInputDirective,
+
+    BrnMenuTriggerDirective,
+    HlmMenuComponent,
+    HlmMenuItemDirective,
+    HlmMenuItemIconDirective,
+
+    HlmScrollAreaComponent,
+    HlmSeparatorDirective,
+    HlmSpinnerComponent,
+
+    HlmTabsComponent,
+    HlmTabsContentDirective,
+    HlmTabsListComponent,
+    HlmTabsTriggerDirective,
+
+    BrnToggleDirective,
+    HlmToggleDirective,
+
+    HlmCodeDirective,
+    HlmH2Directive,
+    HlmH3Directive,
+    HlmLargeDirective,
+    HlmMutedDirective,
+    HlmPDirective,
+    HlmSmallDirective,
+    HlmUlDirective,
+  ],
+  providers: [
+    provideIcons({
+      lucideCircleStop,
+      lucideEllipsisVertical,
+      lucideHouse,
+      lucidePanelLeftDashed,
+      lucidePencil,
+      lucidePlus,
+      lucideRotateCw,
+      lucideSendHorizontal,
+      lucideSettings,
+      lucideTrash2,
+    }),
+  ],
 })
 export class WorkspaceComponent implements OnInit, OnDestroy {
+  fileStorageSubscription?: Subscription;
+  adjustTextareaHeight = adjustTextareaHeight;
+
+  newMessage: string = ''; // ngModel variable
+  newSessionName: string = ''; // ngModel variable
   loading: boolean = false;
   executingCode: boolean = false;
   isConnected: boolean = false;
   userFiles: UserFile[] = [];
   selectedUploadFiles: File[] = [];
-  uploadSubscription: Subscription | undefined;
 
   codeStream: CodeStream = {
     isOpen: false,
     buffer: '',
   };
-
-  selectedTab: string = 'planner'; // Default tab
-  public latestPlanMessage: any;
 
   // message scheme ONLY FOR REFERENCE
   // messages: ChatMessage[] = [
@@ -59,58 +179,39 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   //   },
   // ];
 
-  plans: string[] = [];
-  codes: string[] = [];
-
-  newMessage: string = '';
-
   constructor(
-    private http: HttpClient,
-    private router: Router,
+    public router: Router,
     private chatService: ChatService,
+    private fileStorageService: FileStorageService,
     private sandboxService: SandboxService,
     public sessionsService: SessionsService,
-    public uploadService: UploadService,
-    public userService: UserService,
-    private fileStorageService: FileStorageService
   ) {}
-
-  changeTab(tab: string) {
-    this.selectedTab = tab;
-  }
 
   ngAfterViewInit() {
     Split(['#sidebar', '#main-content', '#den-sidebar'], {
-      sizes: [25, 50, 25], // Initial sizes of the columns in percentage
-      minSize: 200, // Minimum size of each column in pixels
-      gutterSize: 10, // Size of the gutter (the draggable area between columns)
-      cursor: 'col-resize', // Cursor to show when hovering over the gutter
+      sizes: [20, 45, 35], // Initial sizes of the columns in percentage
+      minSize: [200, 200, 300], // Minimum size of each column in pixels
+      gutterSize: 12, // Size of the gutter (the draggable area between columns)
+      snapOffset: 0,
     });
   }
 
   ngOnInit() {
-    this.uploadSubscription = this.uploadService
-      .getUploadProgress()
-      .subscribe((uploads) => {
-        console.log(uploads);
+    this.fileStorageSubscription = this.fileStorageService
+      .getFiles()
+      .subscribe((files) => {
+        console.log(files);
+        this.userFiles = files || [];
       });
-    this.getUserFiles();
-    this.getLatestPlanMessage();
   }
 
   ngOnDestroy() {
-    this.uploadSubscription?.unsubscribe();
+    this.fileStorageSubscription?.unsubscribe();
   }
 
-  selectTab(tab: string) {
-    this.selectedTab = tab;
-  }
-
-  getUserFiles() {
-    this.fileStorageService.getFiles().subscribe((files) => {
-      console.log(files);
-      this.userFiles = files || [];
-    });
+  renameSession(session: Session) {
+    this.sessionsService.renameSession(session, this.newSessionName);
+    this.newSessionName = '';
   }
 
   /**
@@ -140,7 +241,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       (error) => {
         console.error('Error:', error);
         this.loading = false;
-      }
+      },
     );
   }
 
@@ -166,7 +267,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   private async checkSandboxConnection(): Promise<void> {
     try {
       const response: any = await firstValueFrom(
-        this.sandboxService.isSandboxConnected()
+        this.sandboxService.isSandboxConnected(),
       );
       if (response.alive) {
         this.onSandboxConnected();
@@ -184,7 +285,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     this.loading = false;
     if (this.sessionsService.activeSession.sandboxId) {
       this.sandboxService.setSandboxId(
-        this.sessionsService.activeSession.sandboxId
+        this.sessionsService.activeSession.sandboxId,
       );
     }
   }
@@ -192,7 +293,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   private async createSandbox() {
     try {
       const response: any = await firstValueFrom(
-        this.sandboxService.createSandbox()
+        this.sandboxService.createSandbox(),
       );
       this.sandboxService.setSandboxId(response.sandboxId);
       this.onSandboxCreated();
@@ -211,16 +312,15 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   /**
    * Add a new message to the active session from message bar
    **/
-  async addUserMessage(): Promise<void> {
-    if (this.newMessage.trim()) {
+  async addUserMessage(message: string): Promise<void> {
+    if (message.trim()) {
       const userMessage: ChatMessage = {
         type: 'text',
         role: 'user',
-        content: this.newMessage,
+        content: message,
         isLive: true,
       };
       await this.sessionsService.addMessageToActiveSession(userMessage);
-      this.newMessage = '';
     }
   }
 
@@ -228,13 +328,18 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    * Send a message to the generalist chat service
    */
   async sendMessage() {
+    const message = this.newMessage;
+    this.newMessage = '';
+
     if (!this.isConnected) {
       await this.connectToSandbox();
     }
-    if (this.newMessage.trim()) {
-      await this.addUserMessage();
+    if (message.trim()) {
       console.log(this.sessionsService.activeSession.history);
+
       this.loading = true;
+      await this.addUserMessage(message);
+
       let responseType:
         | 'text'
         | 'code'
@@ -268,12 +373,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
                 responseType = chunk;
                 responseMessage.type = responseType;
                 responseContent += ' ';
-
-                if (responseType === 'code') {
-                  this.changeTab('code');
-                } else if (responseType === 'plan') {
-                  this.changeTab('planner');
-                }
               } else {
                 // Append subsequent chunks to the content
                 responseContent = chunk;
@@ -302,7 +401,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
           },
           complete: () => {
             this.loading = false;
-            this.getLatestPlanMessage();
+            this.sessionsService.saveActiveSession()
             this.executeLatestCode();
           },
         });
@@ -319,16 +418,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       let code = this.extractCode(latestCodeMessage.content);
       this.executeCode(code);
     }
-  }
-
-  getLatestPlanMessage(): void {
-    const history = this.sessionsService.activeSession.history;
-    // Find the last message of type 'plan'
-    this.latestPlanMessage = history
-      .slice()
-      .reverse()
-      .find((message) => message.type === 'plan');
-    console.log(this.latestPlanMessage);
   }
 
   parseJson(content: string): any {
@@ -355,7 +444,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         (error) => {
           console.error('Error:', error);
           this.loading = false;
-        }
+        },
       );
   }
 
@@ -398,7 +487,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       (error) => {
         console.error('Error:', error);
         this.executingCode = false;
-      }
+      },
     );
   }
 
@@ -408,59 +497,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         this.executeCode(message.content);
       }
     });
-  }
-
-  requestPlan() {
-    this.addUserMessage();
-    this.loading = true;
-    this.chatService
-      .requestPlan(this.sessionsService.activeSession.history)
-      .subscribe(
-        (response: any) => {
-          //add the plan to message as a ChatMessage with type Plan
-          let planMessage: ChatMessage = {
-            type: 'plan',
-            role: 'assistant',
-            content: response['message'],
-          };
-          this.sessionsService.addMessageToActiveSession(planMessage);
-        },
-        (error) => {
-          console.error('Error:', error);
-          this.loading = false;
-        }
-      );
-  }
-
-  requestCode(withExecute: boolean = true) {
-    if (!this.isConnected) {
-      this.connectToSandbox();
-    }
-    this.addUserMessage();
-    this.loading = true;
-    this.chatService
-      .requestCode(this.sessionsService.activeSession.history)
-      .subscribe(
-        (response: any) => {
-          //add the code to message as a ChatMessage with type Code
-          let code = this.extractCode(response['message']);
-          let codeMessage: ChatMessage = {
-            type: 'code',
-            role: 'assistant',
-            content: this.extractCode(response['message']), //TODO this is finicky because the agent is not always returning the code in the same format,
-          };
-          this.sessionsService.addMessageToActiveSession(codeMessage);
-          console.log(this.sessionsService.activeSession.history);
-          this.loading = false;
-          if (withExecute) {
-            this.executeCode(code);
-          }
-        },
-        (error) => {
-          console.error('Error:', error);
-          this.loading = false;
-        }
-      );
   }
 
   convertNewlinesToBr(text: string): string {

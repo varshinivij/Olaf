@@ -39,7 +39,7 @@ export class SidebarComponent {
     },
   ];
 
-  selectedPage = this.pages[1];  // default selected page
+  selectedPage = this.pages[0];
 
   titleCase = titleCase;
 

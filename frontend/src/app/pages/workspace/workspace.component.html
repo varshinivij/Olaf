@@ -1,261 +1,373 @@
-<div class="flex h-screen overflow-hidden">
-  <!-- Sidebar -->
-  <div id="sidebar" class="w-1/4 bg-gray-100 p-4 relative overflow-y-auto">
-    <div>
-      <input
-        type="text"
-        placeholder="Enter Project Name"
-        class="w-full p-2 border rounded mb-4"
-      />
-    </div>
-    <div class="mb-4">
-      <button
-        (click)="sessionsService.newSession()"
-        class="text-lg font-semibold mb-2"
-      >
-        New Session +
+<div class="flex h-screen p-3 bg-background">
+  <!-- sidebar -->
+  <div id="sidebar" class="flex flex-col p-3 bg-foreground rounded-md gap-y-2">
+    <!-- header/collapse button row -->
+    <div class="flex-none flex pl-2 items-center justify-between">
+      <div hlmLarge>TwoCube</div>
+      <button brnToggle hlmToggle size="sm" class="px-1.5">
+        <hlm-icon size="sm" name="lucidePanelLeftDashed" />
       </button>
     </div>
-    <!-- Refresh icon -->
-    <div *ngFor="let session of sessionsService.userSessions">
-      <button
-        href="#"
-        (click)="sessionsService.changeUserSessionById(session.id)"
-      >
-        {{ session.id }}
-      </button>
-      <button
-        (click)="sessionsService.deleteSession(session.id)"
-        class="ml-2 text-red-500"
-      >
-        &#x2716;
-      </button>
-    </div>
-    <div class="absolute bottom-4 left-4">
-      <button href="#" (click)="sessionsService.loadUserSessions()">
-        Refresh Sessions
-      </button>
-      <button class="flex items-center text-gray-500">Project Settings</button>
-    </div>
-  </div>
-
-  <!-- Main Content -->
-  <div id="main-content" class="flex-1 flex flex-col relative overflow-hidden">
-    <!-- Chat Section -->
-    <div
-      class="flex-1 flex flex-col items-center justify-start overflow-y-auto p-4"
-      id="chatArea"
+    <hr hlmSeparator />
+    <!-- new session button -->
+    <button
+      hlmBtn
+      variant="secondary"
+      size="sm"
+      class="flex-none justify-start pl-2 gap-x-2"
+      (click)="sessionsService.newSession()"
     >
-      <ng-container
-        *ngFor="let message of this.sessionsService.activeSession.history"
-      >
-        <div
-          *ngIf="
-            message.type === 'code' ||
-            message.type === 'plan' ||
-            message.type === 'text'
+      <hlm-icon size="sm" name="lucidePlus" />
+      New Session
+    </button>
+    <!-- sessions list -->
+    <div class="flex flex-col gap-y-1 overflow-y-auto">
+      @for (session of sessionsService.userSessions; track session.id) {
+        <button
+          hlmBtn
+          [variant]="
+            sessionsService.activeSession.id === session.id
+              ? 'secondary'
+              : 'ghost'
           "
-          [ngClass]="{
-            'bg-blue-100 self-end': message.role === 'user',
-            'bg-gray-200 self-start': message.role === 'assistant'
-          }"
-          class="p-2 rounded mb-2 max-w-full break-words"
+          size="sm"
+          class="justify-between pl-3 pr-0"
+          (click)="sessionsService.changeUserSessionById(session.id)"
         >
+          <div class="truncate">{{ session.name || "(new session)" }}</div>
+          <button hlmBtn variant="float" size="icon" [brnMenuTriggerFor]="menu">
+            <hlm-icon size="xs" name="lucideEllipsisVertical" />
+          </button>
+          <hlm-dialog class="absolute">
+            <!-- session options menu -->
+            <ng-template #menu>
+              <hlm-menu>
+                <button hlmMenuItem brnDialogTrigger>
+                  <hlm-icon name="lucidePencil" hlmMenuIcon />
+                  Rename
+                </button>
+                <button
+                  hlmMenuItem
+                  class="text-destructive hover:text-destructive"
+                  (click)="sessionsService.deleteSession(session.id)"
+                >
+                  <hlm-icon name="lucideTrash2" hlmMenuIcon />
+                  Delete
+                </button>
+              </hlm-menu>
+            </ng-template>
+            <!-- rename session dialog -->
+            <hlm-dialog-content *brnDialogContent="let ctx">
+              <hlm-dialog-header>
+                <div hlmDialogTitle>Rename Session</div>
+              </hlm-dialog-header>
+              <input
+                hlmInput
+                size="sm"
+                class="w-96"
+                [(ngModel)]="newSessionName"
+              />
+              <hlm-dialog-footer>
+                <button hlmBtn brnDialogClose size="sm">Cancel</button>
+                <button
+                  hlmBtn
+                  brnDialogClose
+                  size="sm"
+                  (click)="renameSession(session)"
+                >
+                  Save
+                </button>
+              </hlm-dialog-footer>
+            </hlm-dialog-content>
+          </hlm-dialog>
+        </button>
+      }
+    </div>
+    <!-- project settings button -->
+    <button
+      hlmBtn
+      variant="ghost"
+      size="sm"
+      class="flex-none justify-start mt-auto pl-2 gap-x-2"
+    >
+      <hlm-icon size="sm" name="lucideSettings" />
+      Project Settings
+    </button>
+  </div>
+  <!-- chat interface -->
+  <div
+    id="main-content"
+    class="flex flex-col px-4 py-3 bg-foreground rounded-md gap-y-2"
+  >
+    <!-- top header row -->
+    <div class="flex-none flex -mx-1 items-center gap-x-1">
+      <button
+        hlmBtn
+        variant="ghost"
+        size="icon"
+        (click)="router.navigate(['dashboard'])"
+      >
+        <hlm-icon size="sm" name="lucideHouse" />
+      </button>
+      <div hlmSmall hlmMuted class="truncate overflow-visible">
+        / Sample Project /
+        {{ sessionsService.activeSession.name || "(new session)" }}
+      </div>
+      <button hlmBtn variant="ghost" size="icon" class="ml-auto">
+        <hlm-icon size="sm" name="lucideCircleStop" />
+      </button>
+      <button hlmBtn variant="ghost" size="icon">
+        <hlm-icon size="sm" name="lucideRotateCw" />
+      </button>
+    </div>
+    <!-- message screen -->
+    <div class="flex flex-col h-full gap-y-3 overflow-y-auto">
+      @for (
+        message of this.sessionsService.activeSession.history.slice(1);
+        track $index
+      ) {
+        <!-- display user messages -->
+        @if (message.role === "user") {
           <div
-            *ngIf="message.type === 'text'"
-            [ngClass]="{ typewriter: message.isLive }"
+            hlmSmall
+            class="self-end max-w-[calc(100%-40px)] px-2 py-1 bg-secondary rounded-lg break-words"
           >
             {{ message.content }}
           </div>
-          <div
-            *ngIf="message.type === 'plan'"
-            [ngClass]="{ typewriter: message.isLive }"
-          >
-            I've put our plan in the planner! Let me know what you think.
+        }
+        <!-- display assistant messages -->
+        @else if (
+          message.type === "text" ||
+          message.type === "code" ||
+          message.type === "plan"
+        ) {
+          <div class="flex gap-x-2.5">
+            <!-- twocube avatar -->
+            <img src="assets/twocube-logo-gray-bg.svg" class="h-9 rounded-lg" />
+            <!-- twocube name/message -->
+            <div class="flex flex-col gap-y-0.5">
+              <div hlmLarge hlmSmall>TwoCube</div>
+              <div hlmSmall class="self-start rounded-lg break-words">
+                {{
+                  message.type === "code"
+                    ? "I've put our code in the code editor! Let me know what you think."
+                    : message.type === "plan"
+                      ? "I've put our plan in the planner! Let me know what you think."
+                      : message.content
+                }}
+                @if (message.type === "code") {
+                  <div
+                    [innerHTML]="extractTextWithoutCode(message.content).trim()"
+                  ></div>
+                }
+              </div>
+            </div>
           </div>
-          <div
-            *ngIf="message.type === 'code'"
-            [ngClass]="{ typewriter: message.isLive }"
-          >
-            I've put our code in the code editor! Let me know what you think.
+        }
+      }
+      <!-- empty session state -->
+      @empty {
+        @if (!loading) {
+          <img
+            src="assets/twocube-logo-gray-bg.svg"
+            class="mt-auto h-12 rounded-sm"
+          />
+          <div hlmSmall hlmMuted class="self-center mb-auto text-center">
+            Hello, how can I help you today?
           </div>
-          <div
-            *ngIf="message.type === 'code'"
-            [ngClass]="{ typewriter: message.isLive }"
-            [innerHTML]="extractTextWithoutCode(message.content).trim()"
-          ></div>
+        }
+      }
+      <!-- loading state -->
+      @if (loading) {
+        <div class="flex gap-x-2.5">
+          <!-- twocube avatar -->
+          <img src="assets/twocube-logo-gray-bg.svg" class="h-9 rounded-lg" />
+          <!-- twocube name/message -->
+          <div class="flex flex-col gap-y-0.5">
+            <div hlmLarge hlmSmall>TwoCube</div>
+            <div hlmSmall hlmMuted class="self-start rounded-lg break-words">
+              Waiting for agent...
+            </div>
+          </div>
         </div>
-      </ng-container>
-      <div *ngIf="loading">... asking agent ...</div>
+      }
     </div>
-
-    <!-- Chat Bar -->
-    <div
-      class="absolute bottom-0 left-0 right-0 p-4 bg-gray-100 flex items-center"
-    >
-      <input
-        type="text"
+    <!-- chat bar -->
+    <div class="flex-none relative mt-auto">
+      <textarea
+        hlmInput
+        placeholder="Ask TwoCube... (shift + enter for new line)"
+        class="w-full max-h-40 pr-10 py-2.5 bg-accent border-0"
         [(ngModel)]="newMessage"
-        placeholder="Ask Twocube"
-        class="flex-1 p-2 border rounded mr-2"
-        (keyup.enter)="sendMessage()"
-      />
+        (input)="adjustTextareaHeight($event)"
+        (keydown.enter)="$event.preventDefault(); sendMessage(); adjustTextareaHeight($event)"
+      ></textarea>
       <button
-        class="bg-blue-500 text-white p-2 rounded mr-2"
-        (click)="sendMessage()"
+        hlmBtn
+        variant="float"
+        size="icon"
+        class="absolute bottom-1 right-1"
+        (click)="sendMessage(); adjustTextareaHeight($event)"
       >
-        Send
+        <hlm-icon size="sm" name="lucideSendHorizontal" />
       </button>
-      <!-- <button
-        class="bg-green-500 text-white p-2 rounded mr-2"
-        (click)="requestPlan()"
-      >
-        Plan
-      </button>
-      <button
-        class="bg-purple-500 text-white p-2 rounded"
-        (click)="requestCode()"
-      >
-        Code
-      </button> -->
     </div>
   </div>
-
-  <!-- Twocube's Den Sidebar Section -->
-  <div id="den-sidebar" class="w-1/4 bg-gray-200 p-4 overflow-y-auto">
-    <h2 class="text-xl font-semibold">Twocube’s Den</h2>
-    <div class="mt-4">
-      <ul class="flex space-x-4">
-        <li
-          class="cursor-pointer text-gray-600"
-          [ngClass]="{ 'font-bold': selectedTab === 'planner' }"
-          (click)="selectTab('planner')"
-        >
-          Planner
-        </li>
-        <li
-          class="cursor-pointer text-gray-600"
-          [ngClass]="{ 'font-bold': selectedTab === 'terminal' }"
-          (click)="selectTab('terminal')"
-        >
-          Terminal
-        </li>
-        <li
-          class="cursor-pointer text-gray-600"
-          [ngClass]="{ 'font-bold': selectedTab === 'code' }"
-          (click)="selectTab('code')"
-        >
-          Code
-        </li>
-        <li
-          class="cursor-pointer text-gray-600"
-          [ngClass]="{ 'font-bold': selectedTab === 'files' }"
-          (click)="selectTab('files')"
-        >
-          Files
-        </li>
-      </ul>
-    </div>
-    <div class="mt-4 h-full overflow-auto">
-      <div *ngIf="selectedTab === 'planner'">
-        <div *ngFor="let message of this.sessionsService.activeSession.history">
+  <!-- twocube den -->
+  <hlm-tabs
+    id="den-sidebar"
+    tab="planner"
+    class="flex flex-col p-3 bg-foreground rounded-md"
+  >
+    <!-- header tab buttons -->
+    <hlm-tabs-list class="w-full grid grid-cols-4">
+      <button hlmTabsTrigger="planner">Planner</button>
+      <button hlmTabsTrigger="terminal">Terminal</button>
+      <button hlmTabsTrigger="code">Code</button>
+      <button hlmTabsTrigger="files">Files</button>
+    </hlm-tabs-list>
+    <!-- planner tab content -->
+    <div hlmTabsContent="planner" class="h-full overflow-y-auto">
+      @for (
+        message of this.sessionsService.activeSession.history | planmessage;
+        track $index
+      ) {
+        @if (parseJson(message.content); as plan) {
           <div
-            *ngIf="message.type === 'plan'"
-            class="text-white bg-gray-700 p-2 rounded mb-2 max-w-full break-words"
+            class="flex flex-col p-3 border rounded-md break-words"
+            [ngClass]="{
+              'mt-3': !$first,
+            }"
           >
-            <!-- Parse the JSON content -->
-            <ng-container *ngIf="parseJson(message.content) as parsedContent">
-              <!-- Render the plan overview -->
-              <h3 class="font-bold text-lg mb-2">Plan Overview</h3>
-              <p>{{ parsedContent.overview }}</p>
-
-              <!-- Render the steps -->
-              <h4 class="font-bold text-md mt-4 mb-2">Steps:</h4>
-              <div *ngFor="let step of parsedContent.steps">
-                <div class="mb-3">
-                  <h5 class="font-semibold">
-                    Step {{ step.step_number }}: {{ step.title }}
-                  </h5>
-                  <p><strong>Description:</strong> {{ step.description }}</p>
-                  <p>
-                    <strong>Dependencies:</strong>
-                    {{
-                      step.dependencies.length > 0
-                        ? step.dependencies.join(", ")
-                        : "None"
-                    }}
-                  </p>
-                  <p>
-                    <strong>Expected Output:</strong> {{ step.expected_output }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Render the final check -->
-              <h4 class="font-bold text-md mt-4 mb-2">Final Check</h4>
-              <p>{{ parsedContent.final_check }}</p>
-            </ng-container>
+            <!-- plan overview -->
+            <h2 hlmH2>Plan Overview</h2>
+            <p hlmP>
+              {{ plan.overview }}
+            </p>
+            <!-- plan steps -->
+            <h2 hlmH2>Required Steps</h2>
+            @for (step of plan.steps; track $index) {
+              <h3 hlmH3>Step {{ step.step_number }}: {{ step.title }}</h3>
+              <ul hlmUl>
+                <li><strong>Description: </strong>{{ step.description }}</li>
+                <li>
+                  <strong>Dependencies: </strong
+                  >{{
+                    step.dependencies ? step.dependencies.join(", ") : "None"
+                  }}
+                </li>
+                <li>
+                  <strong>Expected Output: </strong>{{ step.expected_output }}
+                </li>
+              </ul>
+            }
+            <!-- final check -->
+            <h2 hlmH2>Final Check</h2>
+            <p hlmP>
+              {{ plan.final_check }}
+            </p>
           </div>
+        }
+      }
+      <!-- empty state -->
+      @empty {
+        <div
+          class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
+        >
+          <div class="w-20 h-20 bg-background rounded-full"></div>
+          <div hlmSmall hlmMuted>Nothing to plan yet.</div>
         </div>
+      }
+    </div>
+    <!-- terminal tab content -->
+    <div hlmTabsContent="terminal" class="h-full overflow-y-auto">
+      <!-- empty state -->
+      <div
+        class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
+      >
+        <div class="w-20 h-20 bg-background rounded-full"></div>
+        <div hlmSmall hlmMuted>Terminal coming soon!</div>
       </div>
-      <div *ngIf="selectedTab === 'terminal'">
-        <!-- Terminal content here -->
-        <p>Terminal content goes here...</p>
-      </div>
-      <div *ngIf="selectedTab === 'code'" class="h-full overflow-auto">
-        <!-- Code content here -->
-        <div class="flex-1 flex flex-col relative h-full">
-          <div
-            class="flex-1 flex flex-col justify-start overflow-y-auto p-4"
-            id="codeArea"
-          >
+    </div>
+    <!-- code tab content -->
+    <div hlmTabsContent="code" class="h-full overflow-y-auto">
+      <div class="flex flex-col gap-y-3 h-full">
+        @for (
+          message of this.sessionsService.activeSession.history | codemessage;
+          track $index
+        ) {
+          <!-- code block -->
+          @if (message.type === "code") {
+            <pre><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
+          }
+          <!-- result block -->
+          @else if (message.type === "result") {
+            <pre><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md"></code></pre>
+          }
+          <!-- image block -->
+          @else if (message.type === "image") {
+            <img
+              [src]="message.content"
+              class="max-h-72 border rounded-md object-contain"
+            />
+          }
+          <!-- error block -->
+          @else if (message.type === "error") {
+            <pre><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
+          }
+        }
+        <!-- empty state -->
+        @empty {
+          @if (!executingCode) {
             <div
-              *ngFor="let message of this.sessionsService.activeSession.history"
+              class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
             >
-              <div
-                *ngIf="message.type === 'code'"
-                class="text-white bg-gray-700 p-2 rounded mb-2 max-w-full break-words"
-              >
-                <pre><code>{{(extractCode(message.content))}} </code></pre>
-              </div>
-              <div
-                *ngIf="message.type === 'result'"
-                class="text-white bg-gray-400 p-2 rounded mb-2 max-w-full break-words"
-              >
-                <pre>{{ message.content }}</pre>
-              </div>
-              <div
-                *ngIf="message.type === 'error'"
-                class="text-white bg-red-400 p-2 rounded mb-2 max-w-full break-words"
-              >
-                <pre>{{ message.content }}</pre>
-              </div>
-              <div
-                *ngIf="message.type === 'image'"
-                class="text-white bg-gray-400 p-2 rounded mb-2 max-w-full break-words"
-              >
-                <img [src]="message.content" alt="Result" />
-              </div>
+              <div class="w-20 h-20 bg-background rounded-full"></div>
+              <div hlmSmall hlmMuted>Nothing to code yet.</div>
             </div>
-            <div *ngIf="executingCode">... executing code ...</div>
-          </div>
-        </div>
-      </div>
-      <div *ngIf="selectedTab === 'files'">
-        <p class="text-red-500">
-          Warning: This feature is still in development files are currenlty not persistent across logins.
-        </p>
-        <div *ngFor="let file of this.userFiles">
-          <div class="flex items-center justify-between p-2 border-b">
-            <div>{{ file.name }}</div>
-            <div>
-              <button class="text-green-500" (click)="addFirebaseFileToSandbox(file)">
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
+          }
+        }
+        @if (executingCode) {
+          <span
+            hlmCode
+            class="flex items-center mb-1 p-2 bg-transparent border rounded-md gap-x-3"
+          >
+            Executing code...
+            <hlm-spinner size="xs" />
+          </span>
+        }
       </div>
     </div>
-  </div>
+    <!-- files tab content -->
+    <div hlmTabsContent="files" class="h-full overflow-y-auto">
+      <!-- files list -->
+      <div class="flex flex-col h-full p-3 border rounded-md gap-y-1">
+        <div hlmSmall class="text-destructive">
+          Warning: This feature is in development and files currently do not
+          persist across logins.
+        </div>
+        @for (file of this.userFiles; track file.id) {
+          <div class="flex justify-between px-2 py-1 bg-muted rounded-md">
+            <div hlmSmall class="truncate">{{ file.name }}</div>
+            <button
+              hlmSmall
+              class="flex-none text-green-500"
+              (click)="addFirebaseFileToSandbox(file)"
+            >
+              Upload file
+            </button>
+          </div>
+        }
+        <!-- empty state -->
+        @empty {
+          <div
+            class="self-center w-20 h-20 mt-auto bg-background rounded-full"
+          ></div>
+          <div hlmSmall hlmMuted class="self-center mb-auto text-center">
+            No files found.
+          </div>
+        }
+      </div>
+    </div>
+  </hlm-tabs>
 </div>

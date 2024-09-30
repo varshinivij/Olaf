@@ -1,4 +1,5 @@
 <div class="flex flex-col w-full h-screen p-6 rounded-lg bg-white">
+  <!-- header -->
   <p class="text-2xl font-bold">Data</p>
   <p class="text-lg">Upload and manage different types of data.</p>
 
@@ -27,7 +28,7 @@
       {{ $first ? "My Files" : path }}
     </button>
     @if (!$last) {
-      <i class="material-icons-outlined text-[#5f6368]">chevron_right</i>
+    <i class="material-icons-outlined text-[#5f6368]">chevron_right</i>
     } }
   </div>
 
@@ -75,6 +76,7 @@
         <tr>
           <!-- weird CSS workaround to make the body scrollable. reference:
           https://www.geeksforgeeks.org/how-to-create-a-table-with-fixed-header-and-scrollable-body/#. maybe i should've just used flex columns... -->
+          <!-- file name header -->
           <th class="sticky top-0 rounded-ss-lg bg-[#F1F1F1] px-4 py-3 w-[30%]">
             <div class="flex items-center justify-between">
               File Name
@@ -87,6 +89,7 @@
               </button>
             </div>
           </th>
+          <!-- file type header -->
           <th class="sticky top-0 pr-4 bg-[#F1F1F1] w-[15%]">
             <div class="flex items-center justify-between">
               File Type
@@ -99,7 +102,9 @@
               </button>
             </div>
           </th>
+          <!-- size header -->
           <th class="sticky top-0 bg-[#F1F1F1] w-[10%]">Size</th>
+          <!-- last modified header -->
           <th class="sticky top-0 bg-[#F1F1F1] pr-4">
             <div class="flex items-center justify-between">
               Last Modified
@@ -112,6 +117,7 @@
               </button>
             </div>
           </th>
+          <!-- path header (only appears if searching) -->
           @if(this.searchFilter !== '') {
           <th class="sticky top-0 bg-[#F1F1F1]">Path</th>
           }
@@ -125,10 +131,8 @@
       <!-- file rows -->
       <tbody>
         <!-- display uploading files -->
-        @for (upload of (this.uploadService.getUploadProgress() | async); track
-        upload.id) {
-        @if (searchFilter === '' && pageNumber === 1 && upload.uploadPath ===
-        currentPathString) {
+        @for (upload of userUploads; track upload.id) { @if (searchFilter === ''
+        && pageNumber === 1 && upload.uploadPath === currentPathString) {
         <tr class="bg-white hover:brightness-90">
           <td class="px-4 truncate italic">
             <img
@@ -199,8 +203,33 @@
     </table>
   </div>
 
+  <!-- No files uploaded state -->
+  @if (userFiles?.length === 0 && userUploads?.length === 0) {
+  <div class="flex flex-col mt-auto items-center gap-y-1">
+    <img class="w-12 h-12" src="assets/twocube-logo-gray-bg.svg" />
+    <p class="font-bold">No Files Yet</p>
+    <p>Use the "Upload data" button to get started.</p>
+  </div>
+  }
+  <!-- File search/filter empty state -->
+  @else if (displayedFiles?.length === 0 && (searchFilter || typeFilter)) {
+  <div class="flex flex-col mt-auto items-center gap-y-1">
+    <img class="w-12 h-12" src="assets/twocube-logo-gray-bg.svg" />
+    <p class="font-bold">File not found</p>
+    <p class="text-center">
+      {{
+        searchFilter !== ""
+          ? 'Your search "' + searchFilter + '" did not match any file.'
+          : 'There are no "' + titleCase(typeFilter!) + '" found.'
+      }}
+      <br />
+      Please try again.
+    </p>
+  </div>
+  }
+
   <!-- bottom page navigator -->
-  <div class="flex-none mt-auto flex gap-x-4 justify-center items-center">
+  <div class="mt-auto flex gap-x-4 justify-center items-center pr-6">
     <button
       class="text-[#9E9E9E] text-sm"
       type="button"

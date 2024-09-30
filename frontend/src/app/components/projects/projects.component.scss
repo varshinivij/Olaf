@@ -1,0 +1,10 @@
+// custom select dropdown arrow. hides existing arrow and replaces with SVG from Figma.
+// https://stackoverflow.com/a/67297063
+select {
+    background: url("data:image/svg+xml,<svg width='14px' height='11px' viewBox='0 0 14 11' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M7 11L0.937822 0.5L13.0622 0.500001L7 11Z' fill='%23038C7F'/></svg>") no-repeat;
+    background-position: calc(100% - 0.75rem) center !important;
+    -moz-appearance:none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    padding-right: 2rem !important;
+}

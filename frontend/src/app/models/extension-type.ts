@@ -8,8 +8,9 @@ export const ExtensionTypeMap = {
   '.txt': 'text',
   '.md': 'text',
 
-  '.jpg': 'image',
-  '.png': 'image',
+  '.jpg': 'dataset',
+  '.jpeg': 'dataset',
+  '.png': 'dataset',
 
   '.pdf': 'document',
   '.doc': 'document',

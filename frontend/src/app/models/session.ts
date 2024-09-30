@@ -1,5 +1,6 @@
 import { ChatMessage } from "./chat-message";
 export interface Session {
+    name?: string;
     userId: string | null;
     history: ChatMessage[];
     files: File[];
@@ -9,6 +10,7 @@ export interface Session {
 }
 
 export const createNewSession = (): Session => ({
+  name: '(new session)',
   userId: '',
   history: [
     {

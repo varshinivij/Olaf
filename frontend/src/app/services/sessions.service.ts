@@ -11,16 +11,18 @@ import {
   doc,
   query,
   where,
-  deleteDoc
+  deleteDoc,
 } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SessionsService {
-
-  constructor(private firestore: Firestore, private userService: UserService) {
+  constructor(
+    private firestore: Firestore,
+    private userService: UserService,
+  ) {
     this.loadUserSessions();
   }
 
@@ -32,22 +34,29 @@ export class SessionsService {
   }
 
   changeUserSessionById(id: string) {
-    this.activeSession = this.userSessions.find((session) => session.id === id) || createNewSession();
+    this.activeSession =
+      this.userSessions.find((session) => session.id === id) ||
+      createNewSession();
   }
 
   async saveActiveSession() {
-    console.log("saving");
+    console.log('saving');
     await this.ensureUserIsSet();
-    console.log("user set");
-    console.log(this.activeSession.id)
+    console.log('user set');
+    console.log(this.activeSession.id);
     if (!this.activeSession.id || this.activeSession.id === '') {
       //this is a double write below - we should refactor this to only write once
       const newSessionRef = await this.addNewSession(this.activeSession);
       this.activeSession.id = newSessionRef.id;
       console.log(this.activeSession.id);
       await this.userSessions.push(this.activeSession);
-    } 
+    }
     await this.updateSession(this.activeSession);
+  }
+
+  renameSession(session: Session, name: string) {
+    session.name = name;
+    this.updateSession(session);
   }
 
   private async ensureUserIsSet() {
@@ -60,7 +69,7 @@ export class SessionsService {
   }
 
   private addNewSession(session: Session) {
-    console.log("adding");
+    console.log('adding');
     return addDoc(collection(this.firestore, 'sessions'), session);
   }
 
@@ -71,18 +80,18 @@ export class SessionsService {
   private async queryUserSessions(userId: string) {
     const sessionsQuery = query(
       collection(this.firestore, 'sessions'),
-      where('userId', '==', userId)
+      where('userId', '==', userId),
     );
     const sessionsSnapshot = await getDocs(sessionsQuery);
-    return sessionsSnapshot.docs.map(doc => doc.data() as Session);
+    return sessionsSnapshot.docs.map((doc) => doc.data() as Session);
   }
 
   /** Load all sessions for the current user */
   async loadUserSessions() {
-    console.log("loading");
-    const currentUser = await firstValueFrom(this.userService.getCurrentUser())
+    console.log('loading');
+    const currentUser = await firstValueFrom(this.userService.getCurrentUser());
     if (currentUser) {
-      console.log("user found");
+      console.log('user found');
       this.userSessions = await this.queryUserSessions(currentUser.id);
       console.log(this.userSessions);
     }
@@ -104,8 +113,10 @@ export class SessionsService {
 
   async deleteSession(sessionId: string) {
     await deleteDoc(doc(this.firestore, 'sessions', sessionId));
-    
-    this.userSessions = this.userSessions.filter(session => session.id !== sessionId);
+
+    this.userSessions = this.userSessions.filter(
+      (session) => session.id !== sessionId,
+    );
 
     if (this.activeSession.id === sessionId) {
       this.newSession();
