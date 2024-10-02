@@ -10,7 +10,7 @@ export interface Session {
 }
 
 export const createNewSession = (): Session => ({
-  name: '(new session)',
+  name: '<untitled session>',
   userId: '',
   history: [
     {

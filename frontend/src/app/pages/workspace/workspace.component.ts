@@ -13,11 +13,8 @@ import { ChatService } from '../../services/chat.service';
 import { FileStorageService } from '../../services/file-storage.service';
 import { SandboxService } from '../../services/sandbox.service';
 import { SessionsService } from '../../services/sessions.service';
-import { UploadService } from '../../services/upload.service';
-import { UserService } from '../../services/user.service';
 
 import { ChatMessage } from '../../models/chat-message';
-import { CodeStream } from '../../models/code-stream';
 import { Session } from '../../models/session';
 import { UserFile } from '../../models/user-file';
 
@@ -165,11 +162,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   userFiles: UserFile[] = [];
   selectedUploadFiles: File[] = [];
 
-  codeStream: CodeStream = {
-    isOpen: false,
-    buffer: '',
-  };
-
   // message scheme ONLY FOR REFERENCE
   // messages: ChatMessage[] = [
   //   {
@@ -219,10 +211,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    * @param fileUrl storage download link url of the file
    */
   async addFirebaseFileToSandbox(file: UserFile) {
-    if (!this.isConnected) {
-      await this.connectToSandbox();
-    }
-
     const uploadText = `Uploaded ${file.name}`;
     const uploadMessage: ChatMessage = {
       type: 'text',
@@ -231,6 +219,11 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     };
     this.sessionsService.addMessageToActiveSession(uploadMessage);
     this.loading = true;
+
+    if (!this.isConnected) {
+      await this.connectToSandbox();
+    }
+
     const filePath = file.storageLink;
     console.log('adding file to sandbox ' + filePath);
     this.sandboxService.addFirebaseFilesToSandBox([filePath]).subscribe(
@@ -246,7 +239,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   }
 
   async connectToSandbox() {
-    this.loading = true;
     try {
       if (this.sessionsService.activeSession.sandboxId) {
         await this.checkSandboxConnection();
@@ -258,8 +250,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       await delay(1000);
     } catch (error) {
       console.error('Error connecting to sandbox:', error);
-    } finally {
-      this.loading = false;
     }
     window.addEventListener('unload', () => this.sandboxService.closeSandbox());
   }
@@ -282,7 +272,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   private onSandboxConnected() {
     this.isConnected = true;
-    this.loading = false;
     if (this.sessionsService.activeSession.sandboxId) {
       this.sandboxService.setSandboxId(
         this.sessionsService.activeSession.sandboxId,
@@ -299,13 +288,11 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       this.onSandboxCreated();
     } catch (error) {
       console.error('Error:', error);
-      this.loading = false;
     }
   }
 
   private onSandboxCreated() {
     this.isConnected = true;
-    this.loading = false;
     console.log(this.sandboxService.getSandboxId());
   }
 
@@ -317,8 +304,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       const userMessage: ChatMessage = {
         type: 'text',
         role: 'user',
-        content: message,
-        isLive: true,
+        content: message
       };
       await this.sessionsService.addMessageToActiveSession(userMessage);
     }
@@ -331,9 +317,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     const message = this.newMessage;
     this.newMessage = '';
 
-    if (!this.isConnected) {
-      await this.connectToSandbox();
-    }
     if (message.trim()) {
       console.log(this.sessionsService.activeSession.history);
 
@@ -407,13 +390,19 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  executeLatestCode(): void {
+  async executeLatestCode() {
     const history = this.sessionsService.activeSession.history;
     const latestCodeMessage = history
       .slice()
       .reverse()
       .find((message) => message.type === 'code');
     if (latestCodeMessage) {
+      this.executingCode = true;
+
+      if (!this.isConnected) {
+        await this.connectToSandbox();
+      }
+
       let code = this.extractCode(latestCodeMessage.content);
       this.executeCode(code);
     }
@@ -428,27 +417,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  continue() {
-    this.loading = true;
-    this.chatService
-      .sendMessage(this.sessionsService.activeSession.history)
-      .subscribe(
-        (response: ChatMessage[]) => {
-          this.sessionsService.activeSession.history = [
-            ...this.sessionsService.activeSession.history,
-            ...response,
-          ];
-          this.loading = false;
-        },
-        (error) => {
-          console.error('Error:', error);
-          this.loading = false;
-        },
-      );
-  }
-
   executeCode(code: string) {
-    this.executingCode = true;
     this.sandboxService.executeCode(code).subscribe(
       (result: any) => {
         console.log(result);
@@ -488,18 +457,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         this.executingCode = false;
       },
     );
-  }
-
-  processResponse(response: ChatMessage[]) {
-    response.forEach((message) => {
-      if (message.type === 'code') {
-        this.executeCode(message.content);
-      }
-    });
-  }
-
-  convertNewlinesToBr(text: string): string {
-    return text.replace(/\n/g, '<br>');
   }
 
   extractCode(response: string): string {
