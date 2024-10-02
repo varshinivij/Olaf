@@ -75,7 +75,7 @@ export class FileStorageService {
     );
   }
 
-  getFiles(): Observable<UserFile[] | null> {
+  getFiles(): Observable<UserFile[]> {
     return this.files$;
   }
 

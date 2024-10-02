@@ -39,11 +39,9 @@ body {
   background-position: 50%;
   transition: background-color 0.2s ease;
   border-radius: 4px;
-
   &:hover {
     background-color: hsl(0 0% 90%);
   }
-
   &.gutter-horizontal {
     background-image: url("../public/assets/vertical-dots.svg");
     cursor: col-resize;

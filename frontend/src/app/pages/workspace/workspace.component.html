@@ -100,7 +100,7 @@
   <!-- chat interface -->
   <div
     id="main-content"
-    class="flex flex-col px-4 py-3 bg-foreground rounded-md gap-y-2"
+    class="flex flex-col px-4 py-3 bg-foreground rounded-md gap-y-2 overflow-x-auto"
   >
     <!-- top header row -->
     <div class="flex-none flex -mx-1 items-center gap-x-1">
@@ -170,7 +170,7 @@
       }
       <!-- empty session state -->
       @empty {
-        @if (!loading) {
+        @if (!responseLoading) {
           <img
             src="assets/twocube-logo-gray-bg.svg"
             class="mt-auto h-12 rounded-lg"
@@ -181,13 +181,11 @@
         }
       }
       <!-- loading state -->
-      @if (loading) {
+      @if (responseLoading) {
         <div class="flex pb-1 justify-center gap-x-2">
-        <div hlmSmall hlmMuted class="break-words">
-          Waiting for agent...
+          <div hlmSmall hlmMuted class="break-words">Waiting for agent...</div>
+          <hlm-spinner size="xs" />
         </div>
-        <hlm-spinner size="xs" />
-      </div>
       }
     </div>
     <!-- chat bar -->
@@ -302,7 +300,7 @@
           }
           <!-- result block -->
           @else if (message.type === "result") {
-            <pre><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md"></code></pre>
+            <pre><code hlmSmall [highlight]="message.content" language="html" class="bg-transparent border rounded-md"></code></pre>
           }
           <!-- image block -->
           @else if (message.type === "image") {
@@ -340,22 +338,60 @@
     </div>
     <!-- files tab content -->
     <div hlmTabsContent="files" class="h-full overflow-y-auto">
-      <!-- files list -->
-      <div class="flex flex-col h-full p-3 border rounded-md gap-y-1">
+      <div
+        class="flex flex-col h-full p-3 border rounded-md overflow-x-auto gap-y-1.5"
+      >
         <div hlmSmall class="text-destructive">
           Warning: This feature is in development and files currently do not
           persist across logins.
         </div>
+        <!-- files list -->
         @for (file of this.userFiles; track file.id) {
-          <div class="flex justify-between px-2 py-1 bg-muted rounded-md">
+          <div class="flex items-center gap-x-2">
+            <hlm-icon
+              size="sm"
+              [name]="getLucideIconFromType(file.type)"
+              class="flex-none"
+            />
             <div hlmSmall class="truncate">{{ file.name }}</div>
-            <button
-              hlmSmall
-              class="flex-none text-green-500"
-              (click)="addFirebaseFileToSandbox(file)"
-            >
-              Upload file
-            </button>
+            <!-- file not added state, potentially loading -->
+            @if (!uploadedFiles.has(file.id)) {
+              <button
+                hlmBtn
+                hlmSmall
+                variant="ghost"
+                size="xs"
+                class="flex-none ml-auto gap-x-2"
+                (click)="addFirebaseFileToSandbox(file)"
+              >
+                Add to project
+                <hlm-icon
+                  size="xs"
+                  [name]="
+                    loadingUploadedFiles.has(file.id)
+                      ? 'lucideLoaderCircle'
+                      : 'lucideArrowUpFromLine'
+                  "
+                  [ngClass]="{
+                    'animate-spin': loadingUploadedFiles.has(file.id),
+                  }"
+                />
+              </button>
+            }
+            <!-- file already added state -->
+            @else {
+              <button
+                hlmBtn
+                hlmSmall
+                variant="ghost"
+                size="xs"
+                class="flex-none ml-auto gap-x-2 text-green-500"
+                (click)="addFirebaseFileToSandbox(file)"
+              >
+                File added
+                <hlm-icon size="xs" name="lucideCheck" />
+              </button>
+            }
           </div>
         }
         <!-- empty state -->

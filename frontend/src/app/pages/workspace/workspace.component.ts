@@ -15,6 +15,7 @@ import { SandboxService } from '../../services/sandbox.service';
 import { SessionsService } from '../../services/sessions.service';
 
 import { ChatMessage } from '../../models/chat-message';
+import { getLucideIconFromType } from '../../models/extension-type';
 import { Session } from '../../models/session';
 import { UserFile } from '../../models/user-file';
 
@@ -27,9 +28,19 @@ import { PlanMessagePipe } from '../../pipes/planmessage.pipe';
 // icon imports
 import { provideIcons } from '@ng-icons/core';
 import {
+  lucideArrowUpFromLine,
+  lucideCheck,
   lucideCircleStop,
+  lucideCode,
   lucideEllipsisVertical,
+  lucideFileArchive,
+  lucideFileChartColumn,
+  lucideFileCode,
+  lucideFileQuestion,
+  lucideFileText,
+  lucideFolder,
   lucideHouse,
+  lucideLoaderCircle,
   lucidePanelLeftDashed,
   lucidePencil,
   lucidePlus,
@@ -137,9 +148,19 @@ import {
   ],
   providers: [
     provideIcons({
+      lucideArrowUpFromLine,
+      lucideCheck,
       lucideCircleStop,
+      lucideCode,
       lucideEllipsisVertical,
+      lucideFileArchive,
+      lucideFileChartColumn,
+      lucideFileCode,
+      lucideFileQuestion,
+      lucideFileText,
+      lucideFolder,
       lucideHouse,
+      lucideLoaderCircle,
       lucidePanelLeftDashed,
       lucidePencil,
       lucidePlus,
@@ -153,14 +174,18 @@ import {
 export class WorkspaceComponent implements OnInit, OnDestroy {
   fileStorageSubscription?: Subscription;
   adjustTextareaHeight = adjustTextareaHeight;
+  getLucideIconFromType = getLucideIconFromType;
 
   newMessage: string = ''; // ngModel variable
   newSessionName: string = ''; // ngModel variable
-  loading: boolean = false;
+  responseLoading: boolean = false;
   executingCode: boolean = false;
   isConnected: boolean = false;
   userFiles: UserFile[] = [];
-  selectedUploadFiles: File[] = [];
+
+  // a bit ugly of a solution but we're going to rework files soon anyway.
+  uploadedFiles: Set<UserFile["id"]> = new Set();
+  loadingUploadedFiles: Set<UserFile["id"]> = new Set();
 
   // message scheme ONLY FOR REFERENCE
   // messages: ChatMessage[] = [
@@ -192,8 +217,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     this.fileStorageSubscription = this.fileStorageService
       .getFiles()
       .subscribe((files) => {
-        console.log(files);
-        this.userFiles = files || [];
+        this.userFiles = files;
       });
   }
 
@@ -218,7 +242,8 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       content: uploadText,
     };
     this.sessionsService.addMessageToActiveSession(uploadMessage);
-    this.loading = true;
+    this.responseLoading = true;
+    this.loadingUploadedFiles.add(file.id);
 
     if (!this.isConnected) {
       await this.connectToSandbox();
@@ -228,12 +253,15 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     console.log('adding file to sandbox ' + filePath);
     this.sandboxService.addFirebaseFilesToSandBox([filePath]).subscribe(
       (response: any) => {
-        console.log(response);
-        this.loading = false;
+        console.log('add file response: ', response);
+        this.uploadedFiles.add(file.id);
+        this.responseLoading = false;
+        this.loadingUploadedFiles.delete(file.id);
       },
       (error) => {
         console.error('Error:', error);
-        this.loading = false;
+        this.responseLoading = false;
+        this.loadingUploadedFiles.delete(file.id);
       },
     );
   }
@@ -266,7 +294,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       }
     } catch (error) {
       console.error('Error:', error);
-      this.loading = false;
+      this.responseLoading = false;
     }
   }
 
@@ -293,7 +321,8 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   private onSandboxCreated() {
     this.isConnected = true;
-    console.log(this.sandboxService.getSandboxId());
+    this.uploadedFiles.clear();
+    console.log('created sandbox id:', this.sandboxService.getSandboxId());
   }
 
   /**
@@ -304,7 +333,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       const userMessage: ChatMessage = {
         type: 'text',
         role: 'user',
-        content: message
+        content: message,
       };
       await this.sessionsService.addMessageToActiveSession(userMessage);
     }
@@ -318,9 +347,12 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     this.newMessage = '';
 
     if (message.trim()) {
-      console.log(this.sessionsService.activeSession.history);
+      console.log(
+        'curr session history: ',
+        this.sessionsService.activeSession.history,
+      );
 
-      this.loading = true;
+      this.responseLoading = true;
       await this.addUserMessage(message);
 
       let responseType:
@@ -337,7 +369,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         type: responseType,
         role: 'assistant',
         content: '', // Initially empty
-        isLive: true,
       };
       // Add the placeholder message to the session and store a reference to it
       await this.sessionsService.addMessageToActiveSession(responseMessage);
@@ -380,11 +411,11 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
           },
           error: (error) => {
             console.error('Error:', error);
-            this.loading = false;
+            this.responseLoading = false;
           },
           complete: () => {
-            this.loading = false;
-            this.sessionsService.saveActiveSession()
+            this.responseLoading = false;
+            this.sessionsService.saveActiveSession();
             this.executeLatestCode();
           },
         });
@@ -421,7 +452,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   executeCode(code: string) {
     this.sandboxService.executeCode(code).subscribe(
       (result: any) => {
-        console.log(result);
+        console.log('code result: ', result);
         // if result stdout is not empty, add it to the chat
         if (result.logs.stdout && result.logs.stdout.length > 0) {
           const stdoutContent = result.logs.stdout.join('\n');

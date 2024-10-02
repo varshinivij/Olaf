@@ -2,8 +2,6 @@
 // 1) upload entire folders at once
 // 2) check for dupe file names
 //    and rename them like "file1.txt -> file1(1).txt or similar."
-// 3) Maybe move "create folder" over here so that it can also put
-// it in the upload queue.
 
 // Separate service for uploading files/folders specifically for user file
 // storage system, exposes an "upload queue" w/ real-time upload progress.
