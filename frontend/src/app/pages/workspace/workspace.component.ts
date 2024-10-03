@@ -214,6 +214,12 @@ export class WorkspaceComponent implements AfterViewInit {
         const width = this.sidebar?.nativeElement.offsetWidth;
         this.collapsed = width <= 85;
       },
+      onDragStart: () => {
+        this.sidebar?.nativeElement.classList.remove('transition-[width]');
+      },
+      onDragEnd: () => {
+        this.sidebar?.nativeElement.classList.add('transition-[width]');
+      },
     });
   }
 
