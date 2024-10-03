@@ -11,11 +11,17 @@
       [ngClass]="{ 'justify-center': collapsed }"
     >
       @if (!collapsed) {
-        <img src="assets/twocube-logo-black-bg.png" class="flex-none w-8 h-8 rounded-lg" />
+        <img
+          src="assets/twocube-logo-black-bg.png"
+          class="flex-none w-8 h-8 rounded-lg"
+        />
         <div hlmLarge class="mr-auto truncate">Twocube</div>
       }
       <button hlmBtn variant="ghost" size="icon" (click)="toggleSidebar()">
-        <hlm-icon size="sm" name="lucidePanelLeftDashed" />
+        <hlm-icon
+          size="sm"
+          [name]="collapsed ? 'lucidePanelLeftOpen' : 'lucidePanelLeftClose'"
+        />
       </button>
     </div>
     <hr hlmSeparator />
