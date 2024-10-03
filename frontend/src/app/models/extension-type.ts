@@ -86,9 +86,8 @@ export const ExtensionTypeMap = {
   '.odt': 'document',
   '.ods': 'document',
   '.odp': 'document',
-
-  '.txt': 'text',
-  '.md': 'text',
+  '.txt': 'document',
+  '.md': 'document',
 } as const;
 
 export type ExtensionType =
@@ -100,7 +99,7 @@ const typeImageMap: Partial<{ [T in ExtensionType]: string }> = {
   dataset: 'assets/file-type-dataset.svg',
   folder: 'assets/file-type-folder.svg',
   model: 'assets/file-type-model.svg',
-  text: 'assets/file-type-text.svg',
+  document: 'assets/file-type-text.svg',
   unknown: 'assets/file-type-unknown.svg',
 };
 
@@ -121,7 +120,7 @@ const TypeLucideIconMap: Partial<{ [T in ExtensionType]: string }> = {
   dataset: 'lucideFileChartColumn',
   folder: 'lucideFolder',
   model: 'lucideFileArchive',
-  text: 'lucideFileText',
+  document: 'lucideFileText',
   unknown: 'lucideFileQuestion',
 };
 

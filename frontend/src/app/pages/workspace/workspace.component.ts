@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpEventType } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -19,11 +19,11 @@ import { getLucideIconFromType } from '../../models/extension-type';
 import { Session } from '../../models/session';
 import { UserFile } from '../../models/user-file';
 
-import { adjustTextareaHeight } from '../../utils/adjust-textarea-height';
-import { delay } from '../../utils/time-utils';
-
 import { CodeMessagePipe } from '../../pipes/codemessage.pipe';
 import { PlanMessagePipe } from '../../pipes/planmessage.pipe';
+
+import { adjustTextareaHeight } from '../../utils/adjust-textarea-height';
+import { delay } from '../../utils/time-utils';
 
 // icon imports
 import { provideIcons } from '@ng-icons/core';
@@ -102,9 +102,9 @@ import {
   imports: [
     CommonModule,
     FormsModule,
-    Highlight,
-    PlanMessagePipe,
     CodeMessagePipe,
+    PlanMessagePipe,
+    Highlight,
 
     HlmButtonDirective,
 
@@ -171,20 +171,20 @@ import {
     }),
   ],
 })
-export class WorkspaceComponent implements OnInit, OnDestroy {
-  fileStorageSubscription?: Subscription;
+export class WorkspaceComponent implements AfterViewInit {
+  @ViewChild('sidebar') sidebar?: ElementRef;
   adjustTextareaHeight = adjustTextareaHeight;
   getLucideIconFromType = getLucideIconFromType;
+  split?: Split.Instance;
 
+  collapsed = false; // sidebar
   newMessage: string = ''; // ngModel variable
   newSessionName: string = ''; // ngModel variable
   responseLoading: boolean = false;
   executingCode: boolean = false;
   isConnected: boolean = false;
-  userFiles: UserFile[] = [];
-
   // a bit ugly of a solution but we're going to rework files soon anyway.
-  uploadedFiles: Set<UserFile["id"]> = new Set();
+  uploadedFiles: Set<UserFile['id']> = new Set();
 
   // message scheme ONLY FOR REFERENCE
   // messages: ChatMessage[] = [
@@ -198,30 +198,32 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   constructor(
     public router: Router,
     private chatService: ChatService,
-    private fileStorageService: FileStorageService,
+    public fileStorageService: FileStorageService,
     private sandboxService: SandboxService,
     public sessionsService: SessionsService,
   ) {}
 
   ngAfterViewInit() {
-    Split(['#sidebar', '#main-content', '#den-sidebar'], {
-      sizes: [20, 45, 35], // Initial sizes of the columns in percentage
-      minSize: [200, 200, 300], // Minimum size of each column in pixels
-      gutterSize: 12, // Size of the gutter (the draggable area between columns)
-      snapOffset: 0,
+    this.split = Split(['#sidebar', '#main-content', '#den-sidebar'], {
+      sizes: [20, 45, 35], // initial size of columns (default %)
+      minSize: [60, 300, 300], // minimum size of each column (default px)
+      gutterSize: 12, // size of the draggable slider (default px)
+      snapOffset: 0, // snap to min size offset (default px)
+      onDrag: () => {
+        // collapsed is true if width smaller than a threshold (px)
+        const width = this.sidebar?.nativeElement.offsetWidth;
+        this.collapsed = width <= 85;
+      },
     });
   }
 
-  ngOnInit() {
-    this.fileStorageSubscription = this.fileStorageService
-      .getFiles()
-      .subscribe((files) => {
-        this.userFiles = files;
-      });
-  }
-
-  ngOnDestroy() {
-    this.fileStorageSubscription?.unsubscribe();
+  toggleSidebar() {
+    if (!this.collapsed) {
+      this.split?.collapse(0);
+    } else {
+      this.split?.setSizes([20, 45, 35]);
+    }
+    this.collapsed = !this.collapsed;
   }
 
   renameSession(session: Session) {
@@ -286,6 +288,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       if (response.alive) {
         this.onSandboxConnected();
       } else {
+        this.uploadedFiles.clear();
         await this.createSandbox();
       }
     } catch (error) {
@@ -317,7 +320,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   private onSandboxCreated() {
     this.isConnected = true;
-    this.uploadedFiles.clear();
     console.log('created sandbox id:', this.sandboxService.getSandboxId());
   }
 
@@ -339,15 +341,14 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    * Send a message to the generalist chat service
    */
   async sendMessage() {
-    const message = this.newMessage;
-    this.newMessage = '';
-
-    if (message.trim() && !this.responseLoading) {
+    if (this.newMessage.trim() && !this.responseLoading) {
       console.log(
         'curr session history: ',
         this.sessionsService.activeSession.history,
       );
 
+      const message = this.newMessage;
+      this.newMessage = '';
       this.responseLoading = true;
       await this.addUserMessage(message);
 

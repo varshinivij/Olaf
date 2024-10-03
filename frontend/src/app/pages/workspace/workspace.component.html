@@ -1,11 +1,20 @@
 <div class="flex h-screen p-3 bg-background">
   <!-- sidebar -->
-  <div id="sidebar" class="flex flex-col p-3 bg-foreground rounded-md gap-y-2">
+  <div
+    #sidebar
+    id="sidebar"
+    class="flex flex-col p-3 bg-foreground rounded-md gap-y-2"
+  >
     <!-- header/collapse button row -->
-    <div class="flex-none flex items-center gap-x-2.5">
-      <img src="assets/twocube-logo-black-bg.png" class="h-8 rounded-lg" />
-      <div hlmLarge>Twocube</div>
-      <button brnToggle hlmToggle size="sm" class="ml-auto px-1.5">
+    <div
+      class="flex-none flex items-center gap-x-2.5 overflow-x-hidden"
+      [ngClass]="{ 'justify-center': collapsed }"
+    >
+      @if (!collapsed) {
+        <img src="assets/twocube-logo-black-bg.png" class="flex-none w-8 h-8 rounded-lg" />
+        <div hlmLarge class="mr-auto truncate">Twocube</div>
+      }
+      <button hlmBtn variant="ghost" size="icon" (click)="toggleSidebar()">
         <hlm-icon size="sm" name="lucidePanelLeftDashed" />
       </button>
     </div>
@@ -15,77 +24,92 @@
       hlmBtn
       variant="secondary"
       size="sm"
-      class="flex-none justify-start pl-2 gap-x-2"
+      class="flex-none justify-start pl-2 gap-x-2 truncate"
       (click)="sessionsService.newSession()"
     >
-      <hlm-icon size="sm" name="lucidePlus" />
-      New Session
+      <hlm-icon size="sm" name="lucidePlus" class="flex-none" />
+      @if (!collapsed) {
+        <div class="truncate">New Session</div>
+      }
     </button>
     <!-- sessions list -->
-    <div class="flex flex-col gap-y-1 overflow-y-auto">
-      @for (session of sessionsService.userSessions; track session.id) {
-        <button
-          hlmBtn
-          [variant]="
-            sessionsService.activeSession.id === session.id
-              ? 'secondary'
-              : 'ghost'
-          "
-          size="sm"
-          class="justify-between pl-3 pr-0"
-          (click)="sessionsService.changeUserSessionById(session.id)"
-        >
-          <div class="truncate">
-            {{ session.name || "&125;untitled session>" }}
-          </div>
-          <button hlmBtn variant="float" size="icon" [brnMenuTriggerFor]="menu">
-            <hlm-icon size="xs" name="lucideEllipsisVertical" />
-          </button>
-          <hlm-dialog class="absolute">
-            <!-- session options menu -->
-            <ng-template #menu>
-              <hlm-menu>
-                <button hlmMenuItem brnDialogTrigger>
-                  <hlm-icon name="lucidePencil" hlmMenuIcon />
-                  Rename
-                </button>
-                <button
-                  hlmMenuItem
-                  class="text-destructive hover:text-destructive"
-                  (click)="sessionsService.deleteSession(session.id)"
-                >
-                  <hlm-icon name="lucideTrash2" hlmMenuIcon />
-                  Delete
-                </button>
-              </hlm-menu>
-            </ng-template>
-            <!-- rename session dialog -->
-            <hlm-dialog-content *brnDialogContent="let ctx">
-              <hlm-dialog-header>
-                <div hlmDialogTitle>Rename Session</div>
-              </hlm-dialog-header>
-              <input
-                hlmInput
-                size="sm"
-                class="w-96"
-                [(ngModel)]="newSessionName"
-              />
-              <hlm-dialog-footer>
-                <button hlmBtn brnDialogClose size="sm">Cancel</button>
-                <button
-                  hlmBtn
-                  brnDialogClose
+    @if (!collapsed) {
+      <div class="flex flex-col gap-y-1 overflow-y-auto">
+        @for (session of sessionsService.userSessions; track session.id) {
+          <button
+            hlmBtn
+            [variant]="
+              sessionsService.activeSession.id === session.id
+                ? 'secondary'
+                : 'ghost'
+            "
+            size="sm"
+            class="justify-between pl-3 pr-0"
+            (click)="sessionsService.changeUserSessionById(session.id)"
+          >
+            <div class="truncate">
+              {{ session.name || "&125;untitled session>" }}
+            </div>
+            <button
+              hlmBtn
+              variant="float"
+              size="icon"
+              [brnMenuTriggerFor]="menu"
+            >
+              <hlm-icon size="xs" name="lucideEllipsisVertical" />
+            </button>
+            <hlm-dialog class="absolute">
+              <!-- session options menu -->
+              <ng-template #menu>
+                <hlm-menu>
+                  <button
+                    hlmMenuItem
+                    brnDialogTrigger
+                    (click)="
+                      newSessionName = session.name || '<untitled session>'
+                    "
+                  >
+                    <hlm-icon name="lucidePencil" hlmMenuIcon />
+                    Rename
+                  </button>
+                  <button
+                    hlmMenuItem
+                    class="text-destructive hover:text-destructive"
+                    (click)="sessionsService.deleteSession(session.id)"
+                  >
+                    <hlm-icon name="lucideTrash2" hlmMenuIcon />
+                    Delete
+                  </button>
+                </hlm-menu>
+              </ng-template>
+              <!-- rename session dialog -->
+              <hlm-dialog-content *brnDialogContent="let ctx">
+                <hlm-dialog-header>
+                  <div hlmDialogTitle>Rename Session</div>
+                </hlm-dialog-header>
+                <input
+                  hlmInput
                   size="sm"
-                  (click)="renameSession(session)"
-                >
-                  Save
-                </button>
-              </hlm-dialog-footer>
-            </hlm-dialog-content>
-          </hlm-dialog>
-        </button>
-      }
-    </div>
+                  class="w-96"
+                  [(ngModel)]="newSessionName"
+                />
+                <hlm-dialog-footer>
+                  <button hlmBtn brnDialogClose size="sm">Cancel</button>
+                  <button
+                    hlmBtn
+                    brnDialogClose
+                    size="sm"
+                    (click)="renameSession(session)"
+                  >
+                    Save
+                  </button>
+                </hlm-dialog-footer>
+              </hlm-dialog-content>
+            </hlm-dialog>
+          </button>
+        }
+      </div>
+    }
     <!-- project settings button -->
     <button
       hlmBtn
@@ -93,8 +117,10 @@
       size="sm"
       class="flex-none justify-start mt-auto pl-2 gap-x-2"
     >
-      <hlm-icon size="sm" name="lucideSettings" />
-      Project Settings
+      <hlm-icon size="sm" name="lucideSettings" class="flex-none" />
+      @if (!collapsed) {
+        <div class="truncate">Project Settings</div>
+      }
     </button>
   </div>
   <!-- chat interface -->
@@ -344,14 +370,17 @@
     <!-- files tab content -->
     <div hlmTabsContent="files" class="h-full overflow-y-auto">
       <div
-        class="flex flex-col h-full p-3 border rounded-md overflow-x-auto gap-y-1.5"
+        class="flex flex-col h-full p-3 border rounded-md gap-y-1.5 overflow-x-auto"
       >
         <div hlmSmall class="text-destructive">
           Warning: This feature is currently in development and files do not
           persist after refresh.
         </div>
         <!-- files list -->
-        @for (file of this.userFiles; track file.id) {
+        @for (
+          file of this.fileStorageService.getFiles() | async;
+          track file.id
+        ) {
           <div class="flex items-center gap-x-2">
             <hlm-icon
               size="sm"
