@@ -100,7 +100,7 @@
   <!-- chat interface -->
   <div
     id="main-content"
-    class="flex flex-col px-4 py-3 bg-foreground rounded-md gap-y-2 overflow-x-auto"
+    class="flex flex-col px-4 py-3 bg-foreground rounded-md gap-y-2"
   >
     <!-- top header row -->
     <div class="flex-none flex -mx-1 items-center gap-x-1">
@@ -193,22 +193,24 @@
     </div>
     <!-- chat bar -->
     <div class="flex-none relative mt-auto">
+      <!-- using event-binding voodoo to make the textarea dynamically resize. -->
       <textarea
+        #chatBar
         hlmInput
         placeholder="Ask Twocube... (shift + enter for new line)"
         class="w-full max-h-40 pr-10 py-2.5 bg-accent border-0"
         [(ngModel)]="newMessage"
-        (input)="adjustTextareaHeight($event)"
-        (keydown.enter)="
-          $event.preventDefault(); sendMessage(); adjustTextareaHeight($event)
-        "
+        (keydown.enter)="$event.preventDefault(); sendMessage()"
+        (keyup.enter)="adjustTextareaHeight(chatBar)"
+        (input)="adjustTextareaHeight(chatBar)"
       ></textarea>
       <button
         hlmBtn
         variant="float"
         size="icon"
         class="absolute bottom-1 right-1"
-        (click)="sendMessage(); adjustTextareaHeight($event)"
+        (mousedown)="sendMessage()"
+        (mouseup)="adjustTextareaHeight(chatBar)"
       >
         <hlm-icon size="sm" name="lucideSendHorizontal" />
       </button>
@@ -365,20 +367,14 @@
                 variant="ghost"
                 size="xs"
                 class="flex-none ml-auto gap-x-2"
-                (click)="addFirebaseFileToSandbox(file)"
+                (click)="
+                  addFirebaseFileToSandbox(file);
+                  icon.name = 'lucideLoaderCircle';
+                  icon.class = 'animate-spin'
+                "
               >
                 Add to project
-                <hlm-icon
-                  size="xs"
-                  [name]="
-                    loadingUploadedFiles.has(file.id)
-                      ? 'lucideLoaderCircle'
-                      : 'lucideArrowUpFromLine'
-                  "
-                  [ngClass]="{
-                    'animate-spin': loadingUploadedFiles.has(file.id),
-                  }"
-                />
+                <hlm-icon #icon size="xs" name="lucideArrowUpFromLine" />
               </button>
             }
             <!-- file already added state -->

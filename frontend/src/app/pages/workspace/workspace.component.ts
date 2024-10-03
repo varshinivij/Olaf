@@ -185,7 +185,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   // a bit ugly of a solution but we're going to rework files soon anyway.
   uploadedFiles: Set<UserFile["id"]> = new Set();
-  loadingUploadedFiles: Set<UserFile["id"]> = new Set();
 
   // message scheme ONLY FOR REFERENCE
   // messages: ChatMessage[] = [
@@ -243,7 +242,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     };
     this.sessionsService.addMessageToActiveSession(uploadMessage);
     this.responseLoading = true;
-    this.loadingUploadedFiles.add(file.id);
 
     if (!this.isConnected) {
       await this.connectToSandbox();
@@ -256,12 +254,10 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         console.log('add file response: ', response);
         this.uploadedFiles.add(file.id);
         this.responseLoading = false;
-        this.loadingUploadedFiles.delete(file.id);
       },
       (error) => {
         console.error('Error:', error);
         this.responseLoading = false;
-        this.loadingUploadedFiles.delete(file.id);
       },
     );
   }
@@ -346,7 +342,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     const message = this.newMessage;
     this.newMessage = '';
 
-    if (message.trim()) {
+    if (message.trim() && !this.responseLoading) {
       console.log(
         'curr session history: ',
         this.sessionsService.activeSession.history,
