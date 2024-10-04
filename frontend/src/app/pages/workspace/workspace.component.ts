@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpEventType } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subscription, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 import { jsonrepair } from 'jsonrepair';
 import { Highlight } from 'ngx-highlightjs';
@@ -16,6 +16,7 @@ import { SessionsService } from '../../services/sessions.service';
 
 import { ChatMessage } from '../../models/chat-message';
 import { getLucideIconFromType } from '../../models/extension-type';
+import { Project } from '../../models/project';
 import { Session } from '../../models/session';
 import { UserFile } from '../../models/user-file';
 
@@ -42,7 +43,6 @@ import {
   lucideHouse,
   lucideLoaderCircle,
   lucidePanelLeftClose,
-  lucidePanelLeftDashed,
   lucidePanelLeftOpen,
   lucidePencil,
   lucidePlus,
@@ -179,24 +179,20 @@ export class WorkspaceComponent implements AfterViewInit {
   adjustTextareaHeight = adjustTextareaHeight;
   getLucideIconFromType = getLucideIconFromType;
   split?: Split.Instance;
-
   collapsed = false; // sidebar
+
+  currentProject: Project;
+  currentSession: Session;
   newMessage: string = ''; // ngModel variable
   newSessionName: string = ''; // ngModel variable
   responseLoading: boolean = false;
   executingCode: boolean = false;
   isConnected: boolean = false;
-  // a bit ugly of a solution but we're going to rework files soon anyway.
-  uploadedFiles: Set<UserFile['id']> = new Set();
 
-  // message scheme ONLY FOR REFERENCE
-  // messages: ChatMessage[] = [
-  //   {
-  //     type: 'text',
-  //     role: 'assistant',
-  //     content: 'Hello, how can I help you today?',
-  //   },
-  // ];
+  // a bit ugly of a solution but we're going to rework files soon anyway.
+  // this entire component needs serious refactoring on the chat/session side.
+  // perhaps some logic should be moved to sessionservice/chatservice.
+  uploadedFiles: Set<UserFile['id']> = new Set();
 
   constructor(
     public router: Router,
@@ -204,7 +200,18 @@ export class WorkspaceComponent implements AfterViewInit {
     public fileStorageService: FileStorageService,
     private sandboxService: SandboxService,
     public sessionsService: SessionsService,
-  ) {}
+  ) {
+    this.currentProject =
+      this.router.getCurrentNavigation()?.extras.state?.['project'];
+    if (this.currentProject === undefined) {
+      this.router.navigate(['dashboard']);
+    }
+    this.currentSession = sessionsService.blankSession(this.currentProject);
+  }
+
+  /*
+    Sidebar UI methods
+  */
 
   ngAfterViewInit() {
     this.split = Split(['#sidebar', '#main-content', '#den-sidebar'], {
@@ -235,10 +242,35 @@ export class WorkspaceComponent implements AfterViewInit {
     this.collapsed = !this.collapsed;
   }
 
+  /*
+    Session handling methods
+  */
+
+  newSession() {
+    this.currentSession = this.sessionsService.blankSession(
+      this.currentProject,
+    );
+  }
+
+  changeSession(session: Session) {
+    this.currentSession = session;
+  }
+
   renameSession(session: Session) {
     this.sessionsService.renameSession(session, this.newSessionName);
     this.newSessionName = '';
   }
+
+  deleteSession(session: Session) {
+    if (session.id === this.currentSession.id) {
+      this.newSession();
+    }
+    this.sessionsService.deleteSession(session);
+  }
+
+  /*
+    Session file upload/sandbox updating methods
+  */
 
   /**
    * Add a file to the e2b sandbox using the firebase storage link
@@ -251,7 +283,10 @@ export class WorkspaceComponent implements AfterViewInit {
       role: 'user',
       content: uploadText,
     };
-    this.sessionsService.addMessageToActiveSession(uploadMessage);
+    this.sessionsService.addMessageToSession(
+      this.currentSession,
+      uploadMessage,
+    );
     this.responseLoading = true;
 
     if (!this.isConnected) {
@@ -275,7 +310,7 @@ export class WorkspaceComponent implements AfterViewInit {
 
   async connectToSandbox() {
     try {
-      if (this.sessionsService.activeSession.sandboxId) {
+      if (this.currentSession.sandboxId) {
         await this.checkSandboxConnection();
       } else {
         await this.createSandbox();
@@ -308,10 +343,8 @@ export class WorkspaceComponent implements AfterViewInit {
 
   private onSandboxConnected() {
     this.isConnected = true;
-    if (this.sessionsService.activeSession.sandboxId) {
-      this.sandboxService.setSandboxId(
-        this.sessionsService.activeSession.sandboxId,
-      );
+    if (this.currentSession.sandboxId) {
+      this.sandboxService.setSandboxId(this.currentSession.sandboxId);
     }
   }
 
@@ -332,6 +365,10 @@ export class WorkspaceComponent implements AfterViewInit {
     console.log('created sandbox id:', this.sandboxService.getSandboxId());
   }
 
+  /*
+    Session chat/executing code methods
+  */
+
   /**
    * Add a new message to the active session from message bar
    **/
@@ -342,7 +379,10 @@ export class WorkspaceComponent implements AfterViewInit {
         role: 'user',
         content: message,
       };
-      await this.sessionsService.addMessageToActiveSession(userMessage);
+      await this.sessionsService.addMessageToSession(
+        this.currentSession,
+        userMessage,
+      );
     }
   }
 
@@ -351,10 +391,7 @@ export class WorkspaceComponent implements AfterViewInit {
    */
   async sendMessage() {
     if (this.newMessage.trim() && !this.responseLoading) {
-      console.log(
-        'curr session history: ',
-        this.sessionsService.activeSession.history,
-      );
+      console.log('curr session history: ', this.currentSession.history);
 
       const message = this.newMessage;
       this.newMessage = '';
@@ -377,59 +414,58 @@ export class WorkspaceComponent implements AfterViewInit {
         content: '', // Initially empty
       };
       // Add the placeholder message to the session and store a reference to it
-      await this.sessionsService.addMessageToActiveSession(responseMessage);
-      const messageIndex =
-        this.sessionsService.activeSession.history.length - 1; // Get the index of the added message
+      await this.sessionsService.addMessageToSession(
+        this.currentSession,
+        responseMessage,
+      );
+      const messageIndex = this.currentSession.history.length - 1; // Get the index of the added message
 
-      this.chatService
-        .sendMessage(this.sessionsService.activeSession.history)
-        .subscribe({
-          next: (event: any) => {
-            if (event.type === HttpEventType.DownloadProgress && event.loaded) {
-              const chunk = event.partialText || ''; // Handle the chunked text
+      this.chatService.sendMessage(this.currentSession.history).subscribe({
+        next: (event: any) => {
+          if (event.type === HttpEventType.DownloadProgress && event.loaded) {
+            const chunk = event.partialText || ''; // Handle the chunked text
 
-              if (responseContent === '') {
-                // First chunk is the type
-                responseType = chunk;
-                responseMessage.type = responseType;
-                responseContent += ' ';
-              } else {
-                // Append subsequent chunks to the content
-                responseContent = chunk;
-                if (
-                  responseType === 'text' ||
-                  responseType === 'code' ||
-                  responseType === 'plan'
-                ) {
-                  // Remove the first four letters from the content (the "code" identifier)
-                  responseContent = responseContent.slice(4).trim();
-                }
-                if (responseType === 'plan') {
-                  responseContent = jsonrepair(responseContent);
-                  const jsonData = JSON.parse(responseContent);
-                  responseContent = JSON.stringify(jsonData, null, 2);
-                }
-                this.sessionsService.activeSession.history[
-                  messageIndex
-                ].content = responseContent;
+            if (responseContent === '') {
+              // First chunk is the type
+              responseType = chunk;
+              responseMessage.type = responseType;
+              responseContent += ' ';
+            } else {
+              // Append subsequent chunks to the content
+              responseContent = chunk;
+              if (
+                responseType === 'text' ||
+                responseType === 'code' ||
+                responseType === 'plan'
+              ) {
+                // Remove the first four letters from the content (the "code" identifier)
+                responseContent = responseContent.slice(4).trim();
               }
+              if (responseType === 'plan') {
+                responseContent = jsonrepair(responseContent);
+                const jsonData = JSON.parse(responseContent);
+                responseContent = JSON.stringify(jsonData, null, 2);
+              }
+              this.currentSession.history[messageIndex].content =
+                responseContent;
             }
-          },
-          error: (error) => {
-            console.error('Error:', error);
-            this.responseLoading = false;
-          },
-          complete: () => {
-            this.responseLoading = false;
-            this.sessionsService.saveActiveSession();
-            this.executeLatestCode();
-          },
-        });
+          }
+        },
+        error: (error) => {
+          console.error('Error:', error);
+          this.responseLoading = false;
+        },
+        complete: () => {
+          this.responseLoading = false;
+          this.sessionsService.saveSession(this.currentSession);
+          this.executeLatestCode();
+        },
+      });
     }
   }
 
   async executeLatestCode() {
-    const history = this.sessionsService.activeSession.history;
+    const history = this.currentSession.history;
     const latestCodeMessage = history
       .slice()
       .reverse()
@@ -467,7 +503,10 @@ export class WorkspaceComponent implements AfterViewInit {
             role: 'assistant',
             content: stdoutContent,
           };
-          this.sessionsService.addMessageToActiveSession(codeResultMessage);
+          this.sessionsService.addMessageToSession(
+            this.currentSession,
+            codeResultMessage,
+          );
         }
         if (result.results && result.results.length > 0) {
           if (result.results[0]['image/png']) {
@@ -477,7 +516,10 @@ export class WorkspaceComponent implements AfterViewInit {
               role: 'assistant',
               content: base64Image,
             };
-            this.sessionsService.addMessageToActiveSession(imageMessage);
+            this.sessionsService.addMessageToSession(
+              this.currentSession,
+              imageMessage,
+            );
           }
         }
         if (result.error && result.error.length > 0) {
@@ -486,7 +528,10 @@ export class WorkspaceComponent implements AfterViewInit {
             role: 'assistant',
             content: result.error,
           };
-          this.sessionsService.addMessageToActiveSession(errorMessage);
+          this.sessionsService.addMessageToSession(
+            this.currentSession,
+            errorMessage,
+          );
         }
         this.executingCode = false;
       },

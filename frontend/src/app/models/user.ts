@@ -6,6 +6,6 @@ export interface User {
   status: string;
   createdAt: Date;
   updatedAt: Date;
-  organization?: string;
-  profilePictureUrl?: string;
+  organization: string | null;
+  profilePictureUrl: string | null;
 }

@@ -7,11 +7,13 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Router } from '@angular/router';
+import { NavigationExtras, Router } from '@angular/router';
 
+import { ProjectService } from '../../services/project.service';
 import { UserService } from '../../services/user.service';
 
-import { Project } from '../../models/project';
+import { Project, ProjectLanguage, ProjectModel } from '../../models/project';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-projects',
@@ -21,25 +23,20 @@ import { Project } from '../../models/project';
   styleUrl: './projects.component.scss',
 })
 export class ProjectsComponent {
-  // Dummy data to be replaced by a ProjectService implementation.
-  pageNumber = 1;
-  totalPages = 1; // updated automatically
-  searchFilter = ''; // ngModel variable
+  projectSubscription?: Subscription;
+  pageNumberSubscription?: Subscription;
+  totalPagesSubscription?: Subscription;
   createProjectForm: FormGroup;
-  displayedProjects: Project[] = [
-    {
-      id: 'abcdefg',
-      name: 'Sample Project 1',
-      language: 'Python',
-      model: 'GPT-4o',
-      updatedAt: new Date(),
-    },
-  ];
+
+  projects?: Project[];
+  pageNumber = 1;
+  totalPages = 1;
 
   constructor(
     private formBuilder: FormBuilder,
-    private router: Router,
-    public userService: UserService
+    public router: Router,
+    public projectService: ProjectService,
+    public userService: UserService,
   ) {
     this.createProjectForm = this.formBuilder.group({
       name: ['', [Validators.required]],
@@ -48,41 +45,43 @@ export class ProjectsComponent {
     });
   }
 
-  goToWorkspace() {
-    this.router.navigate(['/workspace']);
+  ngOnInit() {
+    this.projectSubscription = this.projectService
+      .getProjects()
+      .subscribe((projects) => {
+        this.projects = projects;
+      });
+    this.pageNumberSubscription = this.projectService
+      .getPageNumber()
+      .subscribe((number) => {
+        this.pageNumber = number;
+      });
+    this.totalPagesSubscription = this.projectService
+      .getTotalPages()
+      .subscribe((total) => {
+        this.totalPages = total;
+      });
   }
 
-  createProject() {
-    this.displayedProjects.push({
-      id: crypto.randomUUID(),
-      name: this.createProjectForm.value.name,
-      language: this.createProjectForm.value.language,
-      model: this.createProjectForm.value.model,
-      updatedAt: new Date(),
-    });
+  ngOnDestroy() {
+    this.projectSubscription?.unsubscribe();
+    this.pageNumberSubscription?.unsubscribe();
+    this.totalPagesSubscription?.unsubscribe();
+  }
 
+  async createProject() {
+    await this.projectService.createProject(
+      this.createProjectForm.value.name,
+      this.createProjectForm.value.language as ProjectLanguage,
+      this.createProjectForm.value.model as ProjectModel,
+    );
     this.createProjectForm.reset();
   }
 
-  /*
-    PAGE NAVIGATOR METHODS
-  */
-
-  previousPage() {
-    if (this.pageNumber > 1) {
-      this.pageNumber--;
-    }
-  }
-
-  nextPage() {
-    if (this.pageNumber < this.totalPages) {
-      this.pageNumber++;
-    }
-  }
-
-  setPage(page: number) {
-    if (page >= 1 && page <= this.totalPages) {
-      this.pageNumber = page;
-    }
+  goToWorkspace(project: Project) {
+    const navigationExtras: NavigationExtras = {
+      state: { project: project },
+    };
+    this.router.navigate(['workspace'], navigationExtras);
   }
 }

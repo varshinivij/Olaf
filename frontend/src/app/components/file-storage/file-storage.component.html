@@ -206,7 +206,7 @@
   <!-- No files uploaded state -->
   @if (userFiles?.length === 0 && userUploads?.length === 0) {
   <div class="flex flex-col mt-auto items-center gap-y-1">
-    <img class="w-12 h-12" src="assets/twocube-logo-gray-bg.svg" />
+    <img class="w-12 h-12" src="assets/twocube-logo-black-bg.png" />
     <p class="font-bold">No Files Yet</p>
     <p>Use the "Upload data" button to get started.</p>
   </div>
@@ -214,7 +214,7 @@
   <!-- File search/filter empty state -->
   @else if (displayedFiles?.length === 0 && (searchFilter || typeFilter)) {
   <div class="flex flex-col mt-auto items-center gap-y-1">
-    <img class="w-12 h-12" src="assets/twocube-logo-gray-bg.svg" />
+    <img class="w-12 h-12" src="assets/twocube-logo-black-bg.png" />
     <p class="font-bold">File not found</p>
     <p class="text-center">
       {{

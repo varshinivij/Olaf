@@ -31,7 +31,7 @@
       variant="secondary"
       size="sm"
       class="flex-none justify-start pl-2 gap-x-2 truncate"
-      (click)="sessionsService.newSession()"
+      (click)="newSession()"
     >
       <hlm-icon size="sm" name="lucidePlus" class="flex-none" />
       @if (!collapsed) {
@@ -42,77 +42,75 @@
     @if (!collapsed) {
       <div class="flex flex-col gap-y-1 overflow-y-auto">
         @for (session of sessionsService.userSessions; track session.id) {
-          <button
-            hlmBtn
-            [variant]="
-              sessionsService.activeSession.id === session.id
-                ? 'secondary'
-                : 'ghost'
-            "
-            size="sm"
-            class="justify-between pl-3 pr-0"
-            (click)="sessionsService.changeUserSessionById(session.id)"
-          >
-            <div class="truncate">
-              {{ session.name || "&125;untitled session>" }}
-            </div>
+          @if (session.projectId === currentProject.id) {
             <button
               hlmBtn
-              variant="float"
-              size="icon"
-              [brnMenuTriggerFor]="menu"
+              [variant]="
+                currentSession.id === session.id ? 'secondary' : 'ghost'
+              "
+              size="sm"
+              class="justify-between pl-3 pr-0"
+              (click)="changeSession(session)"
             >
-              <hlm-icon size="xs" name="lucideEllipsisVertical" />
-            </button>
-            <hlm-dialog class="absolute">
-              <!-- session options menu -->
-              <ng-template #menu>
-                <hlm-menu>
-                  <button
-                    hlmMenuItem
-                    brnDialogTrigger
-                    (click)="
-                      newSessionName = session.name || '<untitled session>'
-                    "
-                  >
-                    <hlm-icon name="lucidePencil" hlmMenuIcon />
-                    Rename
-                  </button>
-                  <button
-                    hlmMenuItem
-                    class="text-destructive hover:text-destructive"
-                    (click)="sessionsService.deleteSession(session.id)"
-                  >
-                    <hlm-icon name="lucideTrash2" hlmMenuIcon />
-                    Delete
-                  </button>
-                </hlm-menu>
-              </ng-template>
-              <!-- rename session dialog -->
-              <hlm-dialog-content *brnDialogContent="let ctx">
-                <hlm-dialog-header>
-                  <div hlmDialogTitle>Rename Session</div>
-                </hlm-dialog-header>
-                <input
-                  hlmInput
-                  size="sm"
-                  class="w-96"
-                  [(ngModel)]="newSessionName"
-                />
-                <hlm-dialog-footer>
-                  <button hlmBtn brnDialogClose size="sm">Cancel</button>
-                  <button
-                    hlmBtn
-                    brnDialogClose
+              <div class="truncate">
+                {{ session.name }}
+              </div>
+              <button
+                hlmBtn
+                variant="float"
+                size="icon"
+                [brnMenuTriggerFor]="menu"
+              >
+                <hlm-icon size="xs" name="lucideEllipsisVertical" />
+              </button>
+              <hlm-dialog class="absolute">
+                <!-- session options menu -->
+                <ng-template #menu>
+                  <hlm-menu>
+                    <button
+                      hlmMenuItem
+                      brnDialogTrigger
+                      (click)="newSessionName = session.name"
+                    >
+                      <hlm-icon name="lucidePencil" hlmMenuIcon />
+                      Rename
+                    </button>
+                    <button
+                      hlmMenuItem
+                      class="text-destructive hover:text-destructive"
+                      (click)="deleteSession(session)"
+                    >
+                      <hlm-icon name="lucideTrash2" hlmMenuIcon />
+                      Delete
+                    </button>
+                  </hlm-menu>
+                </ng-template>
+                <!-- rename session dialog -->
+                <hlm-dialog-content *brnDialogContent="let ctx">
+                  <hlm-dialog-header>
+                    <div hlmDialogTitle>Rename Session</div>
+                  </hlm-dialog-header>
+                  <input
+                    hlmInput
                     size="sm"
-                    (click)="renameSession(session)"
-                  >
-                    Save
-                  </button>
-                </hlm-dialog-footer>
-              </hlm-dialog-content>
-            </hlm-dialog>
-          </button>
+                    class="w-96"
+                    [(ngModel)]="newSessionName"
+                  />
+                  <hlm-dialog-footer>
+                    <button hlmBtn brnDialogClose size="sm">Cancel</button>
+                    <button
+                      hlmBtn
+                      brnDialogClose
+                      size="sm"
+                      (click)="renameSession(session)"
+                    >
+                      Save
+                    </button>
+                  </hlm-dialog-footer>
+                </hlm-dialog-content>
+              </hlm-dialog>
+            </button>
+          }
         }
       </div>
     }
@@ -145,8 +143,8 @@
         <hlm-icon size="sm" name="lucideHouse" />
       </button>
       <div hlmSmall hlmMuted class="truncate overflow-visible">
-        / Sample Project /
-        {{ sessionsService.activeSession.name || "(new session)" }}
+        / {{ this.currentProject.name }} /
+        {{ this.currentSession.name }}
       </div>
       <button hlmBtn variant="ghost" size="icon" class="ml-auto">
         <hlm-icon size="sm" name="lucideCircleStop" />
@@ -157,10 +155,7 @@
     </div>
     <!-- message screen -->
     <div class="flex flex-col h-full gap-y-3 overflow-y-auto">
-      @for (
-        message of this.sessionsService.activeSession.history.slice(1);
-        track $index
-      ) {
+      @for (message of this.currentSession.history.slice(1); track $index) {
         <!-- display user messages -->
         @if (message.role === "user") {
           <div
@@ -264,7 +259,7 @@
     <!-- planner tab content -->
     <div hlmTabsContent="planner" class="h-full overflow-y-auto">
       @for (
-        message of this.sessionsService.activeSession.history | planmessage;
+        message of this.currentSession.history | planmessage;
         track $index
       ) {
         @if (parseJson(message.content); as plan) {
@@ -328,7 +323,7 @@
     <div hlmTabsContent="code" class="h-full overflow-y-auto">
       <div class="flex flex-col gap-y-3 h-full">
         @for (
-          message of this.sessionsService.activeSession.history | codemessage;
+          message of this.currentSession.history | codemessage;
           track $index
         ) {
           <!-- code block -->

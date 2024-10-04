@@ -63,7 +63,7 @@ export class FileStorageService {
                 return {
                   ...file,
                   type: ExtensionTypeMap[file.extension as keyof typeof ExtensionTypeMap] || 'unknown',
-                  uploadedOn: file.uploadedOn?.toDate(),
+                  uploadedOn: file.uploadedOn.toDate(),
                 } as UserFile;
               })
             )

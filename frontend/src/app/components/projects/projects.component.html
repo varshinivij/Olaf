@@ -12,8 +12,7 @@
       <input
         class="border border-[#4F4F4F]/40 focus:outline-none text-sm pl-10 rounded-xl w-full h-full"
         placeholder="Search Projects..."
-        [(ngModel)]="searchFilter"
-        disabled="true"
+        (input)="projectService.setSearchFilter($any($event.target).value)"
       />
       <i
         class="material-icons absolute text-[#9E9E9E] left-2 top-[50%] translate-y-[-50%]"
@@ -32,77 +31,93 @@
   </div>
 
   <!-- project directory table -->
-  <table class="table-fixed text-left text-sm w-full">
-    <!-- table header + sorting buttons -->
-    <thead>
-      <tr>
-        <!-- weird CSS workaround to make the body scrollable. reference:
+  <div class="overflow-y-auto w-full">
+    <table class="table-fixed text-left text-sm w-full">
+      <!-- table header + sorting buttons -->
+      <thead>
+        <tr>
+          <!-- weird CSS workaround to make the body scrollable. reference:
         https://www.geeksforgeeks.org/how-to-create-a-table-with-fixed-header-and-scrollable-body/#. maybe i should've just used flex columns... -->
-        <!-- project name header -->
-        <th class="sticky top-0 rounded-ss-lg bg-[#F1F1F1] px-4 py-3 w-[30%]">
-          <div class="flex items-center justify-between">
-            Project Name
-            <!-- <button
+          <!-- project name header -->
+          <th class="sticky top-0 rounded-ss-lg bg-[#F1F1F1] px-4 py-3 w-[30%]">
+            <div class="flex items-center justify-between">
+              Project Name
+              <!-- <button
               class="material-icons-outlined text-[#9E9E9E]"
               type="button"
               (click)="(null)"
             >
               unfold_more
             </button> -->
-          </div>
-        </th>
-        <!-- last modified header -->
-        <th class="sticky top-0 bg-[#F1F1F1] pr-4">
-          <div class="flex items-center justify-between">
-            Last Modified
-            <!-- <button
+            </div>
+          </th>
+          <!-- last modified header -->
+          <th class="sticky top-0 bg-[#F1F1F1] pr-4">
+            <div class="flex items-center justify-between">
+              Last Modified
+              <!-- <button
               class="material-icons-outlined text-[#9E9E9E]"
               type="button"
               (click)="(null)"
             >
               unfold_more
             </button> -->
-          </div>
-        </th>
-        <!-- actions header -->
-        <th
-          class="sticky top-0 rounded-se-lg bg-[#F1F1F1] text-center px-4 w-[15%]"
-        >
-          Actions
-        </th>
-      </tr>
-    </thead>
-    <!-- project rows -->
-    <tbody>
-      <!-- display projects -->
-      @for (project of displayedProjects; track project.id) {
-      <tr class="bg-white hover:brightness-90 cursor-pointer" (dblclick)="goToWorkspace()">
-        <td class="px-4 truncate py-2">
-          {{ project.name }}
-        </td>
-        <td class="pr-4 truncate">
-          {{ project.updatedAt.toLocaleDateString("en-US") }}
-        </td>
-        <td class="text-[#4F4F4F] overflow-hidden text-center">
-          <button
-            class="material-symbols-outlined align-middle"
-            type="button"
-            (click)="(null)"
+            </div>
+          </th>
+          <!-- actions header -->
+          <th
+            class="sticky top-0 rounded-se-lg bg-[#F1F1F1] text-center px-4 w-[15%]"
           >
-            delete
-          </button>
-        </td>
-      </tr>
-      }
-    </tbody>
-  </table>
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <!-- project rows -->
+      <tbody>
+        <!-- display projects -->
+        @for (project of this.projects; track project.id) {
+          <tr class="bg-white hover:brightness-90">
+            <td
+              class="px-4 truncate py-1.5 cursor-pointer"
+              (dblclick)="goToWorkspace(project)"
+            >
+              <i class="material-symbols-outlined align-middle pr-1">
+                folder_open
+              </i>
+              {{ project.name }}
+            </td>
+            <td class="pr-4 truncate">
+              {{ project.updatedAt.toLocaleDateString("en-US") }}
+            </td>
+            <td class="text-[#4F4F4F] overflow-hidden text-center">
+              <button
+                class="material-symbols-outlined align-middle"
+                type="button"
+                (click)="projectService.deleteProject(project)"
+              >
+                delete
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (projects?.length === 0) {
+    <div class="flex flex-col mt-auto items-center gap-y-1">
+      <img class="w-12 h-12" src="assets/twocube-logo-black-bg.png" />
+      <p class="font-bold">No Projects Yet</p>
+      <p>Use the "New Project" button to get started.</p>
+    </div>
+  }
 
   <!-- bottom page navigator -->
   <div class="mt-auto flex gap-x-4 justify-center items-center pr-6">
     <button
       class="text-[#9E9E9E] text-sm"
       type="button"
-      (click)="previousPage()"
+      (click)="projectService.setPageNumber(pageNumber - 1)"
       [disabled]="pageNumber === 1"
     >
       Previous
@@ -110,23 +125,23 @@
 
     <!-- 2 pages back number -->
     @if (pageNumber === totalPages && pageNumber > 2) {
-    <button
-      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
-      type="button"
-      (click)="setPage(pageNumber - 2)"
-    >
-      {{ pageNumber - 2 }}
-    </button>
+      <button
+        class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+        type="button"
+        (click)="projectService.setPageNumber(pageNumber - 2)"
+      >
+        {{ pageNumber - 2 }}
+      </button>
     }
     <!-- previous page number -->
     @if (pageNumber !== 1) {
-    <button
-      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
-      type="button"
-      (click)="setPage(pageNumber - 1)"
-    >
-      {{ pageNumber - 1 }}
-    </button>
+      <button
+        class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+        type="button"
+        (click)="projectService.setPageNumber(pageNumber - 1)"
+      >
+        {{ pageNumber - 1 }}
+      </button>
     }
     <!-- current page -->
     <button class="bg-[#024050] text-white rounded-xl h-10 w-10">
@@ -134,29 +149,29 @@
     </button>
     <!-- next page -->
     @if (pageNumber !== totalPages) {
-    <button
-      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
-      type="button"
-      (click)="setPage(pageNumber + 1)"
-    >
-      {{ pageNumber + 1 }}
-    </button>
+      <button
+        class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+        type="button"
+        (click)="projectService.setPageNumber(pageNumber + 1)"
+      >
+        {{ pageNumber + 1 }}
+      </button>
     }
     <!-- 2 pages forward -->
     @if (pageNumber === 1 && totalPages > 2) {
-    <button
-      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
-      type="button"
-      (click)="setPage(pageNumber + 2)"
-    >
-      {{ pageNumber + 2 }}
-    </button>
+      <button
+        class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+        type="button"
+        (click)="projectService.setPageNumber(pageNumber + 2)"
+      >
+        {{ pageNumber + 2 }}
+      </button>
     }
 
     <button
       class="text-[#9E9E9E] text-sm"
       type="button"
-      (click)="nextPage()"
+      (click)="projectService.setPageNumber(pageNumber + 1)"
       [disabled]="pageNumber === totalPages"
     >
       Next
@@ -198,13 +213,14 @@
         <select
           class="border-2 border-[#038C7F] focus:outline-none rounded-md text-sm w-full p-2 pl-3"
           [ngClass]="{
-            'text-[#C6CDE0]': createProjectForm.controls['language'].value === '',
+            'text-[#C6CDE0]':
+              createProjectForm.controls['language'].value === '',
             'text-black': createProjectForm.controls['language'].value !== '',
           }"
           formControlName="language"
         >
           <option value="" disabled selected>Select Language</option>
-          <option class="text-black" value="python">Python</option>
+          <option class="text-black" value="Python">Python</option>
         </select>
         <!-- create project model select -->
         <select
@@ -216,7 +232,7 @@
           formControlName="model"
         >
           <option value="" disabled selected>Select Model</option>
-          <option class="text-black" value="gpt-4o">GPT-4o</option>
+          <option class="text-black" value="GPT-4o">GPT-4o</option>
         </select>
       </form>
       <hr class="w-full text-[#D0D2E0]" />
