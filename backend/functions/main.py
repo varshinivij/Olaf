@@ -3,6 +3,7 @@ import time
 from executor import Executor
 from agents.coder_agent import CoderAgent
 from agents.master_agent import MasterAgent
+from agents.codemaster_agent import CodeMasterAgent
 import flask
 
 from firebase_admin import initialize_app
@@ -41,21 +42,33 @@ def on_request_example(req: Request) -> Response:
     return Response("Hello world this is me!!")
 
 
+
+
+
+
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
-def master_agent_interaction(req: Request) -> Response:
+def codemaster_agent_interaction(req: Request) -> Response:
     try:
         history = req.json.get("history")
-        
+        msg_type = req.json.get("msg_type")
         if not history:
             return flask.Response(json.dumps({"error": "'history' is required"}), status=400)
-        
         history = History(history)
-        master_agent = MasterAgent(history)
-
-        return flask.Response(flask.stream_with_context(stream(master_agent)), mimetype="text/event-stream")
+        language = req.json.get("language", "Python")
+        code_master_agent = CodeMasterAgent(language,history)
+        return flask.Response(flask.stream_with_context(stream(code_master_agent)), mimetype="text/event-stream")
     except Exception as e:
         print(f"Error in generate_plan: {str(e)}")
         return flask.Response(json.dumps({"error": str(e)}), status=500)
+
+
+
+
+
+
+
+
+
 
 
 # --- CoderAgent Functions ---
