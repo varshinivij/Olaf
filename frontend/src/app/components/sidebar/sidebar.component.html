@@ -2,19 +2,14 @@
   class="flex flex-col items-center border-3 rounded-lg py-3 bg-[#FAFAFA] overflow-y-auto w-full h-full"
 >
   <!-- profile picture/company name -->
-  @if ((userService.getCurrentUser() | async); as user) {
   <img
     class="relative rounded-full w-12 h-12"
-    [src]="user?.profilePictureUrl"
+    src="assets/twocube-logo-black-bg.png"
     fill
   />
-  <p class="font-semibold text-[#252526]">
-    {{ user?.organization || "organization" }}
+  <p class="mt-0.5 font-semibold text-[#252526]">
+    Twocube
   </p>
-  } @else {
-  <div class="relative rounded-full bg-gray-300 w-12 h-12"></div>
-  <p class="font-semibold text-[#252526]">organization</p>
-  }
   <!-- divider -->
   <hr class="border border-[#038C7F]/30 mt-4 mb-3 w-[calc(100%-1.5rem)]" />
   <!-- button column -->
@@ -25,7 +20,6 @@
       [ngClass]="{
         'bg-[#F1F1F1] font-semibold text-[#252526]': selectedPage === page,
         'text-[#666567]': selectedPage !== page,
-        'mt-auto': $last
       }"
       type="button"
       (click)="selectPage(page)"

@@ -33,10 +33,6 @@ export class SidebarComponent {
       name: 'data',
       mat_i_outlined_icon: 'file_copy',
     },
-    {
-      name: 'settings',
-      mat_i_outlined_icon: 'settings',
-    },
   ];
 
   selectedPage = this.pages[0];

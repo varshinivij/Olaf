@@ -4,7 +4,7 @@
   <p class="text-lg">Upload and manage different types of data.</p>
 
   <!-- search bar -->
-  <div class="flex-none relative my-5 w-1/2 h-9">
+  <div class="flex-none relative mt-5 w-1/2 h-9">
     <input
       class="border border-[#4F4F4F]/40 focus:outline-none text-sm pl-10 rounded-xl w-full h-full"
       placeholder="Search files..."
@@ -17,37 +17,24 @@
     >
   </div>
 
-  <!-- directory labels -->
-  <div class="flex items-center text-xl font-bold overflow-x-auto">
-    @for (path of currentPathArray; track $index;) {
-    <button
-      class="bg-white hover:brightness-90 p-1 rounded-lg whitespace-nowrap"
-      type="button"
-      (click)="toPreviousDirectory($index)"
-    >
-      {{ $first ? "My Files" : path }}
-    </button>
-    @if (!$last) {
-    <i class="material-icons-outlined text-[#5f6368]">chevron_right</i>
-    } }
-  </div>
-
   <!-- filter/upload buttons row -->
   <div class="flex-none flex py-3 gap-x-4">
-    @for (filter of filterButtons; track $index;) {
-    <button
-      class="text-sm px-4 font-semibold hover:bg-[#032D38] hover:text-white border border-black rounded-3xl h-10"
-      type="button"
-      [ngClass]="{
-        'bg-[#032D38] text-white': filter.type == this.typeFilter
-      }"
-      (click)="applyTypeFilter(filter.type)"
-    >
-      {{ filter.name }}
-    </button>
-    }
+    <div class="flex items-center text-xl font-bold overflow-x-auto">
+      @for (path of currentPathArray; track $index) {
+        <button
+          class="bg-white hover:brightness-90 p-1 rounded-lg whitespace-nowrap"
+          type="button"
+          (click)="toPreviousDirectory($index)"
+        >
+          {{ $first ? "My Files" : path }}
+        </button>
+        @if (!$last) {
+          <i class="material-icons-outlined text-[#5f6368]">chevron_right</i>
+        }
+      }
+    </div>
     <div
-      class="ml-auto relative text-sm font-semibold pl-3 pr-4 flex items-center gap-x-2 bg-[#038C7F] rounded-lg text-white hover:brightness-90"
+      class="flex-none ml-auto relative text-sm font-semibold pl-3 pr-4 flex items-center gap-x-2 bg-[#038C7F] rounded-lg text-white hover:brightness-90 h-fit py-2"
       type="button"
     >
       <i class="material-icons-outlined">file_upload</i>
@@ -60,7 +47,7 @@
       />
     </div>
     <button
-      class="material-icons-outlined bg-[#038C7F] rounded-lg text-white px-2 hover:brightness-90"
+      class="material-icons-outlined bg-[#038C7F] rounded-lg text-white px-2 hover:brightness-90 h-fit py-2"
       type="button"
       (click)="createFolderDialog.show()"
     >
@@ -118,8 +105,8 @@
             </div>
           </th>
           <!-- path header (only appears if searching) -->
-          @if(this.searchFilter !== '') {
-          <th class="sticky top-0 bg-[#F1F1F1]">Path</th>
+          @if (this.searchFilter !== "") {
+            <th class="sticky top-0 bg-[#F1F1F1]">Path</th>
           }
           <th
             class="sticky top-0 rounded-se-lg bg-[#F1F1F1] text-center px-4 w-[15%]"
@@ -131,73 +118,80 @@
       <!-- file rows -->
       <tbody>
         <!-- display uploading files -->
-        @for (upload of userUploads; track upload.id) { @if (searchFilter === ''
-        && pageNumber === 1 && upload.uploadPath === currentPathString) {
-        <tr class="bg-white hover:brightness-90">
-          <td class="px-4 truncate italic">
-            <img
-              class="inline w-8 pr-3 py-1"
-              [src]="
-                upload.type === 'file'
-                  ? getImageUrlFromType('unknown')
-                  : getImageUrlFromType('folder')
-              "
-            />
-            {{ upload.name }}
-          </td>
-          <td class="pr-4 truncate italic">
-            {{ upload.type === "file" ? "Uploading..." : "Creating folder..." }}
-          </td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-        } }
+        @for (upload of userUploads; track upload.id) {
+          @if (
+            searchFilter === "" &&
+            pageNumber === 1 &&
+            upload.uploadPath === currentPathString
+          ) {
+            <tr class="bg-white hover:brightness-90">
+              <td class="px-4 truncate italic">
+                <img
+                  class="inline w-8 pr-3 py-1"
+                  [src]="
+                    upload.type === 'file'
+                      ? getImageUrlFromType('unknown')
+                      : getImageUrlFromType('folder')
+                  "
+                />
+                {{ upload.name }}
+              </td>
+              <td class="pr-4 truncate italic">
+                {{
+                  upload.type === "file" ? "Uploading..." : "Creating folder..."
+                }}
+              </td>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+          }
+        }
         <!-- display already stored files -->
         @for (file of displayedFiles; track file.id) {
-        <tr
-          class="bg-white hover:brightness-90"
-          (dblclick)="file.isFolder ? toNextDirectory(file.name) : null"
-        >
-          <td class="px-4 truncate">
-            <img
-              class="inline w-8 pr-3 py-1"
-              [src]="getImageUrlFromType(file.type)"
-            />
-            {{ file.name }}
-          </td>
-          <td class="pr-4 truncate">
-            {{ titleCase(file.type) }}
-          </td>
-          <td class="pr-4 truncate">
-            {{ !file.isFolder ? formatBytes(file.size) : "" }}
-          </td>
-          <td class="pr-4 truncate">
-            {{ file.uploadedOn.toLocaleDateString("en-US") }}
-          </td>
-          @if(this.searchFilter !== '') {
-          <td class="pr-4 truncate">
-            {{ file.path }}
-          </td>
-          }
-          <td class="text-[#4F4F4F] overflow-hidden text-center">
-            <!-- downloading currently doesn't work (see FileStorageService) -->
-            <!-- <button
+          <tr
+            class="bg-white hover:brightness-90"
+            (dblclick)="file.isFolder ? toNextDirectory(file.name) : null"
+          >
+            <td class="px-4 truncate">
+              <img
+                class="inline w-8 pr-3 py-1"
+                [src]="getImageUrlFromType(file.type)"
+              />
+              {{ file.name }}
+            </td>
+            <td class="pr-4 truncate">
+              {{ titleCase(file.type) }}
+            </td>
+            <td class="pr-4 truncate">
+              {{ !file.isFolder ? formatBytes(file.size) : "" }}
+            </td>
+            <td class="pr-4 truncate">
+              {{ file.uploadedOn.toLocaleDateString("en-US") }}
+            </td>
+            @if (this.searchFilter !== "") {
+              <td class="pr-4 truncate">
+                {{ file.path }}
+              </td>
+            }
+            <td class="text-[#4F4F4F] overflow-hidden text-center">
+              <!-- downloading currently doesn't work (see FileStorageService) -->
+              <!-- <button
               class="material-symbols-outlined p-0"
               type="button"
               (click)="downloadFileOrFolder(file)"
             >
               file_download
             </button> -->
-            <button
-              class="material-symbols-outlined align-middle"
-              type="button"
-              (click)="deleteFileOrFolder($event, file)"
-            >
-              delete
-            </button>
-          </td>
-        </tr>
+              <button
+                class="material-symbols-outlined align-middle"
+                type="button"
+                (click)="deleteFileOrFolder($event, file)"
+              >
+                delete
+              </button>
+            </td>
+          </tr>
         }
       </tbody>
     </table>
@@ -205,27 +199,27 @@
 
   <!-- No files uploaded state -->
   @if (userFiles?.length === 0 && userUploads?.length === 0) {
-  <div class="flex flex-col mt-auto items-center gap-y-1">
-    <img class="w-12 h-12" src="assets/twocube-logo-black-bg.png" />
-    <p class="font-bold">No Files Yet</p>
-    <p>Use the "Upload data" button to get started.</p>
-  </div>
+    <div class="flex flex-col mt-auto items-center gap-y-1">
+      <img class="w-12 h-12" src="assets/twocube-logo-black-bg.png" />
+      <p class="font-bold">No Files Yet</p>
+      <p>Use the "Upload data" button to get started.</p>
+    </div>
   }
   <!-- File search/filter empty state -->
   @else if (displayedFiles?.length === 0 && (searchFilter || typeFilter)) {
-  <div class="flex flex-col mt-auto items-center gap-y-1">
-    <img class="w-12 h-12" src="assets/twocube-logo-black-bg.png" />
-    <p class="font-bold">File not found</p>
-    <p class="text-center">
-      {{
-        searchFilter !== ""
-          ? 'Your search "' + searchFilter + '" did not match any file.'
-          : 'There are no "' + titleCase(typeFilter!) + '" found.'
-      }}
-      <br />
-      Please try again.
-    </p>
-  </div>
+    <div class="flex flex-col mt-auto items-center gap-y-1">
+      <img class="w-12 h-12" src="assets/twocube-logo-black-bg.png" />
+      <p class="font-bold">File not found</p>
+      <p class="text-center">
+        {{
+          searchFilter !== ""
+            ? 'Your search "' + searchFilter + '" did not match any file.'
+            : 'There are no "' + titleCase(typeFilter!) + '" found.'
+        }}
+        <br />
+        Please try again.
+      </p>
+    </div>
   }
 
   <!-- bottom page navigator -->
@@ -241,23 +235,23 @@
 
     <!-- 2 pages back number -->
     @if (pageNumber === totalPages && pageNumber > 2) {
-    <button
-      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
-      type="button"
-      (click)="setPage(pageNumber - 2)"
-    >
-      {{ pageNumber - 2 }}
-    </button>
+      <button
+        class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+        type="button"
+        (click)="setPage(pageNumber - 2)"
+      >
+        {{ pageNumber - 2 }}
+      </button>
     }
     <!-- previous page number -->
     @if (pageNumber !== 1) {
-    <button
-      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
-      type="button"
-      (click)="setPage(pageNumber - 1)"
-    >
-      {{ pageNumber - 1 }}
-    </button>
+      <button
+        class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+        type="button"
+        (click)="setPage(pageNumber - 1)"
+      >
+        {{ pageNumber - 1 }}
+      </button>
     }
     <!-- current page -->
     <button class="bg-[#024050] text-white rounded-xl h-10 w-10">
@@ -265,23 +259,23 @@
     </button>
     <!-- next page -->
     @if (pageNumber !== totalPages) {
-    <button
-      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
-      type="button"
-      (click)="setPage(pageNumber + 1)"
-    >
-      {{ pageNumber + 1 }}
-    </button>
+      <button
+        class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+        type="button"
+        (click)="setPage(pageNumber + 1)"
+      >
+        {{ pageNumber + 1 }}
+      </button>
     }
     <!-- 2 pages forward -->
     @if (pageNumber === 1 && totalPages > 2) {
-    <button
-      class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
-      type="button"
-      (click)="setPage(pageNumber + 2)"
-    >
-      {{ pageNumber + 2 }}
-    </button>
+      <button
+        class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+        type="button"
+        (click)="setPage(pageNumber + 2)"
+      >
+        {{ pageNumber + 2 }}
+      </button>
     }
 
     <button

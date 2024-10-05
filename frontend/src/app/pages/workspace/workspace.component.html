@@ -114,18 +114,6 @@
         }
       </div>
     }
-    <!-- project settings button -->
-    <button
-      hlmBtn
-      variant="ghost"
-      size="sm"
-      class="flex-none justify-start mt-auto pl-2 gap-x-2"
-    >
-      <hlm-icon size="sm" name="lucideSettings" class="flex-none" />
-      @if (!collapsed) {
-        <div class="truncate">Project Settings</div>
-      }
-    </button>
   </div>
   <!-- chat interface -->
   <div
@@ -246,79 +234,14 @@
   <!-- twocube den -->
   <hlm-tabs
     id="den-sidebar"
-    tab="planner"
+    tab="code"
     class="flex flex-col p-3 bg-foreground rounded-md"
   >
     <!-- header tab buttons -->
-    <hlm-tabs-list class="w-full grid grid-cols-4">
-      <button hlmTabsTrigger="planner">Planner</button>
-      <button hlmTabsTrigger="terminal">Terminal</button>
+    <hlm-tabs-list class="w-full grid grid-cols-2">
       <button hlmTabsTrigger="code">Code</button>
       <button hlmTabsTrigger="files">Files</button>
     </hlm-tabs-list>
-    <!-- planner tab content -->
-    <div hlmTabsContent="planner" class="h-full overflow-y-auto">
-      @for (
-        message of this.currentSession.history | planmessage;
-        track $index
-      ) {
-        @if (parseJson(message.content); as plan) {
-          <div
-            class="flex flex-col p-3 border rounded-md break-words"
-            [ngClass]="{
-              'mt-3': !$first,
-            }"
-          >
-            <!-- plan overview -->
-            <h2 hlmH2>Plan Overview</h2>
-            <p hlmP>
-              {{ plan.overview }}
-            </p>
-            <!-- plan steps -->
-            <h2 hlmH2>Required Steps</h2>
-            @for (step of plan.steps; track $index) {
-              <h3 hlmH3>Step {{ step.step_number }}: {{ step.title }}</h3>
-              <ul hlmUl>
-                <li><strong>Description: </strong>{{ step.description }}</li>
-                <li>
-                  <strong>Dependencies: </strong
-                  >{{
-                    step.dependencies ? step.dependencies.join(", ") : "None"
-                  }}
-                </li>
-                <li>
-                  <strong>Expected Output: </strong>{{ step.expected_output }}
-                </li>
-              </ul>
-            }
-            <!-- final check -->
-            <h2 hlmH2>Final Check</h2>
-            <p hlmP>
-              {{ plan.final_check }}
-            </p>
-          </div>
-        }
-      }
-      <!-- empty state -->
-      @empty {
-        <div
-          class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
-        >
-          <div class="w-20 h-20 bg-background rounded-full"></div>
-          <div hlmSmall hlmMuted>Nothing to plan yet.</div>
-        </div>
-      }
-    </div>
-    <!-- terminal tab content -->
-    <div hlmTabsContent="terminal" class="h-full overflow-y-auto">
-      <!-- empty state -->
-      <div
-        class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
-      >
-        <div class="w-20 h-20 bg-background rounded-full"></div>
-        <div hlmSmall hlmMuted>Terminal coming soon!</div>
-      </div>
-    </div>
     <!-- code tab content -->
     <div hlmTabsContent="code" class="h-full overflow-y-auto">
       <div class="flex flex-col gap-y-3 h-full">
