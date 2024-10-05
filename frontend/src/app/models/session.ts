@@ -1,26 +1,11 @@
-import { ChatMessage } from "./chat-message";
-export interface Session {
-    name?: string;
-    userId: string | null;
-    history: ChatMessage[];
-    files: File[];
-    context: string;
-    id: string;
-    sandboxId: string | null;
-}
+import { ChatMessage } from './chat-message';
 
-export const createNewSession = (): Session => ({
-  name: '(new session)',
-  userId: '',
-  history: [
-    {
-      type: 'text',
-      role: 'assistant',
-      content: 'Hello, how can I help you today?',
-    },
-  ],
-  files: [],
-  context: '',
-  id: '',
-  sandboxId: null,
-});
+export interface Session {
+  id: string;
+  userId: string;
+  projectId: string;
+  name: string;
+  context: string;
+  history: ChatMessage[];
+  sandboxId: string | null;
+}

@@ -1,9 +1,9 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpEventType } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subscription, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 import { jsonrepair } from 'jsonrepair';
 import { Highlight } from 'ngx-highlightjs';
@@ -13,27 +13,37 @@ import { ChatService } from '../../services/chat.service';
 import { FileStorageService } from '../../services/file-storage.service';
 import { SandboxService } from '../../services/sandbox.service';
 import { SessionsService } from '../../services/sessions.service';
-import { UploadService } from '../../services/upload.service';
-import { UserService } from '../../services/user.service';
 
 import { ChatMessage } from '../../models/chat-message';
-import { CodeStream } from '../../models/code-stream';
+import { getLucideIconFromType } from '../../models/extension-type';
+import { Project } from '../../models/project';
 import { Session } from '../../models/session';
 import { UserFile } from '../../models/user-file';
-
-import { adjustTextareaHeight } from '../../utils/adjust-textarea-height';
-import { delay } from '../../utils/time-utils';
 
 import { CodeMessagePipe } from '../../pipes/codemessage.pipe';
 import { PlanMessagePipe } from '../../pipes/planmessage.pipe';
 
+import { adjustTextareaHeight } from '../../utils/adjust-textarea-height';
+import { delay } from '../../utils/time-utils';
+
 // icon imports
 import { provideIcons } from '@ng-icons/core';
 import {
+  lucideArrowUpFromLine,
+  lucideCheck,
   lucideCircleStop,
+  lucideCode,
   lucideEllipsisVertical,
+  lucideFileArchive,
+  lucideFileChartColumn,
+  lucideFileCode,
+  lucideFileQuestion,
+  lucideFileText,
+  lucideFolder,
   lucideHouse,
-  lucidePanelLeftDashed,
+  lucideLoaderCircle,
+  lucidePanelLeftClose,
+  lucidePanelLeftOpen,
   lucidePencil,
   lucidePlus,
   lucideRotateCw,
@@ -94,9 +104,9 @@ import {
   imports: [
     CommonModule,
     FormsModule,
-    Highlight,
-    PlanMessagePipe,
     CodeMessagePipe,
+    PlanMessagePipe,
+    Highlight,
 
     HlmButtonDirective,
 
@@ -140,10 +150,21 @@ import {
   ],
   providers: [
     provideIcons({
+      lucideArrowUpFromLine,
+      lucideCheck,
       lucideCircleStop,
+      lucideCode,
       lucideEllipsisVertical,
+      lucideFileArchive,
+      lucideFileChartColumn,
+      lucideFileCode,
+      lucideFileQuestion,
+      lucideFileText,
+      lucideFolder,
       lucideHouse,
-      lucidePanelLeftDashed,
+      lucideLoaderCircle,
+      lucidePanelLeftOpen,
+      lucidePanelLeftClose,
       lucidePencil,
       lucidePlus,
       lucideRotateCw,
@@ -153,60 +174,86 @@ import {
     }),
   ],
 })
-export class WorkspaceComponent implements OnInit, OnDestroy {
-  fileStorageSubscription?: Subscription;
+export class WorkspaceComponent implements AfterViewInit {
+  @ViewChild('sidebar') sidebar?: ElementRef;
   adjustTextareaHeight = adjustTextareaHeight;
+  getLucideIconFromType = getLucideIconFromType;
+  split?: Split.Instance;
+  collapsed = false; // sidebar
 
+  currentProject: Project;
+  currentSession: Session;
   newMessage: string = ''; // ngModel variable
   newSessionName: string = ''; // ngModel variable
-  loading: boolean = false;
+  responseLoading: boolean = false;
   executingCode: boolean = false;
   isConnected: boolean = false;
-  userFiles: UserFile[] = [];
-  selectedUploadFiles: File[] = [];
 
-  codeStream: CodeStream = {
-    isOpen: false,
-    buffer: '',
-  };
-
-  // message scheme ONLY FOR REFERENCE
-  // messages: ChatMessage[] = [
-  //   {
-  //     type: 'text',
-  //     role: 'assistant',
-  //     content: 'Hello, how can I help you today?',
-  //   },
-  // ];
+  // a bit ugly of a solution but we're going to rework files soon anyway.
+  // this entire component needs serious refactoring on the chat/session side.
+  // perhaps some logic should be moved to sessionservice/chatservice.
+  uploadedFiles: Set<UserFile['id']> = new Set();
 
   constructor(
     public router: Router,
     private chatService: ChatService,
-    private fileStorageService: FileStorageService,
+    public fileStorageService: FileStorageService,
     private sandboxService: SandboxService,
     public sessionsService: SessionsService,
-  ) {}
+  ) {
+    this.currentProject =
+      this.router.getCurrentNavigation()?.extras.state?.['project'];
+    if (this.currentProject === undefined) {
+      this.router.navigate(['dashboard']);
+    }
+    this.currentSession = sessionsService.blankSession(this.currentProject);
+  }
+
+  /*
+    Sidebar UI methods
+  */
 
   ngAfterViewInit() {
-    Split(['#sidebar', '#main-content', '#den-sidebar'], {
-      sizes: [20, 45, 35], // Initial sizes of the columns in percentage
-      minSize: [200, 200, 300], // Minimum size of each column in pixels
-      gutterSize: 12, // Size of the gutter (the draggable area between columns)
-      snapOffset: 0,
+    this.split = Split(['#sidebar', '#main-content', '#den-sidebar'], {
+      sizes: [20, 45, 35], // initial size of columns (default %)
+      minSize: [60, 300, 300], // minimum size of each column (default px)
+      gutterSize: 12, // size of the draggable slider (default px)
+      snapOffset: 0, // snap to min size offset (default px)
+      onDrag: () => {
+        // collapsed is true if width smaller than a threshold (px)
+        const width = this.sidebar?.nativeElement.offsetWidth;
+        this.collapsed = width <= 85;
+      },
+      onDragStart: () => {
+        this.sidebar?.nativeElement.classList.remove('transition-[width]');
+      },
+      onDragEnd: () => {
+        this.sidebar?.nativeElement.classList.add('transition-[width]');
+      },
     });
   }
 
-  ngOnInit() {
-    this.fileStorageSubscription = this.fileStorageService
-      .getFiles()
-      .subscribe((files) => {
-        console.log(files);
-        this.userFiles = files || [];
-      });
+  toggleSidebar() {
+    if (!this.collapsed) {
+      this.split?.collapse(0);
+    } else {
+      this.split?.setSizes([20, 45, 35]);
+    }
+    this.collapsed = !this.collapsed;
   }
 
-  ngOnDestroy() {
-    this.fileStorageSubscription?.unsubscribe();
+  /*
+    Session handling methods
+  */
+
+  newSession() {
+    this.currentSession = this.sessionsService.blankSession(
+      this.currentProject,
+    );
+  }
+
+  changeSession(session: Session) {
+    this.currentSession = session;
   }
 
   renameSession(session: Session) {
@@ -214,41 +261,56 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     this.newSessionName = '';
   }
 
+  deleteSession(session: Session) {
+    if (session.id === this.currentSession.id) {
+      this.newSession();
+    }
+    this.sessionsService.deleteSession(session);
+  }
+
+  /*
+    Session file upload/sandbox updating methods
+  */
+
   /**
    * Add a file to the e2b sandbox using the firebase storage link
    * @param fileUrl storage download link url of the file
    */
   async addFirebaseFileToSandbox(file: UserFile) {
-    if (!this.isConnected) {
-      await this.connectToSandbox();
-    }
-
     const uploadText = `Uploaded ${file.name}`;
     const uploadMessage: ChatMessage = {
       type: 'text',
       role: 'user',
       content: uploadText,
     };
-    this.sessionsService.addMessageToActiveSession(uploadMessage);
-    this.loading = true;
+    this.sessionsService.addMessageToSession(
+      this.currentSession,
+      uploadMessage,
+    );
+    this.responseLoading = true;
+
+    if (!this.isConnected) {
+      await this.connectToSandbox();
+    }
+
     const filePath = file.storageLink;
     console.log('adding file to sandbox ' + filePath);
     this.sandboxService.addFirebaseFilesToSandBox([filePath]).subscribe(
       (response: any) => {
-        console.log(response);
-        this.loading = false;
+        console.log('add file response: ', response);
+        this.uploadedFiles.add(file.id);
+        this.responseLoading = false;
       },
       (error) => {
         console.error('Error:', error);
-        this.loading = false;
+        this.responseLoading = false;
       },
     );
   }
 
   async connectToSandbox() {
-    this.loading = true;
     try {
-      if (this.sessionsService.activeSession.sandboxId) {
+      if (this.currentSession.sandboxId) {
         await this.checkSandboxConnection();
       } else {
         await this.createSandbox();
@@ -258,8 +320,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       await delay(1000);
     } catch (error) {
       console.error('Error connecting to sandbox:', error);
-    } finally {
-      this.loading = false;
     }
     window.addEventListener('unload', () => this.sandboxService.closeSandbox());
   }
@@ -272,21 +332,19 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       if (response.alive) {
         this.onSandboxConnected();
       } else {
+        this.uploadedFiles.clear();
         await this.createSandbox();
       }
     } catch (error) {
       console.error('Error:', error);
-      this.loading = false;
+      this.responseLoading = false;
     }
   }
 
   private onSandboxConnected() {
     this.isConnected = true;
-    this.loading = false;
-    if (this.sessionsService.activeSession.sandboxId) {
-      this.sandboxService.setSandboxId(
-        this.sessionsService.activeSession.sandboxId,
-      );
+    if (this.currentSession.sandboxId) {
+      this.sandboxService.setSandboxId(this.currentSession.sandboxId);
     }
   }
 
@@ -299,15 +357,17 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       this.onSandboxCreated();
     } catch (error) {
       console.error('Error:', error);
-      this.loading = false;
     }
   }
 
   private onSandboxCreated() {
     this.isConnected = true;
-    this.loading = false;
-    console.log(this.sandboxService.getSandboxId());
+    console.log('created sandbox id:', this.sandboxService.getSandboxId());
   }
+
+  /*
+    Session chat/executing code methods
+  */
 
   /**
    * Add a new message to the active session from message bar
@@ -318,9 +378,11 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         type: 'text',
         role: 'user',
         content: message,
-        isLive: true,
       };
-      await this.sessionsService.addMessageToActiveSession(userMessage);
+      await this.sessionsService.addMessageToSession(
+        this.currentSession,
+        userMessage,
+      );
     }
   }
 
@@ -328,16 +390,12 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    * Send a message to the generalist chat service
    */
   async sendMessage() {
-    const message = this.newMessage;
-    this.newMessage = '';
+    if (this.newMessage.trim() && !this.responseLoading) {
+      console.log('curr session history: ', this.currentSession.history);
 
-    if (!this.isConnected) {
-      await this.connectToSandbox();
-    }
-    if (message.trim()) {
-      console.log(this.sessionsService.activeSession.history);
-
-      this.loading = true;
+      const message = this.newMessage;
+      this.newMessage = '';
+      this.responseLoading = true;
       await this.addUserMessage(message);
 
       let responseType:
@@ -354,67 +412,71 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         type: responseType,
         role: 'assistant',
         content: '', // Initially empty
-        isLive: true,
       };
       // Add the placeholder message to the session and store a reference to it
-      await this.sessionsService.addMessageToActiveSession(responseMessage);
-      const messageIndex =
-        this.sessionsService.activeSession.history.length - 1; // Get the index of the added message
+      await this.sessionsService.addMessageToSession(
+        this.currentSession,
+        responseMessage,
+      );
+      const messageIndex = this.currentSession.history.length - 1; // Get the index of the added message
 
-      this.chatService
-        .sendMessage(this.sessionsService.activeSession.history)
-        .subscribe({
-          next: (event: any) => {
-            if (event.type === HttpEventType.DownloadProgress && event.loaded) {
-              const chunk = event.partialText || ''; // Handle the chunked text
+      this.chatService.sendMessage(this.currentSession.history).subscribe({
+        next: (event: any) => {
+          if (event.type === HttpEventType.DownloadProgress && event.loaded) {
+            const chunk = event.partialText || ''; // Handle the chunked text
 
-              if (responseContent === '') {
-                // First chunk is the type
-                responseType = chunk;
-                responseMessage.type = responseType;
-                responseContent += ' ';
-              } else {
-                // Append subsequent chunks to the content
-                responseContent = chunk;
-                if (
-                  responseType === 'text' ||
-                  responseType === 'code' ||
-                  responseType === 'plan'
-                ) {
-                  // Remove the first four letters from the content (the "code" identifier)
-                  responseContent = responseContent.slice(4).trim();
-                }
-                if (responseType === 'plan') {
-                  responseContent = jsonrepair(responseContent);
-                  const jsonData = JSON.parse(responseContent);
-                  responseContent = JSON.stringify(jsonData, null, 2);
-                }
-                this.sessionsService.activeSession.history[
-                  messageIndex
-                ].content = responseContent;
+            if (responseContent === '') {
+              // First chunk is the type
+              responseType = chunk;
+              responseMessage.type = responseType;
+              responseContent += ' ';
+            } else {
+              // Append subsequent chunks to the content
+              responseContent = chunk;
+              if (
+                responseType === 'text' ||
+                responseType === 'code' ||
+                responseType === 'plan'
+              ) {
+                // Remove the first four letters from the content (the "code" identifier)
+                responseContent = responseContent.slice(4).trim();
               }
+              if (responseType === 'plan') {
+                responseContent = jsonrepair(responseContent);
+                const jsonData = JSON.parse(responseContent);
+                responseContent = JSON.stringify(jsonData, null, 2);
+              }
+              this.currentSession.history[messageIndex].content =
+                responseContent;
             }
-          },
-          error: (error) => {
-            console.error('Error:', error);
-            this.loading = false;
-          },
-          complete: () => {
-            this.loading = false;
-            this.sessionsService.saveActiveSession()
-            this.executeLatestCode();
-          },
-        });
+          }
+        },
+        error: (error) => {
+          console.error('Error:', error);
+          this.responseLoading = false;
+        },
+        complete: () => {
+          this.responseLoading = false;
+          this.sessionsService.saveSession(this.currentSession);
+          this.executeLatestCode();
+        },
+      });
     }
   }
 
-  executeLatestCode(): void {
-    const history = this.sessionsService.activeSession.history;
+  async executeLatestCode() {
+    const history = this.currentSession.history;
     const latestCodeMessage = history
       .slice()
       .reverse()
       .find((message) => message.type === 'code');
     if (latestCodeMessage) {
+      this.executingCode = true;
+
+      if (!this.isConnected) {
+        await this.connectToSandbox();
+      }
+
       let code = this.extractCode(latestCodeMessage.content);
       this.executeCode(code);
     }
@@ -429,30 +491,10 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  continue() {
-    this.loading = true;
-    this.chatService
-      .sendMessage(this.sessionsService.activeSession.history)
-      .subscribe(
-        (response: ChatMessage[]) => {
-          this.sessionsService.activeSession.history = [
-            ...this.sessionsService.activeSession.history,
-            ...response,
-          ];
-          this.loading = false;
-        },
-        (error) => {
-          console.error('Error:', error);
-          this.loading = false;
-        },
-      );
-  }
-
   executeCode(code: string) {
-    this.executingCode = true;
     this.sandboxService.executeCode(code).subscribe(
       (result: any) => {
-        console.log(result);
+        console.log('code result: ', result);
         // if result stdout is not empty, add it to the chat
         if (result.logs.stdout && result.logs.stdout.length > 0) {
           const stdoutContent = result.logs.stdout.join('\n');
@@ -461,7 +503,10 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
             role: 'assistant',
             content: stdoutContent,
           };
-          this.sessionsService.addMessageToActiveSession(codeResultMessage);
+          this.sessionsService.addMessageToSession(
+            this.currentSession,
+            codeResultMessage,
+          );
         }
         if (result.results && result.results.length > 0) {
           if (result.results[0]['image/png']) {
@@ -471,7 +516,10 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
               role: 'assistant',
               content: base64Image,
             };
-            this.sessionsService.addMessageToActiveSession(imageMessage);
+            this.sessionsService.addMessageToSession(
+              this.currentSession,
+              imageMessage,
+            );
           }
         }
         if (result.error && result.error.length > 0) {
@@ -480,7 +528,10 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
             role: 'assistant',
             content: result.error,
           };
-          this.sessionsService.addMessageToActiveSession(errorMessage);
+          this.sessionsService.addMessageToSession(
+            this.currentSession,
+            errorMessage,
+          );
         }
         this.executingCode = false;
       },
@@ -489,18 +540,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
         this.executingCode = false;
       },
     );
-  }
-
-  processResponse(response: ChatMessage[]) {
-    response.forEach((message) => {
-      if (message.type === 'code') {
-        this.executeCode(message.content);
-      }
-    });
-  }
-
-  convertNewlinesToBr(text: string): string {
-    return text.replace(/\n/g, '<br>');
   }
 
   extractCode(response: string): string {

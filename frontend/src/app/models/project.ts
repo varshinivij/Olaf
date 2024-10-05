@@ -1,7 +1,10 @@
+export type ProjectLanguage = 'Python'
+export type ProjectModel = 'GPT-4o'
+
 export interface Project {
   id: string;
   name: string;
-  language: string;
-  model: string;
+  language: ProjectLanguage;
+  model: ProjectModel;
   updatedAt: Date;
 }

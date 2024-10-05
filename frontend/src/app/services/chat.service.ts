@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+
 import { ChatMessage } from '../models/chat-message';
 
 @Injectable({
@@ -8,9 +9,7 @@ import { ChatMessage } from '../models/chat-message';
 })
 export class ChatService {
   private chatAPIEndpoint =
-    'REMOVED'; // generalist chat
-  private plannerAPIEndpoint = 'https://generate-plan-7drpntdska-uc.a.run.app';
-  private coderAPIEndpoint = 'https://generate-code-7drpntdska-uc.a.run.app'; // coder agent
+    'REMOVED'; // generalist chatder agent
 
   constructor(private http: HttpClient) {}
 
@@ -29,33 +28,7 @@ export class ChatService {
         observe: 'events',
         reportProgress: true,
         responseType: 'text',
-      }
-    );
-  }
-
-  requestPlan(history: ChatMessage[]): Observable<ChatMessage[]> {
-    // remove all images from history
-    history = history.filter((message) => message.type !== 'image');
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-    });
-    return this.http.post<ChatMessage[]>(
-      this.plannerAPIEndpoint,
-      { history },
-      { headers }
-    );
-  }
-
-  requestCode(history: ChatMessage[]): Observable<ChatMessage[]> {
-    // remove all images from history
-    history = history.filter((message) => message.type !== 'image');
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-    });
-    return this.http.post<ChatMessage[]>(
-      this.coderAPIEndpoint,
-      { history },
-      { headers }
+      },
     );
   }
 }

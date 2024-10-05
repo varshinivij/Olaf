@@ -10,7 +10,7 @@
        update after component init/refreshing. Maybe just stick to observables.
 */
 
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import {
   Auth,
   GoogleAuthProvider,
@@ -33,11 +33,15 @@ import {
 } from '@angular/fire/firestore';
 import {
   Storage,
+  deleteObject,
   getDownloadURL,
   ref,
   uploadBytesResumable,
 } from '@angular/fire/storage';
 import { Observable, of, map, switchMap, shareReplay } from 'rxjs';
+
+import { FileStorageService } from './file-storage.service';
+import { SessionsService } from './sessions.service';
 
 import { User } from '../models/user';
 
@@ -50,7 +54,8 @@ export class UserService {
   constructor(
     private auth: Auth,
     private firestore: Firestore,
-    private storage: Storage
+    private storage: Storage,
+    private injector: Injector,
   ) {
     this.user$ = user(this.auth).pipe(
       switchMap((user: FirebaseUser | null) => {
@@ -64,12 +69,12 @@ export class UserService {
                 updatedAt: user.updatedAt?.toDate(),
               } as User;
             }),
-            shareReplay(1)
+            shareReplay(1),
           ) as Observable<User>;
         } else {
           return of(null);
         }
-      })
+      }),
     );
   }
 
@@ -118,7 +123,7 @@ export class UserService {
     const credential = await signInWithEmailAndPassword(
       this.auth,
       email,
-      password
+      password,
     );
     // just in case an account exists in Auth but somehow not in the database
     if (!(await this.checkUserExists(credential.user))) {
@@ -138,7 +143,7 @@ export class UserService {
     const credential = await createUserWithEmailAndPassword(
       this.auth,
       email,
-      password
+      password,
     );
     await this.createUserInfo(credential.user);
   }
@@ -177,16 +182,18 @@ export class UserService {
    * Updates user profile picture in Firestore record on completion.
    * Promise returns the downloadURL to the uploaded picture.
    *
+   * TODO: somehow minify the image size so we don't end up with GBs of pics
+   *
    * @param file The file to be uploaded.
    * @param onProgress Callback to be run on progress snapshot.
    */
   async uploadProfilePicture(
     file: File,
-    onProgress: (progress: number) => void
+    onProgress: (progress: number) => void,
   ): Promise<string> {
     const storageRef = ref(
       this.storage,
-      `profilePictures/${this.auth.currentUser!.uid}`
+      `profilePictures/${this.auth.currentUser!.uid}`,
     );
 
     const uploadTask = uploadBytesResumable(storageRef, file);
@@ -208,7 +215,7 @@ export class UserService {
             profilePictureUrl: downloadUrl,
           });
           resolve(downloadUrl);
-        }
+        },
       );
     });
   }
@@ -272,7 +279,7 @@ export class UserService {
   // updates Firestore user data based on given FirebaseUser and update data
   private async updateUserInfo(
     user: FirebaseUser,
-    data: Partial<User>
+    data: Partial<User>,
   ): Promise<void> {
     const userDocument = doc(this.firestore, 'users', user.uid);
 
@@ -286,14 +293,28 @@ export class UserService {
     await setDoc(
       userDocument,
       { ...data, updatedAt: new Date() },
-      { merge: true }
+      { merge: true },
     );
+  }
+
+  private async deleteProfilePicture(user: FirebaseUser) {
+    const storageRef = ref(this.storage, `profilePictures/${user.uid}`);
+    await deleteObject(storageRef);
   }
 
   // deletes Firestore and Firebase Auth user data based on given FirebaseUser
   private async deleteUserInfo(user: FirebaseUser): Promise<void> {
+    // delete Firebase auth record
     await user.delete();
+    // delete Firestore record
     await deleteDoc(doc(this.firestore, 'users', user.uid));
-    // TODO: delete must be configured to manually delete docs in subcollections. call the delete callable on all files? also delete their profile picture.
+    // delete profile picture
+    await this.deleteProfilePicture(user);
+    // use the FileStorageService to delete uploaded files
+    const fileStorageService = this.injector.get(FileStorageService);
+    await fileStorageService.deletePath('/');
+    // use the SessionService to delete all sessions
+    const sessionService = this.injector.get(SessionsService);
+    await sessionService.deleteAllSessions();
   }
 }
