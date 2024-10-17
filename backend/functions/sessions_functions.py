@@ -1,9 +1,5 @@
-import firebase_admin
-from firebase_admin import credentials, firestore
-from firebase_functions.https_fn import Request, Response, on_request
-from firebase_functions.options import CorsOptions
-from firebase_admin import initialize_app
-from functions_framework import http
+from firebase_admin import firestore
+from firebase_functions.https_fn import Request, Response
 import json
 
 db = firestore.client()
