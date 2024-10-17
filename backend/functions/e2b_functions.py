@@ -1,5 +1,3 @@
-import http
-import time
 from firebase_functions import https_fn, options
 from e2b_code_interpreter import CodeInterpreter
 from flask import send_file

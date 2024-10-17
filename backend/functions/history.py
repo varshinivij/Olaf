@@ -1,6 +1,4 @@
 import json
-
-
 class History:
     def __init__(self, system):
         print("Kooj for this please")
