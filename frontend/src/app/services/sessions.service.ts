@@ -10,13 +10,17 @@ import {
   setDoc,
   where,
 } from '@angular/fire/firestore';
+import { Session } from '../models/session';
+import { ChatMessage } from '../models/chat-message';
+import { UserService } from './user.service';
+import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
-import { UserService } from './user.service';
-
-import { ChatMessage } from '../models/chat-message';
+// Make sure there are no duplicate imports
+// import { UserService } from './user.service';  // Already imported
+// import { ChatMessage } from '../models/chat-message'; // Already imported
 import { Project } from '../models/project';
-import { Session } from '../models/session';
+// import { Session } from '../models/session'; // Already imported
 
 @Injectable({
   providedIn: 'root',
@@ -26,12 +30,33 @@ export class SessionsService {
    * Returns a list of all the user's sessions regardless of project.
    */
   userSessions: Session[] = [];
+  activeSession: Session = this.createNewSession();
+  private readonly API_URL = 'http://127.0.0.1:5001/twocube-web/us-central1'; // Update this with your GCP function URL
 
   constructor(
-    private firestore: Firestore,
+    private http: HttpClient,
     private userService: UserService,
+    private firestore: Firestore, // Make sure Firestore is injected
   ) {
     this.loadAllSessions();
+  }
+
+  createNewSession(): Session {
+    return {
+      id: '',
+      userId: '',
+      projectId: '',
+      name: '<untitled session>',
+      context: '',
+      history: [
+        {
+          type: 'text',
+          role: 'assistant',
+          content: 'Hello, how can I help you today?',
+        },
+      ],
+      sandboxId: null,
+    };
   }
 
   blankSession(project: Project): Session {
@@ -63,6 +88,34 @@ export class SessionsService {
     await this.saveSession(session);
   }
 
+  changeUserSession(session: Session) {
+    this.activeSession = session;
+  }
+
+  changeUserSessionById(id: string) {
+    this.activeSession =
+      this.userSessions.find((session) => session.id === id) ||
+      this.createNewSession();
+  }
+
+  async saveActiveSession() {
+    console.log('saving');
+    await this.ensureUserIsSet(this.activeSession);
+    console.log('user set');
+    console.log(this.activeSession.id);
+    if (!this.activeSession.id || this.activeSession.id === '') {
+      const newSessionRef = await this.addNewSession(this.activeSession);
+      if (newSessionRef) {
+        this.activeSession.id = newSessionRef.id;
+      } else {
+        console.error('newSessionRef is undefined');
+      }
+      console.log(this.activeSession.id);
+      this.userSessions.push(this.activeSession);
+    }
+    await this.saveSession(this.activeSession);
+  }
+
   /**
    * Saves changes to the current active session. Writes a new session
    * to Firestore if the session is blank.
@@ -70,7 +123,7 @@ export class SessionsService {
   async saveSession(session: Session) {
     await this.ensureUserIsSet(session);
     if (session.id === '') {
-      //this is a double write below - we should refactor this to only write once
+      // This is a double write below - we should refactor this to only write once
       const newSessionRef = await this.createSession(session);
       session.id = newSessionRef.id;
       await this.userSessions.push(session);
@@ -84,7 +137,7 @@ export class SessionsService {
   async loadAllSessions() {
     const currentUser = await firstValueFrom(this.userService.getCurrentUser());
     if (currentUser) {
-      this.userSessions = await this.queryUserSessions(currentUser.id);
+      this.userSessions = (await this.queryUserSessions(currentUser.id)) || [];
       console.log(this.userSessions);
     }
   }
@@ -105,17 +158,38 @@ export class SessionsService {
     await this.saveSession(session);
   }
 
+  private addNewSession(session: Session) {
+    console.log('adding');
+    return this.http
+      .post<{ id: string }>(`${this.API_URL}/add_session`, session)
+      .toPromise();
+  }
+
+  private updateSession(session: Session) {
+    return this.http
+      .put(`${this.API_URL}/update_session`, session, {
+        params: { id: session.id },
+      })
+      .toPromise();
+  }
+
   /**
    * Deletes a specified session from Firestore and updates userSessions/activeSession.
    */
-  async deleteSession(session: Session) {
-    await deleteDoc(doc(this.firestore, 'sessions', session.id));
+  async deleteSession(sessionId: string) {
+    await this.http
+      .delete(`${this.API_URL}/delete_session`, { params: { id: sessionId } })
+      .toPromise();
 
     this.userSessions = this.userSessions.filter(
-      (s) => s.id !== session.id,
+      (session) => session.id !== sessionId,
     );
 
-    console.log(`Session ${session.id} deleted successfully.`);
+    if (this.activeSession.id === sessionId) {
+      this.newSession();
+    }
+
+    console.log(`Session ${sessionId} deleted successfully.`);
   }
 
   /**
@@ -124,7 +198,7 @@ export class SessionsService {
   async deleteAllSessions() {
     let promises = [];
     for (let session of this.userSessions) {
-      promises.push(this.deleteSession(session));
+      promises.push(this.deleteSession(session.id));
     }
     await Promise.all(promises);
   }
@@ -135,7 +209,9 @@ export class SessionsService {
    */
   private async ensureUserIsSet(session: Session) {
     if (!session.userId) {
-      session.userId = (await firstValueFrom(this.userService.getCurrentUser()))!.id;
+      session.userId = (await firstValueFrom(
+        this.userService.getCurrentUser(),
+      ))!.id;
     }
   }
 
@@ -144,19 +220,22 @@ export class SessionsService {
   */
 
   private async queryUserSessions(userId: string) {
-    const sessionsQuery = query(
-      collection(this.firestore, 'sessions'),
-      where('userId', '==', userId),
-    );
-    const sessionsSnapshot = await getDocs(sessionsQuery);
-    return sessionsSnapshot.docs.map((doc) => doc.data() as Session);
+    const sessions = await this.http
+      .get<Session[]>(`${this.API_URL}/get_sessions`, { params: { userId } })
+      .toPromise();
+    return sessions || [];
   }
 
   private createSession(session: Session) {
     return addDoc(collection(this.firestore, 'sessions'), session);
   }
 
-  private updateSession(session: Session) {
-    return setDoc(doc(this.firestore, 'sessions', session.id), session);
+  private newSession() {
+    this.activeSession = this.createNewSession();
+  }
+
+  async addMessageToActiveSession(message: ChatMessage) {
+    this.activeSession.history.push(message);
+    await this.saveActiveSession();
   }
 }

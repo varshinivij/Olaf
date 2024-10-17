@@ -265,7 +265,7 @@ export class WorkspaceComponent implements AfterViewInit {
     if (session.id === this.currentSession.id) {
       this.newSession();
     }
-    this.sessionsService.deleteSession(session);
+    this.sessionsService.deleteSession(session.id);
   }
 
   /*
