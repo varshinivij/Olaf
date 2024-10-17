@@ -8,18 +8,14 @@ import json
 
 db = firestore.client()
 
-@http
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def add_session(req: Request) -> Response:
     try:
         session = req.json
-        doc_ref = db.collection('sessions').add(session)
+        doc_ref = db.collection('sessions2').add(session)
         return Response(json.dumps({"id": doc_ref[1].id}), status=200, mimetype='application/json')
     except Exception as e:
         return Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
 
-@http
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["put"]))
 def update_session(req: Request) -> Response:
     try:
         session_id = req.args.get('id')
@@ -27,33 +23,29 @@ def update_session(req: Request) -> Response:
         if not session_id:
             return Response(json.dumps({"error": "Session ID is required"}), status=400, mimetype='application/json')
         
-        db.collection('sessions').document(session_id).set(session_data, merge=True)
+        db.collection('sessions2').document(session_id).set(session_data, merge=True)
         return Response(json.dumps({"message": "Session updated successfully"}), status=200, mimetype='application/json')
     except Exception as e:
         return Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
 
-@http
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["delete"]))
 def delete_session(req: Request) -> Response:
     try:
         session_id = req.args.get('id')
         if not session_id:
             return Response(json.dumps({"error": "Session ID is required"}), status=400, mimetype='application/json')
         
-        db.collection('sessions').document(session_id).delete()
+        db.collection('sessions2').document(session_id).delete()
         return Response(json.dumps({"message": "Session deleted successfully"}), status=200, mimetype='application/json')
     except Exception as e:
         return Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
 
-@http
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["get"]))
 def get_sessions(req: Request) -> Response:
     try:
         user_id = req.args.get('userId')
         if not user_id:
             return Response(json.dumps({"error": "User ID is required"}), status=400, mimetype='application/json')
         
-        sessions_ref = db.collection('sessions').where('userId', '==', user_id)
+        sessions_ref = db.collection('sessions2').where('userId', '==', user_id)
         sessions = sessions_ref.stream()
         sessions_list = [{**doc.to_dict(), 'id': doc.id} for doc in sessions]
         
