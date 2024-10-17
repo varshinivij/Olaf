@@ -22,13 +22,20 @@ from e2b_functions import (
     download_from_sandbox,
     sandbox_status,
     close_sandbox,
-    firebase_storage_to_sandbox,
+    firebase_storage_to_sandbox
 )
 
 from file_storage_functions import (
     handle_user_file_upload,
     request_user_create_folder,
     request_user_delete_path
+)
+
+from sessions_functions import (
+    add_session,
+    update_session,
+    delete_session,
+    get_sessions
 )
 
 # This needs to be cleaned up
@@ -40,7 +47,7 @@ E2B_API_KEY = "REMOVED"
 def on_request_example(req: Request) -> Response:
     return Response("Hello world this is me!!")
 
-
+@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def master_agent_interaction(req: Request) -> Response:
     try:
