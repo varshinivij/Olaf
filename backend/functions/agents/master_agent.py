@@ -165,20 +165,20 @@ class MasterAgent:
                     }
                 }
             },
-            {
-                "type": "function",
-                "function": {
-                    "name": "write_basic_code",
-                    "description": "This function writes simple python code queries where not a lot of computations or code is required use this when going for very small functions . Use this function for creating code when very small piece of code is asked like simple functions code or simple class or anything.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                        },
-                        "required": ["history"],
-                        "additionalProperties": False
-                    }
-                }
-            },
+            # {
+            #     "type": "function",
+            #     "function": {
+            #         "name": "write_basic_code",
+            #         "description": "This function writes simple python code queries where not a lot of computations or code is required use this when going for very small functions . Use this function for creating code when very small piece of code is asked like simple functions code or simple class or anything.",
+            #         "parameters": {
+            #             "type": "object",
+            #             "properties": {
+            #             },
+            #             "required": ["history"],
+            #             "additionalProperties": False
+            #         }
+            #     }
+            # },
             {
                 "type": "function",
                 "function": {
