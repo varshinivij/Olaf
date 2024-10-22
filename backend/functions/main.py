@@ -32,10 +32,11 @@ from file_storage_functions import (
 )
 
 from sessions_functions import (
-    add_session,
     update_session,
     delete_session,
-    get_sessions
+    get_sessions,
+    delete_all_sessions,
+    create_session
 )
 
 # This needs to be cleaned up
