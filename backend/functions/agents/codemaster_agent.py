@@ -140,21 +140,31 @@ For analyzing single-cell RNA-seq data using the `Scanpy` package, follow this s
 
 The following dependencies are already installed and available in the Jupyter kernel:
 
-NumPy
-SciPy
-Openpyxl
-xlrd
-xlwt
-Matplotlib
-Pandas
-OpenCV-Python
+ansi2html==1.8.0
+scanpy==1.10.2
+scrublet
+anndata==0.10.8
+celltypist==1.6.3
+leidenalg==0.10.2
+igraph==0.11.6
+networkx==3.2.1
+pynndescent==0.5.13
+numpy==1.26.4
+scipy==1.13.1
+pandas==2.2.2
+scikit-learn==1.5.1
+umap-learn==0.5.6
+statsmodels==0.14.2
+numba==0.60.0
+matplotlib==3.9.1
+seaborn==0.13.2
+h5py==3.11.0
+openpyxl==3.1.5
 PyPDF2
-pdfminer.six
-SymPy
-Scikit-learn
-Scanpy
-Scrublet
-Seaborn
+tqdm==4.66.4
+psutil==6.0.0
+defusedxml==0.7.1
+requests==2.32.3
 
 You can proceed with executing code that utilizes any of these packages without needing to install them. Don't install any additional packages 
 
