@@ -25,7 +25,8 @@ def update_session(req: Request) -> Response:
         db.collection('sessions2').document(session_id).set(session_data, merge=True)
         return Response(json.dumps({"message": "Session updated successfully"}), status=200, mimetype='application/json')
     except Exception as e:
-        return Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
+        print(f"Unable to add session: {str(e)}")
+    
 
 # Delete Session
 @http
@@ -39,7 +40,7 @@ def delete_session(req: Request) -> Response:
         db.collection('sessions2').document(session_id).delete()
         return Response(json.dumps({"message": "Session deleted successfully"}), status=200, mimetype='application/json')
     except Exception as e:
-        return Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
+        print(f"Unable to delete session: {str(e)}")
 
 # Get Sessions
 @http
@@ -53,8 +54,7 @@ def get_sessions(req: Request) -> Response:
         sessions_ref = db.collection('sessions2').where('userId', '==', user_id)
         sessions = sessions_ref.stream()
         sessions_list = [{**doc.to_dict(), 'id': doc.id} for doc in sessions]
-        
-        return Response(json.dumps(sessions_list), status=200, mimetype='application/json')
+        return sessions_list
     except Exception as e:
         return Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
 
