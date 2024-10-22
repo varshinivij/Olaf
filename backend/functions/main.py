@@ -3,6 +3,7 @@ import time
 from executor import Executor
 from agents.coder_agent import CoderAgent
 from agents.master_agent import MasterAgent
+from agents.codemaster_agent import CodeMasterAgent
 import flask
 
 from firebase_admin import initialize_app
@@ -40,23 +41,20 @@ E2B_API_KEY = "REMOVED"
 def on_request_example(req: Request) -> Response:
     return Response("Hello world this is me!!")
 
-
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
-def master_agent_interaction(req: Request) -> Response:
+def codemaster_agent_interaction(req: Request) -> Response:
     try:
         history = req.json.get("history")
-        
+        msg_type = req.json.get("msg_type")
         if not history:
             return flask.Response(json.dumps({"error": "'history' is required"}), status=400)
-        
         history = History(history)
-        master_agent = MasterAgent(history)
-
-        return flask.Response(flask.stream_with_context(stream(master_agent)), mimetype="text/event-stream")
+        language = req.json.get("language", "Python")
+        code_master_agent = CodeMasterAgent(language,history)
+        return flask.Response(flask.stream_with_context(stream(code_master_agent)), mimetype="text/event-stream")
     except Exception as e:
         print(f"Error in generate_plan: {str(e)}")
         return flask.Response(json.dumps({"error": str(e)}), status=500)
-
 
 # --- CoderAgent Functions ---
 @http
@@ -76,9 +74,6 @@ def generate_code(req: Request) -> flask.Response:
     except Exception as e:
         print(f"Error in generate_code: {str(e)}")
         return flask.Response(json.dumps({"error": str(e)}), status=500)
-
-
-
 
 # http://127.0.0.1:4000/twocube-web//us-central1/?query=I%20have%20uploaded%2016%20files,%204%20files%20per%20cell-type.%20For%20each%20cell%20type%20there%20are%20three%20negative%20sequence%20files%20and%20one%20positive%20sequence%20file.%20Build%20a%20convolution%20neural%20network%20based%20model%20to%20classify%20positive%20and%20negative%20DNA%20sequences.%20For%20evaluation%20results,%20plot%20the%20area%20under%20precision%20recall%20curve%20and%20area%20under%20the%20receiver%20operator%20characteristic%20curve.
 # --- LLM Agent Function ---
@@ -117,5 +112,4 @@ def ask_agent(req: Request) -> Response:
     response_data = {
         "message": response,
     }
-    
     return Response(json.dumps(response_data), status=200)
