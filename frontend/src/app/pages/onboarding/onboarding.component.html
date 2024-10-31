@@ -1,0 +1,17 @@
+<form
+    class="flex h-screen flex-col items-center justify-center gap-y-3 bg-primary"
+    [formGroup]="onboardForm"
+>
+    <img src="assets/twocube-logo-black-bg.png" class="h-32 rounded-full" />
+    <div hlmH1 class="pb-5 text-secondary">Welcome to Twocube</div>
+    <input
+        hlmInput
+        class="h-10 w-96 bg-secondary"
+        formControlName="name"
+        placeholder="Name"
+    />
+    <button hlmBtn class="w-96 border border-white">Continue</button>
+    @if (errorMessage) {
+        <div class="text-destructive">{{ errorMessage }}</div>
+    }
+</form>
