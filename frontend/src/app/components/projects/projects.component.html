@@ -20,14 +20,76 @@
       >
     </div>
     <!-- new project button -->
-    <button
-      class="ml-auto text-sm font-semibold pl-2 pr-4 h-10 flex items-center gap-x-2 bg-[#038C7F] rounded-lg text-white hover:brightness-90"
-      type="button"
-      (click)="createProjectDialog.showModal()"
-    >
-      <i class="material-icons-outlined">add</i>
-      New Project
-    </button>
+    <hlm-dialog class="ml-auto">
+      <button
+        hlmBtn
+        brnDialogTrigger
+        variant="secondary"
+        class="gap-x-2"
+        type="button"
+      >
+        <hlm-icon size="sm" name="lucidePlus" class="flex-none -ml-1.5" />
+        New Project
+      </button>
+      <hlm-dialog-content *brnDialogContent="let ctx">
+        <hlm-dialog-header>
+          <div hlmDialogTitle>New Project</div>
+        </hlm-dialog-header>
+        <form
+          id="projectForm"
+          class="flex flex-col gap-y-3"
+          [formGroup]="createProjectForm"
+          (ngSubmit)="createProject()"
+        >
+          <input
+            hlmInput
+            size="sm"
+            class="w-96"
+            placeholder="Enter Project Name"
+            formControlName="name"
+          />
+          <select
+            class="border-2 border-[#038C7F] focus:outline-none rounded-md text-sm w-full p-2 pl-3"
+            [ngClass]="{
+              'text-[#C6CDE0]':
+                createProjectForm.controls['language'].value === '',
+              'text-black': createProjectForm.controls['language'].value !== '',
+            }"
+            formControlName="language"
+          >
+            <option value="" disabled selected>Select Language</option>
+            <option class="text-black" value="Python">Python</option>
+          </select>
+
+          <brn-select class="inline-block" placeholder="Select an option">
+            <hlm-select-trigger class="w-56">
+              <hlm-select-value />
+            </hlm-select-trigger>
+            <hlm-select-content>
+              <hlm-option value="Refresh">Refresh</hlm-option>
+              <hlm-option value="Settings">Settings</hlm-option>
+              <hlm-option value="Help">Help</hlm-option>
+              <hlm-option value="Signout">Sign out</hlm-option>
+            </hlm-select-content>
+          </brn-select>
+
+        </form>
+        <hlm-dialog-footer>
+          <button hlmBtn brnDialogClose variant="outline" size="sm">
+            Cancel
+          </button>
+          <button
+            hlmBtn
+            brnDialogClose
+            variant="secondary"
+            size="sm"
+            (click)="(null)"
+          >
+            Create
+          </button>
+        </hlm-dialog-footer>
+      </hlm-dialog-content>
+    </hlm-dialog>
   </div>
 
   <!-- project directory table -->
@@ -79,7 +141,7 @@
           <tr class="bg-white hover:brightness-90">
             <td
               class="px-4 truncate py-1.5 cursor-pointer"
-              (dblclick)="goToWorkspace(project)"
+              (click)="goToWorkspace(project)"
             >
               <i class="material-symbols-outlined align-middle pr-1">
                 folder_open

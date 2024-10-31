@@ -28,7 +28,7 @@
     <!-- new session button -->
     <button
       hlmBtn
-      variant="secondary"
+      variant="accent"
       size="sm"
       class="flex-none justify-start pl-2 gap-x-2 truncate"
       (click)="newSession()"
@@ -46,7 +46,7 @@
             <button
               hlmBtn
               [variant]="
-                currentSession.id === session.id ? 'secondary' : 'ghost'
+                currentSession.id === session.id ? 'accent' : 'ghost'
               "
               size="sm"
               class="justify-between pl-3 pr-0"
@@ -97,10 +97,11 @@
                     [(ngModel)]="newSessionName"
                   />
                   <hlm-dialog-footer>
-                    <button hlmBtn brnDialogClose size="sm">Cancel</button>
+                    <button hlmBtn brnDialogClose variant="outline" size="sm">Cancel</button>
                     <button
                       hlmBtn
                       brnDialogClose
+                      variant="secondary"
                       size="sm"
                       (click)="renameSession(session)"
                     >
@@ -160,7 +161,7 @@
         @if (message.role === "user") {
           <div
             hlmSmall
-            class="self-end max-w-[calc(100%-40px)] px-2 py-1 bg-secondary rounded-lg break-words"
+            class="self-end max-w-[calc(100%-40px)] px-2 py-1 bg-accent rounded-lg break-words"
           >
             {{ message.content }}
           </div>
