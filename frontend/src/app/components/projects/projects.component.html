@@ -37,30 +37,33 @@
         </hlm-dialog-header>
         <form
           id="projectForm"
-          class="flex w-full flex-col gap-y-2"
+          class="flex flex-col gap-y-2"
           [formGroup]="createProjectForm"
           (ngSubmit)="createProject()"
         >
+          <!-- project name input -->
           <input
             hlmInput
-            size="sm"
             class="w-96"
             placeholder="Enter Project Name"
             formControlName="name"
           />
-          <brn-select
-            class="inline-flex"
-            placeholder="Select an option"
-            formControlName="language"
-          >
+          <!-- project language select -->
+          <brn-select placeholder="Select language" formControlName="language">
             <hlm-select-trigger class="w-96">
               <hlm-select-value />
             </hlm-select-trigger>
             <hlm-select-content>
               <hlm-option value="Python">Python</hlm-option>
-              <hlm-option value="Settings">Settings</hlm-option>
-              <hlm-option value="Help">Help</hlm-option>
-              <hlm-option value="Signout">Sign out</hlm-option>
+            </hlm-select-content>
+          </brn-select>
+          <!-- project model select -->
+          <brn-select placeholder="Select model" formControlName="model">
+            <hlm-select-trigger class="w-96">
+              <hlm-select-value />
+            </hlm-select-trigger>
+            <hlm-select-content>
+              <hlm-option value="GPT-4o">GPT-4o</hlm-option>
             </hlm-select-content>
           </brn-select>
         </form>
@@ -73,7 +76,8 @@
             brnDialogClose
             variant="secondary"
             size="sm"
-            (click)="(null)"
+            [disabled]="!createProjectForm.valid"
+            (click)="createProject()"
           >
             Create
           </button>

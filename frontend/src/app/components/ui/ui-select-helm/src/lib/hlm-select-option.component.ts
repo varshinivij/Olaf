@@ -22,7 +22,7 @@ import type { ClassValue } from 'clsx';
 			[attr.data-state]="this._brnSelectOption.checkedState()"
 		>
 			@if (this._brnSelectOption.selected()) {
-				<hlm-icon aria-hidden="true" name="lucideCheck" />
+				<hlm-icon aria-hidden="true" name="lucideCheck" class="mt-auto" />
 			}
 		</span>
 	`,
@@ -33,7 +33,7 @@ export class HlmSelectOptionComponent {
 	public readonly userClass = input<ClassValue>('', { alias: 'class' });
 	protected readonly _computedClass = computed(() =>
 		hlm(
-			'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2  rtl:flex-reverse rtl:pr-8 rtl:pl-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+			'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2  rtl:flex-reverse rtl:pr-8 rtl:pl-2 text-sm outline-none focus:bg-background focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
 			this.userClass(),
 		),
 	);
