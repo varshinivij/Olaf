@@ -45,7 +45,7 @@
           <input
             hlmInput
             class="w-96"
-            placeholder="Enter Project Name"
+            placeholder="Enter project name"
             formControlName="name"
           />
           <!-- project language select -->
@@ -68,7 +68,13 @@
           </brn-select>
         </form>
         <hlm-dialog-footer>
-          <button hlmBtn brnDialogClose variant="outline" size="sm">
+          <button
+            hlmBtn
+            brnDialogClose
+            variant="outline"
+            size="sm"
+            (click)="createProjectForm.reset()"
+          >
             Cancel
           </button>
           <button
