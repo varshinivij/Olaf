@@ -17,8 +17,8 @@ export const inputVariants = cva(
 				lg: 'h-11 px-8',
 			},
 			error: {
-				auto: '[&.ng-invalid.ng-touched]:text-primary [&.ng-invalid.ng-touched]:border-primary [&.ng-invalid.ng-touched]:focus-visible:ring-primary',
-				true: 'text-primary border-primary focus-visible:ring-primary',
+				auto: '[&.ng-invalid.ng-touched]:text-primary [&.ng-invalid.ng-touched]:focus-visible:ring-primary',
+				true: 'text-primary focus-visible:ring-primary',
 			},
 		},
 		defaultVariants: {
