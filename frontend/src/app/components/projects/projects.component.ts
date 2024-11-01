@@ -8,17 +8,60 @@ import {
   Validators,
 } from '@angular/forms';
 import { NavigationExtras, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 import { ProjectService } from '../../services/project.service';
 import { UserService } from '../../services/user.service';
 
 import { Project, ProjectLanguage, ProjectModel } from '../../models/project';
-import { Subscription } from 'rxjs';
+
+import { provideIcons } from '@ng-icons/core';
+import { lucidePlus } from '@ng-icons/lucide';
+
+import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
+import {
+  BrnDialogCloseDirective,
+  BrnDialogContentDirective,
+  BrnDialogTriggerDirective,
+} from '@spartan-ng/ui-dialog-brain';
+import {
+  HlmDialogComponent,
+  HlmDialogContentComponent,
+  HlmDialogFooterComponent,
+  HlmDialogHeaderComponent,
+  HlmDialogTitleDirective,
+} from '@spartan-ng/ui-dialog-helm';
+import { HlmIconComponent } from '@spartan-ng/ui-icon-helm';
+import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
+import { BrnSelectImports } from '@spartan-ng/ui-select-brain';
+import { HlmSelectImports } from '@spartan-ng/ui-select-helm';
 
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+
+    HlmButtonDirective,
+
+    BrnDialogContentDirective,
+    BrnDialogCloseDirective,
+    BrnDialogTriggerDirective,
+    HlmDialogComponent,
+    HlmDialogContentComponent,
+    HlmDialogFooterComponent,
+    HlmDialogHeaderComponent,
+    HlmDialogTitleDirective,
+
+    HlmIconComponent,
+    HlmInputDirective,
+
+    BrnSelectImports,
+    HlmSelectImports,
+  ],
+  providers: [provideIcons({ lucidePlus })],
   templateUrl: './projects.component.html',
   styleUrl: './projects.component.scss',
 })

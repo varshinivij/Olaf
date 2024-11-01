@@ -5,18 +5,13 @@
 @import "tailwindcss/utilities";
 @import "highlight.js/styles/atom-one-light.css";
 
-html,
-body {
-  height: 100%;
-}
-
 :root {
   --font-sans: "Inter";
   --background: 0 0% 94%; // main gray background
   --foreground: 0 0% 99%; // main white foreground
   --muted: 0 0% 96%;
   --muted-foreground: 0 0% 45.1%;
-  --popover: 0 0% 100%;
+  --popover: 0 0% 99%;
   --popover-foreground: 0 0% 3.9%;
   --card: 0 0% 100%;
   --card-foreground: 0 0% 3.9%;
@@ -24,11 +19,11 @@ body {
   --input: 0 0% 89.8%;
   --primary: 192 90% 12%; // primary dark green
   --primary-foreground: 0 0% 98%;
-  --secondary: 0 0% 90%; // accent for gray buttons
-  --secondary-foreground: 0 0% 9%;
-  --accent: 0 0% 95%; // accent for gray buttons
+  --secondary: 174.31 95.8% 28.04%; // secondary light green
+  --secondary-foreground: 0 0% 98%;
+  --accent: 0 0% 90%; // accent dark gray
   --accent-foreground: 0 0% 9%;
-  --destructive: 0 84.2% 60.2%;
+  --destructive: 0 84.2% 60.2%; // destructive red
   --destructive-foreground: 0 0% 98%;
   --ring: 0 0% 3.9%;
   --radius: 0.5rem;

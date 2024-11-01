@@ -1,45 +1,107 @@
-<div class="flex flex-col w-full h-screen p-6 rounded-lg bg-white">
+<div class="flex h-screen w-full flex-col rounded-lg bg-white p-6">
   <!-- header -->
   <p class="text-2xl font-bold">
-    Hey {{ (userService.getCurrentUser() | async)?.name || "there" }}!
+    Hey {{ (userService.getCurrentUser() | async)?.name || 'there' }}!
   </p>
   <p class="text-lg">Create projects to streamline your workflows and ideas.</p>
 
   <!-- search bar/new project row -->
-  <div class="flex gap-x-4 items-center my-5">
-    <!-- search bar (disabled for now)-->
-    <div class="flex-none relative w-1/2 h-9">
+  <div class="my-5 flex items-center gap-x-4">
+    <!-- search bar -->
+    <div class="relative h-9 w-1/2 flex-none">
       <input
-        class="border border-[#4F4F4F]/40 focus:outline-none text-sm pl-10 rounded-xl w-full h-full"
+        class="h-full w-full rounded-xl border border-[#4F4F4F]/40 pl-10 text-sm focus:outline-none"
         placeholder="Search Projects..."
         (input)="projectService.setSearchFilter($any($event.target).value)"
       />
       <i
-        class="material-icons absolute text-[#9E9E9E] left-2 top-[50%] translate-y-[-50%]"
+        class="material-icons absolute left-2 top-[50%] translate-y-[-50%] text-[#9E9E9E]"
         >search</i
       >
     </div>
     <!-- new project button -->
-    <button
-      class="ml-auto text-sm font-semibold pl-2 pr-4 h-10 flex items-center gap-x-2 bg-[#038C7F] rounded-lg text-white hover:brightness-90"
-      type="button"
-      (click)="createProjectDialog.showModal()"
-    >
-      <i class="material-icons-outlined">add</i>
-      New Project
-    </button>
+    <hlm-dialog class="ml-auto">
+      <button
+        hlmBtn
+        brnDialogTrigger
+        variant="secondary"
+        class="gap-x-2"
+        type="button"
+      >
+        <hlm-icon size="sm" name="lucidePlus" class="-ml-1.5 flex-none" />
+        New Project
+      </button>
+      <hlm-dialog-content *brnDialogContent="let ctx">
+        <hlm-dialog-header>
+          <div hlmDialogTitle>New Project</div>
+        </hlm-dialog-header>
+        <form
+          id="projectForm"
+          class="flex flex-col gap-y-2"
+          [formGroup]="createProjectForm"
+          (ngSubmit)="createProject()"
+        >
+          <!-- project name input -->
+          <input
+            hlmInput
+            class="w-96"
+            placeholder="Enter project name"
+            formControlName="name"
+          />
+          <!-- project language select -->
+          <brn-select placeholder="Select language" formControlName="language">
+            <hlm-select-trigger class="w-96">
+              <hlm-select-value />
+            </hlm-select-trigger>
+            <hlm-select-content>
+              <hlm-option value="Python">Python</hlm-option>
+            </hlm-select-content>
+          </brn-select>
+          <!-- project model select -->
+          <brn-select placeholder="Select model" formControlName="model">
+            <hlm-select-trigger class="w-96">
+              <hlm-select-value />
+            </hlm-select-trigger>
+            <hlm-select-content>
+              <hlm-option value="GPT-4o">GPT-4o</hlm-option>
+            </hlm-select-content>
+          </brn-select>
+        </form>
+        <hlm-dialog-footer>
+          <button
+            hlmBtn
+            brnDialogClose
+            variant="outline"
+            size="sm"
+            (click)="createProjectForm.reset()"
+          >
+            Cancel
+          </button>
+          <button
+            hlmBtn
+            brnDialogClose
+            variant="secondary"
+            size="sm"
+            [disabled]="!createProjectForm.valid"
+            (click)="createProject()"
+          >
+            Create
+          </button>
+        </hlm-dialog-footer>
+      </hlm-dialog-content>
+    </hlm-dialog>
   </div>
 
   <!-- project directory table -->
-  <div class="overflow-y-auto w-full">
-    <table class="table-fixed text-left text-sm w-full">
+  <div class="w-full overflow-y-auto">
+    <table class="w-full table-fixed text-left text-sm">
       <!-- table header + sorting buttons -->
       <thead>
         <tr>
           <!-- weird CSS workaround to make the body scrollable. reference:
         https://www.geeksforgeeks.org/how-to-create-a-table-with-fixed-header-and-scrollable-body/#. maybe i should've just used flex columns... -->
           <!-- project name header -->
-          <th class="sticky top-0 rounded-ss-lg bg-[#F1F1F1] px-4 py-3 w-[30%]">
+          <th class="sticky top-0 w-[30%] rounded-ss-lg bg-[#F1F1F1] px-4 py-3">
             <div class="flex items-center justify-between">
               Project Name
               <!-- <button
@@ -66,7 +128,7 @@
           </th>
           <!-- actions header -->
           <th
-            class="sticky top-0 rounded-se-lg bg-[#F1F1F1] text-center px-4 w-[15%]"
+            class="sticky top-0 w-[15%] rounded-se-lg bg-[#F1F1F1] px-4 text-center"
           >
             Actions
           </th>
@@ -78,18 +140,18 @@
         @for (project of this.projects; track project.id) {
           <tr class="bg-white hover:brightness-90">
             <td
-              class="px-4 truncate py-1.5 cursor-pointer"
-              (dblclick)="goToWorkspace(project)"
+              class="cursor-pointer truncate px-4 py-1.5"
+              (click)="goToWorkspace(project)"
             >
-              <i class="material-symbols-outlined align-middle pr-1">
+              <i class="material-symbols-outlined pr-1 align-middle">
                 folder_open
               </i>
               {{ project.name }}
             </td>
-            <td class="pr-4 truncate">
-              {{ project.updatedAt.toLocaleDateString("en-US") }}
+            <td class="truncate pr-4">
+              {{ project.updatedAt.toLocaleDateString('en-US') }}
             </td>
-            <td class="text-[#4F4F4F] overflow-hidden text-center">
+            <td class="overflow-hidden text-center text-[#4F4F4F]">
               <button
                 class="material-symbols-outlined align-middle"
                 type="button"
@@ -105,17 +167,17 @@
   </div>
 
   @if (projects?.length === 0) {
-    <div class="flex flex-col mt-auto items-center gap-y-1">
-      <img class="w-12 h-12" src="assets/twocube-logo-black-bg.png" />
+    <div class="mt-auto flex flex-col items-center gap-y-1">
+      <img class="h-12 w-12" src="assets/twocube-logo-black-bg.png" />
       <p class="font-bold">No Projects Yet</p>
       <p>Use the "New Project" button to get started.</p>
     </div>
   }
 
   <!-- bottom page navigator -->
-  <div class="mt-auto flex gap-x-4 justify-center items-center pr-6">
+  <div class="mt-auto flex items-center justify-center gap-x-4 pr-6">
     <button
-      class="text-[#9E9E9E] text-sm"
+      class="text-sm text-[#9E9E9E]"
       type="button"
       (click)="projectService.setPageNumber(pageNumber - 1)"
       [disabled]="pageNumber === 1"
@@ -126,7 +188,7 @@
     <!-- 2 pages back number -->
     @if (pageNumber === totalPages && pageNumber > 2) {
       <button
-        class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+        class="h-10 w-10 rounded-xl bg-[#E0E0E0] hover:brightness-90"
         type="button"
         (click)="projectService.setPageNumber(pageNumber - 2)"
       >
@@ -136,7 +198,7 @@
     <!-- previous page number -->
     @if (pageNumber !== 1) {
       <button
-        class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+        class="h-10 w-10 rounded-xl bg-[#E0E0E0] hover:brightness-90"
         type="button"
         (click)="projectService.setPageNumber(pageNumber - 1)"
       >
@@ -144,13 +206,13 @@
       </button>
     }
     <!-- current page -->
-    <button class="bg-[#024050] text-white rounded-xl h-10 w-10">
+    <button class="h-10 w-10 rounded-xl bg-[#024050] text-white">
       {{ pageNumber }}
     </button>
     <!-- next page -->
     @if (pageNumber !== totalPages) {
       <button
-        class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+        class="h-10 w-10 rounded-xl bg-[#E0E0E0] hover:brightness-90"
         type="button"
         (click)="projectService.setPageNumber(pageNumber + 1)"
       >
@@ -160,7 +222,7 @@
     <!-- 2 pages forward -->
     @if (pageNumber === 1 && totalPages > 2) {
       <button
-        class="bg-[#E0E0E0] hover:brightness-90 rounded-xl h-10 w-10"
+        class="h-10 w-10 rounded-xl bg-[#E0E0E0] hover:brightness-90"
         type="button"
         (click)="projectService.setPageNumber(pageNumber + 2)"
       >
@@ -169,7 +231,7 @@
     }
 
     <button
-      class="text-[#9E9E9E] text-sm"
+      class="text-sm text-[#9E9E9E]"
       type="button"
       (click)="projectService.setPageNumber(pageNumber + 1)"
       [disabled]="pageNumber === totalPages"
@@ -181,14 +243,14 @@
   <!-- create project dialog -->
   <dialog
     #createProjectDialog
-    class="z-[100] w-1/3 bg-white rounded-lg border border-[#D0D2E0] outline-none"
+    class="z-[100] w-1/3 rounded-lg border border-[#D0D2E0] bg-white outline-none"
   >
     <div class="flex flex-col">
       <!-- header and close button -->
       <div class="flex items-center p-5 pb-3">
         <p class="font-medium text-[#191E50]">New Project</p>
         <button
-          class="material-icons-outlined text-[#8A8EB1] ml-auto"
+          class="material-icons-outlined ml-auto text-[#8A8EB1]"
           type="button"
           (click)="createProjectDialog.close()"
         >
@@ -199,19 +261,19 @@
       <!-- input buttons -->
       <form
         id="projectForm"
-        class="flex flex-col gap-y-3 w-5/6 p-4"
+        class="flex w-5/6 flex-col gap-y-3 p-4"
         [formGroup]="createProjectForm"
         (ngSubmit)="createProject(); createProjectDialog.close()"
       >
         <!-- create project name input -->
         <input
-          class="border-2 border-[#038C7F] focus:outline-none rounded-md text-sm placeholder-[#C6CDE0] w-full p-2 pl-3"
+          class="w-full rounded-md border-2 border-[#038C7F] p-2 pl-3 text-sm placeholder-[#C6CDE0] focus:outline-none"
           placeholder="Enter Project Name"
           formControlName="name"
         />
         <!-- create project language select -->
         <select
-          class="border-2 border-[#038C7F] focus:outline-none rounded-md text-sm w-full p-2 pl-3"
+          class="w-full rounded-md border-2 border-[#038C7F] p-2 pl-3 text-sm focus:outline-none"
           [ngClass]="{
             'text-[#C6CDE0]':
               createProjectForm.controls['language'].value === '',
@@ -224,7 +286,7 @@
         </select>
         <!-- create project model select -->
         <select
-          class="border-2 border-[#038C7F] focus:outline-none rounded-md text-sm w-full p-2 pl-3"
+          class="w-full rounded-md border-2 border-[#038C7F] p-2 pl-3 text-sm focus:outline-none"
           [ngClass]="{
             'text-[#C6CDE0]': createProjectForm.controls['model'].value === '',
             'text-black': createProjectForm.controls['model'].value !== '',
@@ -239,14 +301,14 @@
       <!-- cancel/create buttons -->
       <div class="flex gap-x-2 p-3">
         <button
-          class="ml-auto text-sm font-medium px-6 py-2 bg-[#1F9254]/10 rounded-lg hover:brightness-90 tracking-wide"
+          class="ml-auto rounded-lg bg-[#1F9254]/10 px-6 py-2 text-sm font-medium tracking-wide hover:brightness-90"
           type="button"
           (click)="createProjectDialog.close()"
         >
           Cancel
         </button>
         <button
-          class="text-sm font-medium px-6 py-2 bg-[#038C7F] rounded-lg text-white tracking-wide"
+          class="rounded-lg bg-[#038C7F] px-6 py-2 text-sm font-medium tracking-wide text-white"
           [ngClass]="{
             'hover:brightness-90': createProjectForm.valid,
           }"
