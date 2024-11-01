@@ -1,0 +1,28 @@
+<form
+    class="flex h-screen flex-col items-center justify-center gap-y-3 bg-primary"
+    [formGroup]="onboardForm"
+    (ngSubmit)="submitOnboardForm()"
+>
+    <img src="assets/twocube-logo-black-bg.png" class="h-32 rounded-full" />
+    <div hlmH1 class="pb-5 text-secondary">Welcome to Twocube</div>
+    <input
+        hlmInput
+        class="h-10 w-[30rem] bg-secondary"
+        formControlName="name"
+        placeholder="What's your name?"
+    />
+    <button hlmBtn class="w-[30rem] gap-x-1 border border-white">
+        Continue
+        @if (loading) {
+            <hlm-icon
+                #icon
+                size="xs"
+                name="lucideLoaderCircle"
+                class="animate-spin"
+            />
+        }
+    </button>
+    @if (errorMessage) {
+        <div class="text-destructive">{{ errorMessage }}</div>
+    }
+</form>

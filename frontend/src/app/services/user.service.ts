@@ -263,7 +263,7 @@ export class UserService {
     const data = {
       id: user.uid,
       email: user.email || 'noemail@example.com',
-      name: user.displayName || 'No Name',
+      name: user.displayName,
       role: 'someRole',
       status: 'someStatus',
       createdAt: new Date(),

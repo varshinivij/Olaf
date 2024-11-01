@@ -35,7 +35,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     private formBuilder: FormBuilder,
     private router: Router,
     private userService: UserService,
-    @Inject(PLATFORM_ID) platformId: Object
+    @Inject(PLATFORM_ID) platformId: Object,
   ) {
     this.isServer = isPlatformServer(platformId);
     this.loginForm = this.formBuilder.group({
@@ -49,7 +49,11 @@ export class LoginComponent implements OnInit, OnDestroy {
       next: (user) => {
         if (user && this.formSubmitted) {
           console.log('Logged in: ', user);
-          this.navigateToWorkspace();
+          if (user.name !== null) {
+            this.navigateToDashboard();
+          } else {
+            this.navigateToOnboarding();
+          }
         }
       },
       error: (error) => {
@@ -67,14 +71,18 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.router.navigate(['/signup']);
   }
 
-  navigateToWorkspace() {
-    this.router.navigate(['/workspace']);
+  navigateToDashboard() {
+    this.router.navigate(['/dashboard'])
+  }
+
+  navigateToOnboarding() {
+    this.router.navigate(['/onboarding']);
   }
 
   async loginWithGoogle() {
     try {
       this.formSubmitted = true;
-      await this.userService.loginWithGoogle()
+      await this.userService.loginWithGoogle();
     } catch (error) {
       this.errorMessage = UserService.convertAuthErrorToMessage(error);
       console.error('Error logging in with Google: ', error);
@@ -86,7 +94,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.formSubmitted = true;
       await this.userService.loginWithEmail(
         this.loginForm.value.email,
-        this.loginForm.value.password
+        this.loginForm.value.password,
       );
     } catch (error) {
       this.errorMessage = UserService.convertAuthErrorToMessage(error);
