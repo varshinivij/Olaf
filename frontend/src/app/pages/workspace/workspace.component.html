@@ -154,7 +154,7 @@
       </button>
     </div>
     <!-- message screen -->
-    <div class="flex h-full flex-col gap-y-3 overflow-y-auto">
+    <div #messageScreen class="flex h-full flex-col gap-y-3 overflow-y-auto">
       @for (message of this.currentSession.history.slice(1); track $index) {
         <!-- display user messages -->
         @if (message.role === 'user') {
@@ -257,7 +257,7 @@
       <button hlmTabsTrigger="files">Files</button>
     </hlm-tabs-list>
     <!-- planner tab content -->
-    <div hlmTabsContent="planner" class="h-full overflow-y-auto">
+    <div #plannerScreen hlmTabsContent="planner" class="h-full overflow-y-auto">
       @for (
         message of this.currentSession.history | planmessage;
         track $index
@@ -320,7 +320,7 @@
       </div>
     </div>
     <!-- code tab content -->
-    <div hlmTabsContent="code" class="h-full overflow-y-auto">
+    <div #codeScreen hlmTabsContent="code" class="h-full overflow-y-auto">
       <div class="flex h-full flex-col gap-y-3">
         @for (
           message of this.currentSession.history | codemessage;
