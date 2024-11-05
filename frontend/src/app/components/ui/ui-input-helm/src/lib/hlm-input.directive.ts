@@ -17,8 +17,8 @@ export const inputVariants = cva(
 				lg: 'h-11 px-8',
 			},
 			error: {
-				auto: '[&.ng-invalid.ng-touched]:text-destructive [&.ng-invalid.ng-touched]:border-destructive [&.ng-invalid.ng-touched]:focus-visible:ring-destructive',
-				true: 'text-destructive border-destructive focus-visible:ring-destructive',
+				auto: '[&.ng-invalid.ng-touched]:text-primary [&.ng-invalid.ng-touched]:focus-visible:ring-primary',
+				true: 'text-primary focus-visible:ring-primary',
 			},
 		},
 		defaultVariants: {

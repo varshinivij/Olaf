@@ -40,7 +40,11 @@ export class SignupComponent implements OnInit, OnDestroy {
       next: (user) => {
         if (user && this.formSubmitted) {
           console.log('Logged in: ', user);
-          this.navigateToDashboard();
+          if (user.name !== null) {
+            this.navigateToDashboard();
+          } else {
+            this.navigateToOnboarding();
+          }
         }
       },
       error: (error) => {
@@ -60,6 +64,10 @@ export class SignupComponent implements OnInit, OnDestroy {
 
   navigateToDashboard() {
     this.router.navigate(['/dashboard'])
+  }
+
+  navigateToOnboarding() {
+    this.router.navigate(['/onboarding']);
   }
 
   async loginWithGoogle() {

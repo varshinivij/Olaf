@@ -1,19 +1,19 @@
-<div class="flex h-screen p-3 bg-background">
+<div class="flex h-screen bg-background p-3">
   <!-- sidebar -->
   <div
     #sidebar
     id="sidebar"
-    class="flex flex-col p-3 bg-foreground rounded-md gap-y-2 transition-[width]"
+    class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
   >
     <!-- header/collapse button row -->
     <div
-      class="flex-none flex items-center gap-x-2.5 overflow-x-hidden"
+      class="flex flex-none items-center gap-x-2.5 overflow-x-hidden"
       [ngClass]="{ 'justify-center': collapsed }"
     >
       @if (!collapsed) {
         <img
           src="assets/twocube-logo-black-bg.png"
-          class="flex-none w-8 h-8 rounded-lg"
+          class="h-8 w-8 flex-none rounded-lg"
         />
         <div hlmLarge class="mr-auto truncate">Twocube</div>
       }
@@ -28,9 +28,9 @@
     <!-- new session button -->
     <button
       hlmBtn
-      variant="secondary"
+      variant="accent"
       size="sm"
-      class="flex-none justify-start pl-2 gap-x-2 truncate"
+      class="flex-none justify-start gap-x-2 truncate pl-2"
       (click)="newSession()"
     >
       <hlm-icon size="sm" name="lucidePlus" class="flex-none" />
@@ -45,9 +45,7 @@
           @if (session.projectId === currentProject.id) {
             <button
               hlmBtn
-              [variant]="
-                currentSession.id === session.id ? 'secondary' : 'ghost'
-              "
+              [variant]="currentSession.id === session.id ? 'accent' : 'ghost'"
               size="sm"
               class="justify-between pl-3 pr-0"
               (click)="changeSession(session)"
@@ -92,15 +90,17 @@
                   </hlm-dialog-header>
                   <input
                     hlmInput
-                    size="sm"
                     class="w-96"
                     [(ngModel)]="newSessionName"
                   />
                   <hlm-dialog-footer>
-                    <button hlmBtn brnDialogClose size="sm">Cancel</button>
+                    <button hlmBtn brnDialogClose variant="outline" size="sm">
+                      Cancel
+                    </button>
                     <button
                       hlmBtn
                       brnDialogClose
+                      variant="secondary"
                       size="sm"
                       (click)="renameSession(session)"
                     >
@@ -118,10 +118,10 @@
   <!-- chat interface -->
   <div
     id="main-content"
-    class="flex flex-col px-4 py-3 bg-foreground rounded-md gap-y-2"
+    class="flex flex-col gap-y-2 rounded-md bg-foreground px-4 py-3"
   >
     <!-- top header row -->
-    <div class="flex-none flex -mx-1 items-center gap-x-1">
+    <div class="-mx-1 flex flex-none items-center gap-x-1">
       <button
         hlmBtn
         variant="ghost"
@@ -130,7 +130,7 @@
       >
         <hlm-icon size="sm" name="lucideHouse" />
       </button>
-      <div hlmSmall hlmMuted class="truncate overflow-visible">
+      <div hlmSmall hlmMuted class="overflow-visible truncate">
         / {{ this.currentProject.name }} /
         {{ this.currentSession.name }}
       </div>
@@ -142,22 +142,22 @@
       </button>
     </div>
     <!-- message screen -->
-    <div class="flex flex-col h-full gap-y-3 overflow-y-auto">
+    <div #messageScreen class="flex h-full flex-col gap-y-3 overflow-y-auto">
       @for (message of this.currentSession.history.slice(1); track $index) {
         <!-- display user messages -->
-        @if (message.role === "user") {
+        @if (message.role === 'user') {
           <div
             hlmSmall
-            class="self-end max-w-[calc(100%-40px)] px-2 py-1 bg-secondary rounded-lg break-words"
+            class="max-w-[calc(100%-40px)] self-end break-words rounded-lg bg-accent px-2 py-1"
           >
             {{ message.content }}
           </div>
         }
         <!-- display assistant messages -->
         @else if (
-          message.type === "text" ||
-          message.type === "code" ||
-          message.type === "plan"
+          message.type === 'text' ||
+          message.type === 'code' ||
+          message.type === 'plan'
         ) {
           <div class="flex gap-x-2.5">
             <!-- twocube avatar -->
@@ -168,15 +168,15 @@
             <!-- twocube name/message -->
             <div class="flex flex-col gap-y-0.5">
               <div hlmLarge hlmSmall>Twocube</div>
-              <div hlmSmall class="self-start rounded-lg break-words">
+              <div hlmSmall class="self-start break-words rounded-lg">
                 {{
-                  message.type === "code"
+                  message.type === 'code'
                     ? "I've put our code in the code editor! Let me know what you think."
-                    : message.type === "plan"
+                    : message.type === 'plan'
                       ? "I've put our plan in the planner! Let me know what you think."
                       : message.content
                 }}
-                @if (message.type === "code") {
+                @if (message.type === 'code') {
                   <div
                     [innerHTML]="extractTextWithoutCode(message.content).trim()"
                   ></div>
@@ -191,29 +191,29 @@
         @if (!responseLoading) {
           <img
             src="assets/twocube-logo-black-bg.png"
-            class="self-center h-12 mt-auto rounded-lg"
+            class="mt-auto h-12 self-center rounded-lg"
           />
-          <div hlmSmall hlmMuted class="self-center mb-auto text-center">
+          <div hlmSmall hlmMuted class="mb-auto self-center text-center">
             Hello, how can I help you today?
           </div>
         }
       }
       <!-- loading state -->
       @if (responseLoading) {
-        <div class="flex pb-1 justify-center gap-x-2">
+        <div class="flex justify-center gap-x-2 pb-1">
           <div hlmSmall hlmMuted class="break-words">Waiting for agent...</div>
           <hlm-spinner size="xs" />
         </div>
       }
     </div>
     <!-- chat bar -->
-    <div class="flex-none relative mt-auto">
+    <div class="relative mt-auto flex-none">
       <!-- using event-binding voodoo to make the textarea dynamically resize. -->
       <textarea
         #chatBar
         hlmInput
         placeholder="Ask Twocube... (shift + enter for new line)"
-        class="w-full max-h-40 pr-10 py-2.5 bg-accent border-0"
+        class="max-h-40 w-full border-0 bg-background py-2.5 pr-10"
         [(ngModel)]="newMessage"
         (keydown.enter)="$event.preventDefault(); sendMessage()"
         (keyup.enter)="adjustTextareaHeight(chatBar)"
@@ -243,29 +243,29 @@
       <button hlmTabsTrigger="files">Files</button>
     </hlm-tabs-list>
     <!-- code tab content -->
-    <div hlmTabsContent="code" class="h-full overflow-y-auto">
-      <div class="flex flex-col gap-y-3 h-full">
+    <div #codeScreen hlmTabsContent="code" class="h-full overflow-y-auto">
+      <div class="flex h-full flex-col gap-y-3">
         @for (
           message of this.currentSession.history | codemessage;
           track $index
         ) {
           <!-- code block -->
-          @if (message.type === "code") {
+          @if (message.type === 'code') {
             <pre><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
           }
           <!-- result block -->
-          @else if (message.type === "result") {
+          @else if (message.type === 'result') {
             <pre><code hlmSmall [highlight]="message.content" language="html" class="bg-transparent border rounded-md"></code></pre>
           }
           <!-- image block -->
-          @else if (message.type === "image") {
+          @else if (message.type === 'image') {
             <img
               [src]="message.content"
-              class="max-h-72 border rounded-md object-contain"
+              class="max-h-72 rounded-md border object-contain"
             />
           }
           <!-- error block -->
-          @else if (message.type === "error") {
+          @else if (message.type === 'error') {
             <pre><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
           }
         }
@@ -273,9 +273,9 @@
         @empty {
           @if (!executingCode) {
             <div
-              class="flex flex-col justify-center items-center h-full p-3 border rounded-md gap-y-4"
+              class="flex h-full flex-col items-center justify-center gap-y-4 rounded-md border p-3"
             >
-              <div class="w-20 h-20 bg-background rounded-full"></div>
+              <div class="h-20 w-20 rounded-full bg-background"></div>
               <div hlmSmall hlmMuted>Nothing to code yet.</div>
             </div>
           }
@@ -283,7 +283,7 @@
         @if (executingCode) {
           <span
             hlmCode
-            class="flex items-center mb-1 p-2 bg-transparent border rounded-md gap-x-3"
+            class="mb-1 flex items-center gap-x-3 rounded-md border bg-transparent p-2"
           >
             Executing code...
             <hlm-spinner size="xs" />
@@ -294,7 +294,7 @@
     <!-- files tab content -->
     <div hlmTabsContent="files" class="h-full overflow-y-auto">
       <div
-        class="flex flex-col h-full p-3 border rounded-md gap-y-1.5 overflow-x-auto"
+        class="flex h-full flex-col gap-y-1.5 overflow-x-auto rounded-md border p-3"
       >
         <div hlmSmall class="text-destructive">
           Warning: This feature is currently in development and files do not
@@ -319,7 +319,7 @@
                 hlmSmall
                 variant="ghost"
                 size="xs"
-                class="flex-none ml-auto gap-x-2"
+                class="ml-auto flex-none gap-x-2"
                 (click)="
                   addFirebaseFileToSandbox(file);
                   icon.name = 'lucideLoaderCircle';
@@ -337,7 +337,7 @@
                 hlmSmall
                 variant="ghost"
                 size="xs"
-                class="flex-none ml-auto gap-x-2 text-green-500"
+                class="ml-auto flex-none gap-x-2 text-green-500"
                 (click)="addFirebaseFileToSandbox(file)"
               >
                 File added
@@ -349,9 +349,9 @@
         <!-- empty state -->
         @empty {
           <div
-            class="self-center w-20 h-20 mt-auto bg-background rounded-full"
+            class="mt-auto h-20 w-20 self-center rounded-full bg-background"
           ></div>
-          <div hlmSmall hlmMuted class="self-center mb-auto text-center">
+          <div hlmSmall hlmMuted class="mb-auto self-center text-center">
             No files found.
           </div>
         }
