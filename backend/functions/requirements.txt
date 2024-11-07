@@ -1,6 +1,9 @@
 firebase_functions~=0.1.0
 e2b-code-interpreter==0.0.10a0
-e2b
-EnvVars
+e2b==0.17.1
 functions_framework
 openAI
+werkzeug
+flask
+google-cloud-storage
+firebase-admin
