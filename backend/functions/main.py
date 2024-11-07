@@ -14,8 +14,8 @@ from functions_framework import http
 from agent_utils import chat_completion, stream
 from firebase_admin import firestore
 initialize_app()
-from Router import Router
-from Pipe import Pipe
+from router import Router
+from pipe import Pipe
 
 # import other modules' Cloud Functions
 from e2b_functions import (
