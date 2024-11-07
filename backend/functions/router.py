@@ -1,4 +1,4 @@
-from Pipe import Pipe
+from pipe import Pipe
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from functools import wraps
