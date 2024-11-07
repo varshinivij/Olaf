@@ -20,8 +20,8 @@ export class DashboardComponent implements AfterViewInit {
     Split(['#sidebar', '#main-content'], {
       sizes: [10, 90], // Initial sizes of the columns in percentage
       minSize: [200, 700], // Minimum size of each column in pixels
-      gutterSize: 17, // Size of the gutter (the draggable area between columns)
-      cursor: 'col-resize', // Cursor to show when hovering over the gutter
+      gutterSize: 12, // Size of the gutter (the draggable area between columns)
+      snapOffset: 0,
     });
   }
 

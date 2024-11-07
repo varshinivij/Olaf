@@ -1,4 +1,10 @@
-import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
+import {
+  AfterViewChecked,
+  AfterViewInit,
+  Component,
+  ElementRef,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpEventType } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -174,8 +180,11 @@ import {
     }),
   ],
 })
-export class WorkspaceComponent implements AfterViewInit {
+export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   @ViewChild('sidebar') sidebar?: ElementRef;
+  @ViewChild('messageScreen') messageScreen?: ElementRef;
+  @ViewChild('plannerScreen') plannerScreen?: ElementRef;
+  @ViewChild('codeScreen') codeScreen?: ElementRef;
   adjustTextareaHeight = adjustTextareaHeight;
   getLucideIconFromType = getLucideIconFromType;
   split?: Split.Instance;
@@ -199,7 +208,7 @@ export class WorkspaceComponent implements AfterViewInit {
     private chatService: ChatService,
     public fileStorageService: FileStorageService,
     private sandboxService: SandboxService,
-    public sessionsService: SessionsService,
+    public sessionsService: SessionsService
   ) {
     this.currentProject =
       this.router.getCurrentNavigation()?.extras.state?.['project'];
@@ -233,6 +242,21 @@ export class WorkspaceComponent implements AfterViewInit {
     });
   }
 
+  ngAfterViewChecked() {
+    if (this.messageScreen) {
+      this.messageScreen.nativeElement.scrollTop =
+        this.messageScreen.nativeElement.scrollHeight;
+    }
+    if (this.plannerScreen) {
+      this.plannerScreen.nativeElement.scrollTop =
+        this.plannerScreen.nativeElement.scrollHeight;
+    }
+    if (this.codeScreen) {
+      this.codeScreen.nativeElement.scrollTop =
+        this.codeScreen.nativeElement.scrollHeight;
+    }
+  }
+
   toggleSidebar() {
     if (!this.collapsed) {
       this.split?.collapse(0);
@@ -248,7 +272,7 @@ export class WorkspaceComponent implements AfterViewInit {
 
   newSession() {
     this.currentSession = this.sessionsService.blankSession(
-      this.currentProject,
+      this.currentProject
     );
   }
 
@@ -285,7 +309,7 @@ export class WorkspaceComponent implements AfterViewInit {
     };
     this.sessionsService.addMessageToSession(
       this.currentSession,
-      uploadMessage,
+      uploadMessage
     );
     this.responseLoading = true;
 
@@ -304,7 +328,7 @@ export class WorkspaceComponent implements AfterViewInit {
       (error) => {
         console.error('Error:', error);
         this.responseLoading = false;
-      },
+      }
     );
   }
 
@@ -327,7 +351,7 @@ export class WorkspaceComponent implements AfterViewInit {
   private async checkSandboxConnection(): Promise<void> {
     try {
       const response: any = await firstValueFrom(
-        this.sandboxService.isSandboxConnected(),
+        this.sandboxService.isSandboxConnected()
       );
       if (response.alive) {
         this.onSandboxConnected();
@@ -351,7 +375,7 @@ export class WorkspaceComponent implements AfterViewInit {
   private async createSandbox() {
     try {
       const response: any = await firstValueFrom(
-        this.sandboxService.createSandbox(),
+        this.sandboxService.createSandbox()
       );
       this.sandboxService.setSandboxId(response.sandboxId);
       this.onSandboxCreated();
@@ -381,7 +405,7 @@ export class WorkspaceComponent implements AfterViewInit {
       };
       await this.sessionsService.addMessageToSession(
         this.currentSession,
-        userMessage,
+        userMessage
       );
     }
   }
@@ -416,7 +440,7 @@ export class WorkspaceComponent implements AfterViewInit {
       // Add the placeholder message to the session and store a reference to it
       await this.sessionsService.addMessageToSession(
         this.currentSession,
-        responseMessage,
+        responseMessage
       );
       const messageIndex = this.currentSession.history.length - 1; // Get the index of the added message
 
@@ -515,7 +539,7 @@ export class WorkspaceComponent implements AfterViewInit {
           };
           this.sessionsService.addMessageToSession(
             this.currentSession,
-            codeResultMessage,
+            codeResultMessage
           );
         }
         if (result.results && result.results.length > 0) {
@@ -528,7 +552,7 @@ export class WorkspaceComponent implements AfterViewInit {
             };
             this.sessionsService.addMessageToSession(
               this.currentSession,
-              imageMessage,
+              imageMessage
             );
           }
         }
@@ -540,7 +564,7 @@ export class WorkspaceComponent implements AfterViewInit {
           };
           this.sessionsService.addMessageToSession(
             this.currentSession,
-            errorMessage,
+            errorMessage
           );
         }
         this.executingCode = false;
@@ -548,7 +572,7 @@ export class WorkspaceComponent implements AfterViewInit {
       (error) => {
         console.error('Error:', error);
         this.executingCode = false;
-      },
+      }
     );
   }
 

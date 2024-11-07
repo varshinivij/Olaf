@@ -5,6 +5,7 @@ import { Routes } from '@angular/router';
 import { HomeComponent } from './pages/home/home.component';
 import { LoginComponent } from './pages/login/login.component';
 import { SignupComponent } from './pages/signup/signup.component';
+import { OnboardingComponent } from './pages/onboarding/onboarding.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { ProfileComponent } from './pages/profile/profile.component';
 import { WorkspaceComponent } from './pages/workspace/workspace.component';
@@ -19,6 +20,12 @@ export const routes: Routes = [
   },
   { path: 'login', component: LoginComponent, pathMatch: 'full' },
   { path: 'signup', component: SignupComponent },
+  {
+    path: 'onboarding',
+    component: OnboardingComponent,
+    canActivate: [AuthGuard],
+    data: { authGuardPipe: redirectUnauthorizedToLogin },
+  },
   {
     path: 'home',
     component: HomeComponent,

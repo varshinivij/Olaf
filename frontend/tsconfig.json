@@ -55,6 +55,9 @@
       "@spartan-ng/ui-separator-helm": [
         "./src/app/components/ui/ui-separator-helm/src/index.ts"
       ],
+      "@spartan-ng/ui-select-helm": [
+        "./src/app/components/ui/ui-select-helm/src/index.ts"
+      ],
       "@spartan-ng/ui-spinner-helm": [
         "./src/app/components/ui/ui-spinner-helm/src/index.ts"
       ],
