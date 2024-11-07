@@ -40,8 +40,8 @@ E2B_API_KEY = "REMOVED"
 def on_request_example(req: Request) -> Response:
     return Response("Hello world this is me!!")
 
-
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+@http
+@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post", "options"]))
 def master_agent_interaction(req: Request) -> Response:
     try:
         history = req.json.get("history")
