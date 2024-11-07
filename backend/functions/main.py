@@ -14,6 +14,8 @@ from history import History
 from functions_framework import http
 from agent_utils import chat_completion, stream
 initialize_app()
+from router import Router
+from pipe import Pipe
 
 # import other modules' Cloud Functions
 from e2b_functions import (
@@ -41,18 +43,26 @@ E2B_API_KEY = "REMOVED"
 def on_request_example(req: Request) -> Response:
     return Response("Hello world this is me!!")
 
-@http
-@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post", "options"]))
+def master_route_function(session):
+    history = session
+    if not history:
+            return None
+    history = History(history)
+    master_agent = MasterAgent(history)
+    return master_agent
+
+@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def master_agent_interaction(req: Request) -> Response:
     try:
-        history = req.json.get("history")
-        msg_type = req.json.get("msg_type")
-        if not history:
-            return flask.Response(json.dumps({"error": "'history' is required"}), status=400)
-        history = History(history)
-        language = req.json.get("language", "Python")
-        code_master_agent = CodeMasterAgent(language,history)
-        return flask.Response(flask.stream_with_context(stream(code_master_agent)), mimetype="text/event-stream")
+        session = req.json.get("history")
+        print(session)
+        router = Router()
+        router.add_route("master",master_route_function)
+        # history = router.get_session_data(session_id)["history"]
+        res = router.route_session("master",session)
+        if res is None:
+            return flask.sesponse(json.dumps({"error": "'history' is required"}), status=400)
+        return flask.Response(flask.stream_with_context(stream(res)), mimetype="text/event-stream")
     except Exception as e:
         print(f"Error in generate_plan: {str(e)}")
         return flask.Response(json.dumps({"error": str(e)}), status=500)
