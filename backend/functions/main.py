@@ -48,7 +48,7 @@ def master_route_function(session):
     if not history:
             return None
     history = History(history)
-    master_agent = MasterAgent(history)
+    master_agent = CodeMasterAgent("Python", history) #using CodeMasterAgent
     return master_agent
 
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
@@ -114,6 +114,22 @@ def ask_agent(req: Request) -> Response:
         •	Inappropriate Response: “To align sequences, you can use the following Python code snippet with the Biopython library: from Bio import pairwise2…”
 
     This prompt clarifies your role, the scope of your responses, and the limitations of what you should provide, ensuring that you focus on high-level expertise without delving into detailed implementation.
+    """
+    history = req.json.get("history")
+    history = History(history)
+    history.log("system", system)
+    response = chat_completion(history)
+    print(response)
+    response_data = {
+        "message": response,
+    }
+    return Response(json.dumps(response_data), status=200)
+
+def name_maker(req: Request) -> Response:
+    # a request will be conversation history
+    system = """
+    You given a conversation history.
+    Please construct a super short title for the conversation.
     """
     history = req.json.get("history")
     history = History(history)
