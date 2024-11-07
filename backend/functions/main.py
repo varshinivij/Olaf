@@ -12,6 +12,7 @@ import concurrent.futures
 from history import History
 from functions_framework import http
 from agent_utils import chat_completion, stream
+from firebase_admin import firestore
 initialize_app()
 from Router import Router
 from Pipe import Pipe
@@ -34,17 +35,15 @@ from file_storage_functions import (
 )
 
 from sessions_functions import (
-    add_session,
-    update_session,
     delete_session,
     get_sessions,
     delete_all_sessions,
-    ensure_user_is_set,
-    create_session
 )
 
 # This needs to be cleaned up
 E2B_API_KEY = "REMOVED"
+db = firestore.client()
+
 
 # --- EXAMPLE ---
 @http
@@ -62,18 +61,58 @@ def master_route_function(session):
     return master_agent
     
 
+@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def master_agent_interaction(req: Request) -> Response:
     try:
-        session = req.json.get("history")
-        print(session)
+        session_id = req.args.get("session_id")
+        message = req.json.get("message")
+        user_id = req.args.get('user_id')
+        project_id = req.args.get('project_id')
+        
+        if not message:
+            return flask.Response(json.dumps({"error": "'message' is required"}), status=400)
+        if not user_id:
+            return flask.Response(json.dumps({"error": "'user_id' is required"}), status=400)
+        if not project_id:
+            return flask.Response(json.dumps({"error": "'project_id' is required"}), status=400)
+
+        if session_id:
+            session_data = db.collection("sessions").document(session_id).get().to_dict()
+            if not session_data:
+                return Response(json.dumps({"error": "Session not found"}), status=404, mimetype='application/json')
+        else:
+            new_session_ref = db.collection("sessions").document()
+            session_id = new_session_ref.id
+            session_data = {
+                "id": session_id,
+                "userId": user_id,
+                "projectId": project_id,
+                "name": "<untitled session>",
+                "context": "",
+                "history": [
+                    {
+                        "type": "text",
+                        "role": "assistant",
+                        "content": "Hello, how can I help you today?"
+                    }
+                ],
+                "sandboxId": None
+            }
+            new_session_ref.set(session_data)
+        
+        session_data["history"].append({"role": "user", "content": message})
+
         router = Router()
         router.add_route("master", master_route_function)
-        # history = router.get_session_data(session_id)["history"]
-        res = router.route_session("master",session)
-        if res is None:
+        updated_session = router.route_session("master", session_data["history"])
+
+        db.collection("sessions").document(session_id).get().to_dict().append({"role": "assistant", "content": updated_session})
+
+        if updated_session is None:
             return flask.Response(json.dumps({"error": "'history' is required"}), status=400)
-        return flask.Response(flask.stream_with_context(stream(res)), mimetype="text/event-stream")
+        return flask.Response(flask.stream_with_context(stream(updated_session)), mimetype="text/event-stream")
+
     except Exception as e:
         print(f"Error in generate_plan: {str(e)}")
         return flask.Response(json.dumps({"error": str(e)}), status=500)
