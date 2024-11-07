@@ -125,6 +125,9 @@ def ask_agent(req: Request) -> Response:
     }
     return Response(json.dumps(response_data), status=200)
 
+
+@http
+@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def name_maker(req: Request) -> Response:
     # a request will be conversation history
     system = """
