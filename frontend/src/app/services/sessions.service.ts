@@ -79,7 +79,7 @@ export class SessionsService {
 
   async addMessageToSession(session: Session, message: ChatMessage) {
     session.history.push(message);
-    await this.saveSession(session);
+    // await this.saveSession(session);
   }
 
   async setSessionSandBoxId(session: Session, sandboxId: string) {

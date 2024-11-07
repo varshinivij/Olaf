@@ -396,7 +396,7 @@ export class WorkspaceComponent implements AfterViewInit {
       const message = this.newMessage;
       this.newMessage = '';
       this.responseLoading = true;
-      await this.addUserMessage(message);
+      // await this.addUserMessage(message);
 
       let responseType:
         | 'text'
@@ -420,47 +420,57 @@ export class WorkspaceComponent implements AfterViewInit {
       );
       const messageIndex = this.currentSession.history.length - 1; // Get the index of the added message
 
-      this.chatService.sendMessage(this.currentSession.history).subscribe({
-        next: (event: any) => {
-          if (event.type === HttpEventType.DownloadProgress && event.loaded) {
-            const chunk = event.partialText || ''; // Handle the chunked text
+      // Extract sessionId, userId, and projectId from the current session
+      const sessionId = this.currentSession.id;
+      const userId = this.currentSession.userId;
+      const projectId = this.currentSession.projectId;
+      console.log(sessionId);
+      console.log(userId);
+      console.log(projectId);
 
-            if (responseContent === '') {
-              // First chunk is the type
-              responseType = chunk;
-              responseMessage.type = responseType;
-              responseContent += ' ';
-            } else {
-              // Append subsequent chunks to the content
-              responseContent = chunk;
-              if (
-                responseType === 'text' ||
-                responseType === 'code' ||
-                responseType === 'plan'
-              ) {
-                // Remove the first four letters from the content (the "code" identifier)
-                responseContent = responseContent.slice(4).trim();
+      this.chatService
+        .sendMessage(message, sessionId, userId, projectId)
+        .subscribe({
+          next: (event: any) => {
+            if (event.type === HttpEventType.DownloadProgress && event.loaded) {
+              const chunk = event.partialText || ''; // Handle the chunked text
+
+              if (responseContent === '') {
+                // First chunk is the type
+                responseType = chunk;
+                responseMessage.type = responseType;
+                responseContent += ' ';
+              } else {
+                // Append subsequent chunks to the content
+                responseContent = chunk;
+                if (
+                  responseType === 'text' ||
+                  responseType === 'code' ||
+                  responseType === 'plan'
+                ) {
+                  // Remove the first four letters from the content (the "code" identifier)
+                  responseContent = responseContent.slice(4).trim();
+                }
+                if (responseType === 'plan') {
+                  responseContent = jsonrepair(responseContent);
+                  const jsonData = JSON.parse(responseContent);
+                  responseContent = JSON.stringify(jsonData, null, 2);
+                }
+                this.currentSession.history[messageIndex].content =
+                  responseContent;
               }
-              if (responseType === 'plan') {
-                responseContent = jsonrepair(responseContent);
-                const jsonData = JSON.parse(responseContent);
-                responseContent = JSON.stringify(jsonData, null, 2);
-              }
-              this.currentSession.history[messageIndex].content =
-                responseContent;
             }
-          }
-        },
-        error: (error) => {
-          console.error('Error:', error);
-          this.responseLoading = false;
-        },
-        complete: () => {
-          this.responseLoading = false;
-          this.sessionsService.saveSession(this.currentSession);
-          this.executeLatestCode();
-        },
-      });
+          },
+          error: (error) => {
+            console.error('Error:', error);
+            this.responseLoading = false;
+          },
+          complete: () => {
+            this.responseLoading = false;
+            // this.sessionsService.saveSession(this.currentSession);
+            this.executeLatestCode();
+          },
+        });
     }
   }
 
