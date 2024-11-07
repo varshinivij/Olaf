@@ -13,8 +13,8 @@ from history import History
 from functions_framework import http
 from agent_utils import chat_completion, stream
 initialize_app()
-from Router import Router
-from Pipe import Pipe
+from router import Router
+from pipe import Pipe
 
 # import other modules' Cloud Functions
 from e2b_functions import (
@@ -42,10 +42,6 @@ E2B_API_KEY = "REMOVED"
 def on_request_example(req: Request) -> Response:
     return Response("Hello world this is me!!")
 
-
-
-
-
 def master_route_function(session):
     history = session
     if not history:
@@ -53,12 +49,6 @@ def master_route_function(session):
     history = History(history)
     master_agent = MasterAgent(history)
     return master_agent
-    
-    
-
-
-
-
 
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def master_agent_interaction(req: Request) -> Response:
