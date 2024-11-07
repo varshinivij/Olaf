@@ -32,10 +32,12 @@ from file_storage_functions import (
 )
 
 from sessions_functions import (
+    add_session,
     update_session,
     delete_session,
     get_sessions,
     delete_all_sessions,
+    ensure_user_is_set,
     create_session
 )
 
@@ -85,6 +87,10 @@ def generate_code(req: Request) -> flask.Response:
         print(f"Error in generate_code: {str(e)}")
         return flask.Response(json.dumps({"error": str(e)}), status=500)
 
+
+
+
+# http://127.0.0.1:4000/twocube-web//us-central1/?query=I%20have%20uploaded%2016%20files,%204%20files%20per%20cell-type.%20For%20each%20cell%20type%20there%20are%20three%20negative%20sequence%20files%20and%20one%20positive%20sequence%20file.%20Build%20a%20convolution%20neural%20network%20based%20model%20to%20classify%20positive%20and%20negative%20DNA%20sequences.%20For%20evaluation%20results,%20plot%20the%20area%20under%20precision%20recall%20curve%20and%20area%20under%20the%20receiver%20operator%20characteristic%20curve.
 # --- LLM Agent Function ---
 @http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
