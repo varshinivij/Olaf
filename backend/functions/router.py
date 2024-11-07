@@ -1,4 +1,4 @@
-from Pipe import Pipe
+from pipe import Pipe
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from functools import wraps
@@ -48,8 +48,7 @@ class Router:
             "history": [
                 {"role": "user", "content": "Hello, what can you do?"},
                 {"role": "assistant", "content": "I can help you with various tasks such as answering questions, writing code, and more."},
-                {"role": "user", "content": "Can you explain quantum physics?"},
-                {"role": "assistant", "content": "Quantum physics is the study of matter and energy at the most fundamental level. It aims to uncover the properties and behaviors of the very building blocks of nature."}
+                {"role": "user", "content": "Can you write a function to calculate average in python?"},
             ],
             "name": f"Session {session_id}",
             "sandboxId": None,
