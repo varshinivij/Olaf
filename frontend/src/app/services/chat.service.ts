@@ -28,7 +28,11 @@ export class ChatService {
         observe: 'events',
         reportProgress: true,
         responseType: 'text',
-      },
+      }
     );
+  }
+
+  async generateChatNameFromHistory(history: ChatMessage[]): Promise<string> {
+    return 'a';
   }
 }
