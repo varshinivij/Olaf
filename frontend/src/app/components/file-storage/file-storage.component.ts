@@ -18,7 +18,6 @@ import { Subscription } from 'rxjs';
 import { posix } from 'path-browserify';
 
 import { formatBytes } from '../../utils/format-bytes';
-import { titleCase } from '../../utils/title-case';
 
 import { FileStorageService } from '../../services/file-storage.service';
 import { UploadService } from '../../services/upload.service';
@@ -30,6 +29,15 @@ import {
 import { UserFile } from '../../models/user-file';
 import { UserUploadTask } from '../../models/user-upload-task';
 
+import {
+  BrnProgressComponent,
+  BrnProgressIndicatorComponent,
+} from '@spartan-ng/ui-progress-brain';
+import {
+  HlmProgressDirective,
+  HlmProgressIndicatorDirective,
+} from '@spartan-ng/ui-progress-helm';
+
 interface FilterButton {
   name: string;
   type: ExtensionType;
@@ -38,7 +46,15 @@ interface FilterButton {
 @Component({
   selector: 'app-file-storage',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+
+    BrnProgressComponent,
+    BrnProgressIndicatorComponent,
+    HlmProgressDirective,
+    HlmProgressIndicatorDirective,
+  ],
   templateUrl: './file-storage.component.html',
   styleUrl: './file-storage.component.scss',
 })
@@ -72,7 +88,6 @@ export class FileStorageComponent implements OnInit, OnDestroy {
   // make imported util functions available to template
   formatBytes = formatBytes;
   getImageUrlFromType = getImageUrlFromType;
-  titleCase = titleCase;
 
   constructor(
     public fileStorageService: FileStorageService,
@@ -89,12 +104,6 @@ export class FileStorageComponent implements OnInit, OnDestroy {
           this.userFiles = [];
         }
         this.sortAndFilterFiles();
-      });
-
-    this.uploadSubscription = this.uploadService
-      .getUploadProgress()
-      .subscribe((uploads: UserUploadTask[]) => {
-        this.userUploads = uploads;
       });
   }
 
