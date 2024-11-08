@@ -56,7 +56,7 @@
                   'font-semibold': currentSession.id === session.id,
                 }"
               >
-                {{ session.name }}
+                {{ session.name || '&lt;untitled session&gt;' }}
               </div>
               <button
                 hlmBtn
@@ -73,7 +73,7 @@
                     <button
                       hlmMenuItem
                       brnDialogTrigger
-                      (click)="newSessionName = session.name"
+                      (click)="newSessionName = session.name || '<untitled session>'"
                     >
                       <hlm-icon name="lucidePencil" hlmMenuIcon />
                       Rename
