@@ -132,7 +132,10 @@
       <!-- file rows -->
       <tbody>
         <!-- display uploading files -->
-        @for (upload of uploadService.getUploadProgress() | async; track upload.id) {
+        @for (
+          upload of uploadService.getUploadProgress() | async;
+          track upload.id
+        ) {
           @if (
             searchFilter === '' &&
             pageNumber === 1 &&
@@ -156,8 +159,8 @@
                 }}
               </td>
               <td></td>
-              <td class="pt-1 pr-6">
-                <brn-progress hlmProgress [value]="upload.progress">
+              <td class="pb-1 pr-6">
+                <brn-progress hlmProgress [value]="upload.progress" class="h-2">
                   <brn-progress-indicator hlmProgressIndicator />
                 </brn-progress>
               </td>
