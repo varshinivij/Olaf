@@ -15,7 +15,7 @@
   <hr hlmSeparator />
   <!-- button column -->
   <div class="flex w-full flex-grow flex-col gap-y-1">
-    @for (_page of pages; track page) {
+    @for (_page of pages; track $index) {
       <button
         hlmBtn
         [variant]="page === _page.name ? 'accent' : 'ghost'"
