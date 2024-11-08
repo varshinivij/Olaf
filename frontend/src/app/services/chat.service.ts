@@ -46,7 +46,6 @@ export class ChatService {
         { history },
         {
           headers,
-          reportProgress: true,
           responseType: 'json',
         }
       )
