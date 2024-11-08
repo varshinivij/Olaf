@@ -131,7 +131,7 @@ def ask_agent(req: Request) -> Response:
 def name_maker(req: Request) -> Response:
     # a request will be conversation history
     system = """
-    You given a conversation history.
+    You are given a conversation history.
     Please construct a super short title for the conversation.
     """
     history = req.json.get("history")
@@ -143,3 +143,4 @@ def name_maker(req: Request) -> Response:
         "message": response,
     }
     return Response(json.dumps(response_data), status=200)
+
