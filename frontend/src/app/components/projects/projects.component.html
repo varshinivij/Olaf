@@ -1,4 +1,4 @@
-<div class="flex h-screen w-full flex-col rounded-lg bg-white p-6">
+<div class="flex h-screen w-full flex-col rounded-lg bg-foreground p-6">
   <!-- header -->
   <p class="text-2xl font-bold">
     Hey {{ (userService.getCurrentUser() | async)?.name || 'there' }}!
@@ -169,8 +169,13 @@
   @if (projects?.length === 0) {
     <div class="mt-auto flex flex-col items-center gap-y-1">
       <img class="h-12 w-12" src="assets/twocube-logo-black-bg.png" />
-      <p class="font-bold">No Projects Yet</p>
-      <p>Use the "New Project" button to get started.</p>
+      @if (projectService.getSearchFilter() | async; as search) {
+        <p class="font-bold">No Projects Found</p>
+        <p>Your search "{{ search }}" did not match any project.</p>
+      } @else {
+        <p class="font-bold">No Projects Yet</p>
+        <p>Use the "New Project" button to get started.</p>
+      }
     </div>
   }
 

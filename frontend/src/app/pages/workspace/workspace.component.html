@@ -50,7 +50,12 @@
               class="justify-between pl-3 pr-0"
               (click)="changeSession(session)"
             >
-              <div class="truncate">
+              <div
+                class="truncate"
+                [ngClass]="{
+                  'font-semibold': currentSession.id === session.id,
+                }"
+              >
                 {{ session.name }}
               </div>
               <button
@@ -88,11 +93,7 @@
                   <hlm-dialog-header>
                     <div hlmDialogTitle>Rename Session</div>
                   </hlm-dialog-header>
-                  <input
-                    hlmInput
-                    class="w-96"
-                    [(ngModel)]="newSessionName"
-                  />
+                  <input hlmInput class="w-96" [(ngModel)]="newSessionName" />
                   <hlm-dialog-footer>
                     <button hlmBtn brnDialogClose variant="outline" size="sm">
                       Cancel

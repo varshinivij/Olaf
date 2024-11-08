@@ -1,40 +1,42 @@
 <div
-  class="flex flex-col items-center border-3 rounded-lg py-3 bg-[#FAFAFA] overflow-y-auto w-full h-full"
+  class="flex h-full w-full flex-col items-center gap-y-2 overflow-auto rounded-lg bg-foreground px-3 py-3.5"
 >
   <!-- profile picture/company name -->
-  @if ((userService.getCurrentUser() | async); as user) {
-  <img
-    class="relative rounded-full w-12 h-12"
-    [src]="user?.profilePictureUrl"
-    fill
-  />
-  <p class="font-semibold text-[#252526]">
-    {{ user?.organization || "organization" }}
-  </p>
-  } @else {
-  <div class="relative rounded-full bg-gray-300 w-12 h-12"></div>
-  <p class="font-semibold text-[#252526]">organization</p>
-  }
+  <hlm-avatar class="h-12 w-12">
+    <img
+      [src]="(userService.getCurrentUser() | async)?.profilePictureUrl"
+      hlmAvatarImage
+    />
+    <span class="bg-accent" hlmAvatarFallback></span>
+  </hlm-avatar>
+  <div hlmH3 class="-mt-3.5 w-full truncate text-center">Twocube</div>
+
   <!-- divider -->
-  <hr class="border border-[#038C7F]/30 mt-4 mb-3 w-[calc(100%-1.5rem)]" />
+  <hr hlmSeparator />
   <!-- button column -->
-  <div class="flex flex-col flex-grow px-3 w-full">
-    @for (page of pages; track page;){
-    <button
-      class="flex justify-start items-center p-2 gap-x-3 rounded-lg"
-      [ngClass]="{
-        'bg-[#F1F1F1] font-semibold text-[#252526]': selectedPage === page,
-        'text-[#666567]': selectedPage !== page,
-        'mt-auto': $last
-      }"
-      type="button"
-      (click)="selectPage(page)"
-    >
-      <i class="material-icons-outlined text-[#666567]">{{
-        page.mat_i_outlined_icon
-      }}</i>
-      {{ titleCase(page.name) }}
-    </button>
+  <div class="flex w-full flex-grow flex-col gap-y-1">
+    @for (_page of pages; track page) {
+      <button
+        hlmBtn
+        [variant]="page === _page.name ? 'accent' : 'ghost'"
+        size="sm"
+        class="items-center justify-start gap-x-2 pl-2"
+        [ngClass]="{
+          'mt-auto': $last,
+        }"
+        type="button"
+        (click)="updatePage(_page.name)"
+      >
+        <hlm-icon [name]="_page.lucideIcon" class="flex-none" />
+        <div
+          class="truncate"
+          [ngClass]="{
+            'font-semibold': page === _page.name,
+          }"
+        >
+          {{ _page.name | titlecase }}
+        </div>
+      </button>
     }
   </div>
 </div>
