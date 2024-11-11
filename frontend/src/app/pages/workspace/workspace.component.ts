@@ -444,8 +444,6 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
 
       // generate a new name for session if not yet done so
       if (this.currentSession.name === null) {
-        console.log(this.currentSession.history);
-
         this.chatService
           .generateChatNameFromHistory(this.currentSession.history)
           .then((name: string) => {
