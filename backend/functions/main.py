@@ -138,9 +138,13 @@ def name_maker(req: Request) -> Response:
     history = History(history)
     history.log("system", system)
     response = chat_completion(history)
-    print(response)
+    # Initialize an empty string to accumulate the response text
+    response_str = ""
+    for chunk in response:
+        response_str += chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
     response_data = {
-        "message": response,
+        "message": response_str,
     }
+    # Return the response as a JSON response
     return Response(json.dumps(response_data), status=200)
 
