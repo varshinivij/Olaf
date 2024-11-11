@@ -3,7 +3,7 @@
   <div class="flex-1 flex-col overflow-hidden">
     <div class="flex items-center">
       <img src="assets/twocube-logo.svg" width="90px" />
-      <p class="text-[#E0E0E0] text-4xl tracking-tight pt-1">Twocube</p>
+      <div class="text-[#E0E0E0] text-4xl tracking-tight pt-1">Twocube</div>
     </div>
     <img src="assets/minimalist-bg-lines.svg" width="100%" />
   </div>
@@ -13,7 +13,7 @@
     [formGroup]="signupForm"
     (ngSubmit)="signupWithEmail()"
   >
-    <p class="font-bold text-[#4F4F4F] text-[2.5rem]">Create an account</p>
+    <div class="font-bold text-[#4F4F4F] text-[2.5rem]">Create an account</div>
     <!-- Email input box -->
     <div class="input-with-animated-placeholder relative w-[70%] h-[4.5rem]">
       <input
@@ -81,7 +81,7 @@
         >
           Login →
         </button>
-        <p
+        <div
           class="text-lg tracking-wide"
           [ngClass]="{
             'text-[#D32F2F]': this.errorMessage,
@@ -93,7 +93,7 @@
               ? this.errorMessage
               : "Password should be at least 6 characters"
           }}
-        </p>
+        </div>
       </div>
       <hr class="bg-black h-[0.125rem]" />
     </div>
@@ -104,7 +104,7 @@
       (click)="loginWithGoogle()"
     >
       <img src="assets/google-logo.svg" />
-      <p class="text-[#4F4F4F] text-lg tracking-wide">Continue with Google</p>
+      <div class="text-[#4F4F4F] text-lg tracking-wide">Continue with Google</div>
     </button>
   </form>
 </div>

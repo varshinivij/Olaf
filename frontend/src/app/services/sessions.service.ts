@@ -39,7 +39,7 @@ export class SessionsService {
       id: '',
       userId: '',
       projectId: project.id,
-      name: '<untitled session>',
+      name: null,
       context: '',
       history: [
         {

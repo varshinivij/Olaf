@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 
 import { ChatMessage } from '../models/chat-message';
 
@@ -10,6 +10,7 @@ import { ChatMessage } from '../models/chat-message';
 export class ChatService {
   private chatAPIEndpoint =
     'REMOVED'; // generalist chatder agent
+  private nameMakerAPIEndpoint = 'REMOVED';
 
   constructor(private http: HttpClient) {}
 
@@ -28,7 +29,29 @@ export class ChatService {
         observe: 'events',
         reportProgress: true,
         responseType: 'text',
-      },
+      }
     );
+  }
+
+  async generateChatNameFromHistory(history: ChatMessage[]): Promise<string> {
+    // remove all images from history
+    history = history.filter((message) => message.type !== 'image');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+    });
+
+    const response = await firstValueFrom(
+      this.http.post<{ message: string }>(
+        this.nameMakerAPIEndpoint,
+        { history },
+        {
+          headers,
+          responseType: 'json',
+        }
+      )
+    );
+
+    // Return the message from the response
+    return response.message;
   }
 }

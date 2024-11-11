@@ -7,7 +7,7 @@ rendered by the server. supposedly is SSR's fault. reference above.-->
   <div class="flex-1 flex-col overflow-hidden">
     <div class="flex items-center">
       <img src="assets/twocube-logo.svg" width="90px" />
-      <p class="text-[#E0E0E0] text-4xl tracking-tight pt-1">Twocube</p>
+      <div class="text-[#E0E0E0] text-4xl tracking-tight pt-1">Twocube</div>
     </div>
     <img src="assets/minimalist-bg-lines.svg" width="100%" />
   </div>
@@ -85,9 +85,9 @@ rendered by the server. supposedly is SSR's fault. reference above.-->
         >
           Sign up →
         </button>
-        <p class="text-[#D32F2F] text-lg tracking-wide">
+        <div class="text-[#D32F2F] text-lg tracking-wide">
           {{ this.errorMessage }}
-        </p>
+        </div>
       </div>
       <hr class="bg-black h-[0.125rem]" />
     </div>
@@ -98,7 +98,7 @@ rendered by the server. supposedly is SSR's fault. reference above.-->
       (click)="loginWithGoogle()"
     >
       <img src="assets/google-logo.svg" />
-      <p class="text-[#4F4F4F] text-lg tracking-wide">Continue with Google</p>
+      <div class="text-[#4F4F4F] text-lg tracking-wide">Continue with Google</div>
     </button>
   </form>
 </div>

@@ -55,7 +55,7 @@ export class UserService {
     private auth: Auth,
     private firestore: Firestore,
     private storage: Storage,
-    private injector: Injector,
+    private injector: Injector
   ) {
     this.user$ = user(this.auth).pipe(
       switchMap((user: FirebaseUser | null) => {
@@ -69,12 +69,12 @@ export class UserService {
                 updatedAt: user.updatedAt?.toDate(),
               } as User;
             }),
-            shareReplay(1),
+            shareReplay(1)
           ) as Observable<User>;
         } else {
           return of(null);
         }
-      }),
+      })
     );
   }
 
@@ -123,7 +123,7 @@ export class UserService {
     const credential = await signInWithEmailAndPassword(
       this.auth,
       email,
-      password,
+      password
     );
     // just in case an account exists in Auth but somehow not in the database
     if (!(await this.checkUserExists(credential.user))) {
@@ -143,7 +143,7 @@ export class UserService {
     const credential = await createUserWithEmailAndPassword(
       this.auth,
       email,
-      password,
+      password
     );
     await this.createUserInfo(credential.user);
   }
@@ -189,11 +189,11 @@ export class UserService {
    */
   async uploadProfilePicture(
     file: File,
-    onProgress: (progress: number) => void,
+    onProgress: (progress: number) => void
   ): Promise<string> {
     const storageRef = ref(
       this.storage,
-      `profilePictures/${this.auth.currentUser!.uid}`,
+      `profilePictures/${this.auth.currentUser!.uid}`
     );
 
     const uploadTask = uploadBytesResumable(storageRef, file);
@@ -215,7 +215,7 @@ export class UserService {
             profilePictureUrl: downloadUrl,
           });
           resolve(downloadUrl);
-        },
+        }
       );
     });
   }
@@ -268,7 +268,7 @@ export class UserService {
       status: 'someStatus',
       createdAt: new Date(),
       updatedAt: new Date(),
-      organization: 'someOrganization',
+      organization: null,
       profilePictureUrl: user.photoURL,
     };
 
@@ -279,7 +279,7 @@ export class UserService {
   // updates Firestore user data based on given FirebaseUser and update data
   private async updateUserInfo(
     user: FirebaseUser,
-    data: Partial<User>,
+    data: Partial<User>
   ): Promise<void> {
     const userDocument = doc(this.firestore, 'users', user.uid);
 
@@ -293,7 +293,7 @@ export class UserService {
     await setDoc(
       userDocument,
       { ...data, updatedAt: new Date() },
-      { merge: true },
+      { merge: true }
     );
   }
 

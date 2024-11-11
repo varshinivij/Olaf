@@ -31,8 +31,6 @@ import { UserUploadTask } from '../models/user-upload-task';
 })
 export class UploadService {
   private uploadSubject = new BehaviorSubject<UserUploadTask[]>([]);
-  private uploadProgress$: Observable<UserUploadTask[]> =
-    this.uploadSubject.asObservable();
 
   constructor(
     private auth: Auth,
@@ -46,7 +44,7 @@ export class UploadService {
    * @returns The upload progress queue observable.
    */
   getUploadProgress(): Observable<UserUploadTask[]> {
-    return this.uploadProgress$;
+    return this.uploadSubject.asObservable();
   }
 
   /**
