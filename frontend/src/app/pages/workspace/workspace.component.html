@@ -145,7 +145,7 @@
       </button>
       <div hlmSmall hlmMuted class="overflow-visible truncate">
         / {{ this.currentProject.name }} /
-        {{ this.currentSession.name }}
+        {{ this.currentSession.name || '&lt;untitled session&gt;' }}
       </div>
       <button hlmBtn variant="ghost" size="icon" class="ml-auto">
         <hlm-icon size="sm" name="lucideCircleStop" />
