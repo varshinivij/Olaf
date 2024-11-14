@@ -1,13 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
+import { ChatMessage } from '../models/chat-message';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ChatService {
   private chatAPIEndpoint =
-    'http://127.0.0.1:5001/twocube-web/us-central1/master_agent_interaction';
+    'REMOVED'; // generalist chatder agent
+  private nameMakerAPIEndpoint = 'REMOVED';
 
   constructor(private http: HttpClient) {}
 
@@ -15,7 +17,7 @@ export class ChatService {
     message: string,
     sessionId: string,
     userId: string,
-    projectId: string,
+    projectId: string
   ): Observable<any> {
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
@@ -38,5 +40,27 @@ export class ChatService {
       reportProgress: true,
       responseType: 'text',
     });
+  }
+
+  async generateChatNameFromHistory(history: ChatMessage[]): Promise<string> {
+    // remove all images from history
+    history = history.filter((message) => message.type !== 'image');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+    });
+
+    const response = await firstValueFrom(
+      this.http.post<{ message: string }>(
+        this.nameMakerAPIEndpoint,
+        { history },
+        {
+          headers,
+          responseType: 'json',
+        }
+      )
+    );
+
+    // Return the message from the response
+    return response.message;
   }
 }

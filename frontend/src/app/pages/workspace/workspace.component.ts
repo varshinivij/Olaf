@@ -418,8 +418,6 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
    */
   async sendMessage() {
     if (this.newMessage.trim() && !this.responseLoading) {
-      console.log('curr session history: ', this.currentSession.history);
-
       const message = this.newMessage;
       this.newMessage = '';
       this.responseLoading = true;
@@ -454,6 +452,15 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       const userId = (await firstValueFrom(this.userService.getCurrentUser()))!
         .id;
       const projectId = this.currentProject.id;
+
+      // generate a new name for session if not yet done so
+      if (this.currentSession.name === null) {
+        this.chatService
+          .generateChatNameFromHistory(this.currentSession.history)
+          .then((name: string) => {
+            this.sessionsService.renameSession(this.currentSession, name);
+          });
+      }
 
       this.chatService
         .sendMessage(message, sessionId, userId, projectId)

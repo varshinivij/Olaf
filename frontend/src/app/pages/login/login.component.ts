@@ -48,7 +48,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.subscription = this.userService.getCurrentUser().subscribe({
       next: (user) => {
         if (user && this.formSubmitted) {
-          console.log('Logged in: ', user);
           if (user.name !== null) {
             this.navigateToDashboard();
           } else {

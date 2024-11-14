@@ -1,12 +1,12 @@
 /* You can add global styles to this file, and also import other style files */
-@import "@angular/cdk/overlay-prebuilt.css";
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
-@import "highlight.js/styles/atom-one-light.css";
+@import '@angular/cdk/overlay-prebuilt.css';
+@import 'highlight.js/styles/atom-one-light.css';
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
 :root {
-  --font-sans: "Inter";
+  --font-sans: 'Inter';
   --background: 0 0% 94%; // main gray background
   --foreground: 0 0% 99%; // main white foreground
   --muted: 0 0% 96%;
@@ -30,15 +30,16 @@
 }
 
 .gutter {
+  background-color: hsl(var(--background));
   background-repeat: no-repeat;
   background-position: 50%;
-  transition: background-color 0.2s ease;
   border-radius: 4px;
+  transition: background-color 0.2s ease;
   &:hover {
-    background-color: hsl(0 0% 90%);
+    background-color: hsl(var(--accent));
   }
   &.gutter-horizontal {
-    background-image: url("../public/assets/vertical-dots.svg");
+    background-image: url('../public/assets/vertical-dots.svg');
     cursor: col-resize;
   }
 }
