@@ -12,7 +12,9 @@ import concurrent.futures
 from history import History
 from functions_framework import http
 from agent_utils import chat_completion, stream
+from firebase_admin import firestore
 initialize_app()
+import sessions_functions
 from router import Router
 from pipe import Pipe
 
@@ -24,7 +26,7 @@ from e2b_functions import (
     download_from_sandbox,
     sandbox_status,
     close_sandbox,
-    firebase_storage_to_sandbox,
+    firebase_storage_to_sandbox
 )
 
 from file_storage_functions import (
@@ -33,14 +35,25 @@ from file_storage_functions import (
     request_user_delete_path
 )
 
+from sessions_functions import (
+    add_message_to_session,
+    delete_session,
+    get_sessions,
+    delete_all_sessions,
+    rename_session
+)
+
 # This needs to be cleaned up
 E2B_API_KEY = "REMOVED"
+db = firestore.client()
+
 
 # --- EXAMPLE ---
 @http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["get", "post"]))
 def on_request_example(req: Request) -> Response:
     return Response("Hello world this is me!!")
+
 
 def master_route_function(session):
     history = session
@@ -49,22 +62,57 @@ def master_route_function(session):
     history = History(history)
     master_agent = MasterAgent(history)
     return master_agent
+    
 
+@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def master_agent_interaction(req: Request) -> Response:
     try:
-        session = req.json.get("history")
-        print(session)
+        session_id = req.args.get("session_id")
+        message = req.json.get("message")
+        user_id = req.args.get("user_id")
+        project_id = req.args.get("project_id")
+        
+        if not message:
+            return Response(json.dumps({"error": "'message' is required"}), status=400)
+        if not user_id:
+            return Response(json.dumps({"error": "'user_id' is required"}), status=400)
+        if not project_id:
+            return Response(json.dumps({"error": "'project_id' is required"}), status=400)
+
+        if session_id:
+            # Append the new user message to the existing session history
+            session_data = sessions_functions.add_message_to_session(session_id, message, role="user")
+        else:
+            session_id, session_data = sessions_functions.create_new_session(user_id, project_id, message)
+
+        # Route the session history for response generation
         router = Router()
-        router.add_route("master",master_route_function)
-        # history = router.get_session_data(session_id)["history"]
-        res = router.route_session("master",session)
-        if res is None:
-            return flask.Response(json.dumps({"error": "'history' is required"}), status=400)
-        return flask.Response(flask.stream_with_context(stream(res)), mimetype="text/event-stream")
+        router.add_route("master", master_route_function)
+        updated_session = router.route_session("master", session_data["history"])
+
+        def generate_stream():
+            yield session_id.encode('utf-8')
+            full_response = ""
+            response_type = ""
+            for line in stream(updated_session):
+                if response_type == "":
+                    response_type = line.decode('utf-8')
+                else:
+                    full_response += line.decode('utf-8')
+                yield line
+            
+            # Update the session history with the complete assistant response
+            add_message_to_session(session_id, full_response, role="assistant")
+
+        if updated_session is None:
+            return Response(json.dumps({"error": "'history' is required"}), status=400)
+
+        return Response(flask.stream_with_context(generate_stream()), headers={"session_id": session_id}, mimetype="text/event-stream")
+    
     except Exception as e:
-        print(f"Error in generate_plan: {str(e)}")
-        return flask.Response(json.dumps({"error": str(e)}), status=500)
+        print(f"Error in master_agent_interaction: {str(e)}")
+        return Response(json.dumps({"error": str(e)}), status=500)
 
 
 # --- CoderAgent Functions ---
