@@ -10,6 +10,9 @@ import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { ProfileComponent } from './pages/profile/profile.component';
 import { WorkspaceComponent } from './pages/workspace/workspace.component';
 
+
+
+
 const redirectUnauthorizedToLogin = () => redirectUnauthorizedTo(['/login']);
 
 export const routes: Routes = [

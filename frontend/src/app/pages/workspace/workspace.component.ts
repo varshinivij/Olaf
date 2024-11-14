@@ -101,6 +101,7 @@ import {
   HlmSmallDirective,
   HlmUlDirective,
 } from '@spartan-ng/ui-typography-helm';
+import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-chat',
@@ -208,7 +209,8 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     private chatService: ChatService,
     public fileStorageService: FileStorageService,
     private sandboxService: SandboxService,
-    public sessionsService: SessionsService
+    public sessionsService: SessionsService,
+    public userService: UserService
   ) {
     this.currentProject =
       this.router.getCurrentNavigation()?.extras.state?.['project'];
@@ -274,6 +276,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     this.currentSession = this.sessionsService.blankSession(
       this.currentProject
     );
+    this.sessionsService.loadAllSessions();
   }
 
   changeSession(session: Session) {
@@ -420,7 +423,8 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       const message = this.newMessage;
       this.newMessage = '';
       this.responseLoading = true;
-      // await this.addUserMessage(message);
+
+      await this.addUserMessage(message);
 
       let responseType:
         | 'text'
@@ -429,6 +433,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
         | 'error'
         | 'image'
         | 'result' = 'text'; // Default type
+      let receivedSessionId = '';
       let responseContent = ''; // To store the content from the rest of the chunks
 
       // Create an initial placeholder message in the chat
@@ -446,11 +451,9 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
 
       // Extract sessionId, userId, and projectId from the current session
       const sessionId = this.currentSession.id;
-      const userId = this.currentSession.userId;
-      const projectId = this.currentSession.projectId;
-      console.log(sessionId);
-      console.log(userId);
-      console.log(projectId);
+      const userId = (await firstValueFrom(this.userService.getCurrentUser()))!
+        .id;
+      const projectId = this.currentProject.id;
 
       this.chatService
         .sendMessage(message, sessionId, userId, projectId)
@@ -458,10 +461,13 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
           next: (event: any) => {
             if (event.type === HttpEventType.DownloadProgress && event.loaded) {
               const chunk = event.partialText || ''; // Handle the chunked text
-
-              if (responseContent === '') {
-                // First chunk is the type
-                responseType = chunk;
+              if (receivedSessionId === '') {
+                // First chunk is the session_id
+                receivedSessionId = chunk;
+                this.currentSession.id = receivedSessionId;
+              } else if (responseContent === '') {
+                // Second chunk is the type
+                responseType = chunk.slice(20).trim();
                 responseMessage.type = responseType;
                 responseContent += ' ';
               } else {
@@ -473,7 +479,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
                   responseType === 'plan'
                 ) {
                   // Remove the first four letters from the content (the "code" identifier)
-                  responseContent = responseContent.slice(4).trim();
+                  responseContent = responseContent.slice(24).trim();
                 }
                 if (responseType === 'plan') {
                   responseContent = jsonrepair(responseContent);
@@ -490,8 +496,8 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
             this.responseLoading = false;
           },
           complete: () => {
+            this.sessionsService.loadAllSessions();
             this.responseLoading = false;
-            // this.sessionsService.saveSession(this.currentSession);
             this.executeLatestCode();
           },
         });
