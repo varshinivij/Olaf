@@ -96,3 +96,62 @@ def rename_session(req: Request) -> Response:
         print(f"Error in rename_session: {str(e)}")
         return Response(json.dumps({"error": str(e)}), status=500)
 
+def create_new_session(user_id, project_id, message, collection="sessions", ):
+    """
+    Create a new session in Firestore
+    @return: session_id, session_data
+    """
+    new_session_ref = db.collection(collection).document()
+    session_id = new_session_ref.id
+    session_data = {
+        "id": session_id,
+        "userId": user_id,
+        "projectId": project_id,
+        "name": "<untitled session>",
+        "context": "",
+        "history": [
+            {
+                "type": "text",
+                "role": "assistant",
+                "content": "Hello, how can I help you today?"
+            },
+            {"type": "text", "role": "user", "content": message}
+        ],
+        "sandboxId": None
+    }
+    new_session_ref.set(session_data)
+    return session_id,session_data
+
+def update_session(session_id, session_data):
+    """
+    Update a session in Firestore
+    @return: session_data
+    """
+    db.collection("sessions").document(session_id).update(session_data)
+    session_ref = db.collection("sessions").document(session_id)
+    session_data = session_ref.get().to_dict()
+    return session_data
+
+def add_message_to_session(session_id, message, role="user"):
+    """
+    Add a new message to the session history
+    @return: session_data
+    """
+    db.collection("sessions").document(session_id).update({
+        "history": firestore.ArrayUnion([{"type": "text", "role": role, "content": message}])
+    })
+    session_ref = db.collection("sessions").document(session_id)
+    session_data = session_ref.get().to_dict()
+    return session_data
+
+def set_sand_box_id(session_id, sandbox_id):
+    """
+    Set the sandbox ID for a session
+    @return: session_data
+    """
+    db.collection("sessions").document(session_id).update({
+        "sandboxId": sandbox_id
+    })
+    session_ref = db.collection("sessions").document(session_id)
+    session_data = session_ref.get().to_dict()
+    return session_data

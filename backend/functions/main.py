@@ -14,6 +14,7 @@ from functions_framework import http
 from agent_utils import chat_completion, stream
 from firebase_admin import firestore
 initialize_app()
+import sessions_functions
 from router import Router
 from pipe import Pipe
 
@@ -35,6 +36,7 @@ from file_storage_functions import (
 )
 
 from sessions_functions import (
+    add_message_to_session,
     delete_session,
     get_sessions,
     delete_all_sessions,
@@ -80,32 +82,9 @@ def master_agent_interaction(req: Request) -> Response:
 
         if session_id:
             # Append the new user message to the existing session history
-            db.collection("sessions").document(session_id).update({
-                "history": firestore.ArrayUnion([{"type": "text", "role": "user", "content": message}])
-            })
-            session_ref = db.collection("sessions").document(session_id)
-            session_data = session_ref.get().to_dict()
+            session_data = sessions_functions.add_message_to_session(session_id, message, role="user")
         else:
-            # Create a new session if it doesn't exist
-            new_session_ref = db.collection("sessions").document()
-            session_id = new_session_ref.id
-            session_data = {
-                "id": session_id,
-                "userId": user_id,
-                "projectId": project_id,
-                "name": "<untitled session>",
-                "context": "",
-                "history": [
-                    {
-                        "type": "text",
-                        "role": "assistant",
-                        "content": "Hello, how can I help you today?"
-                    },
-                    {"type": "text", "role": "user", "content": message}
-                ],
-                "sandboxId": None
-            }
-            new_session_ref.set(session_data)
+            session_id, session_data = sessions_functions.create_new_session(user_id, project_id, message)
 
         # Route the session history for response generation
         router = Router()
@@ -124,9 +103,7 @@ def master_agent_interaction(req: Request) -> Response:
                 yield line
             
             # Update the session history with the complete assistant response
-            db.collection("sessions").document(session_id).update({
-                "history": firestore.ArrayUnion([{"type": response_type, "role": "assistant", "content": full_response}])
-            })
+            add_message_to_session(session_id, full_response, role="assistant")
 
         if updated_session is None:
             return Response(json.dumps({"error": "'history' is required"}), status=400)
