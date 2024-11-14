@@ -38,6 +38,7 @@ from sessions_functions import (
     delete_session,
     get_sessions,
     delete_all_sessions,
+    rename_session
 )
 
 # This needs to be cleaned up
@@ -67,21 +68,25 @@ def master_agent_interaction(req: Request) -> Response:
     try:
         session_id = req.args.get("session_id")
         message = req.json.get("message")
-        user_id = req.args.get('user_id')
-        project_id = req.args.get('project_id')
+        user_id = req.args.get("user_id")
+        project_id = req.args.get("project_id")
         
         if not message:
-            return flask.Response(json.dumps({"error": "'message' is required"}), status=400)
+            return Response(json.dumps({"error": "'message' is required"}), status=400)
         if not user_id:
-            return flask.Response(json.dumps({"error": "'user_id' is required"}), status=400)
+            return Response(json.dumps({"error": "'user_id' is required"}), status=400)
         if not project_id:
-            return flask.Response(json.dumps({"error": "'project_id' is required"}), status=400)
+            return Response(json.dumps({"error": "'project_id' is required"}), status=400)
 
         if session_id:
-            session_data = db.collection("sessions").document(session_id).get().to_dict()
-            if not session_data:
-                return Response(json.dumps({"error": "Session not found"}), status=404, mimetype='application/json')
+            # Append the new user message to the existing session history
+            db.collection("sessions").document(session_id).update({
+                "history": firestore.ArrayUnion([{"type": "text", "role": "user", "content": message}])
+            })
+            session_ref = db.collection("sessions").document(session_id)
+            session_data = session_ref.get().to_dict()
         else:
+            # Create a new session if it doesn't exist
             new_session_ref = db.collection("sessions").document()
             session_id = new_session_ref.id
             session_data = {
@@ -95,27 +100,42 @@ def master_agent_interaction(req: Request) -> Response:
                         "type": "text",
                         "role": "assistant",
                         "content": "Hello, how can I help you today?"
-                    }
+                    },
+                    {"type": "text", "role": "user", "content": message}
                 ],
                 "sandboxId": None
             }
             new_session_ref.set(session_data)
-        
-        session_data["history"].append({"role": "user", "content": message})
 
+        # Route the session history for response generation
         router = Router()
         router.add_route("master", master_route_function)
         updated_session = router.route_session("master", session_data["history"])
 
-        db.collection("sessions").document(session_id).get().to_dict().append({"role": "assistant", "content": updated_session})
+        def generate_stream():
+            yield session_id.encode('utf-8')
+            full_response = ""
+            response_type = ""
+            for line in stream(updated_session):
+                if response_type == "":
+                    response_type = line.decode('utf-8')
+                else:
+                    full_response += line.decode('utf-8')
+                yield line
+            
+            # Update the session history with the complete assistant response
+            db.collection("sessions").document(session_id).update({
+                "history": firestore.ArrayUnion([{"type": response_type, "role": "assistant", "content": full_response}])
+            })
 
         if updated_session is None:
-            return flask.Response(json.dumps({"error": "'history' is required"}), status=400)
-        return flask.Response(flask.stream_with_context(stream(updated_session)), mimetype="text/event-stream")
+            return Response(json.dumps({"error": "'history' is required"}), status=400)
 
+        return Response(flask.stream_with_context(generate_stream()), headers={"session_id": session_id}, mimetype="text/event-stream")
+    
     except Exception as e:
-        print(f"Error in generate_plan: {str(e)}")
-        return flask.Response(json.dumps({"error": str(e)}), status=500)
+        print(f"Error in master_agent_interaction: {str(e)}")
+        return Response(json.dumps({"error": str(e)}), status=500)
 
 
 # --- CoderAgent Functions ---

@@ -74,5 +74,25 @@ def delete_all_sessions(req: Request) -> Response:
         return Response(json.dumps({"message": "All sessions deleted for user"}), status=200, mimetype='application/json')
     except Exception as e:
         return Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
+    
 
+@http
+@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+def rename_session(req: Request) -> Response:
+    try:
+        session_id = req.args.get("session_id")
+        new_name = req.json.get("newName")
+
+        if not session_id:
+            return Response(json.dumps({"error": "'session_id' is required"}), status=400)
+        if not new_name:
+            return Response(json.dumps({"error": "'newName' is required"}), status=400)
+
+        # Update the session name
+        db.collection("sessions").document(session_id).update({"name": new_name})
+        return Response(json.dumps({"message": "Session renamed successfully"}), status=200, mimetype="application/json")
+
+    except Exception as e:
+        print(f"Error in rename_session: {str(e)}")
+        return Response(json.dumps({"error": str(e)}), status=500)
 
