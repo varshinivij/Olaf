@@ -241,7 +241,7 @@ class MasterAgent:
             if isinstance(response, openai.types.chat.chat_completion.ChatCompletion):
                 # Extract the message from the API response
                 message = response.choices[0].message
-
+                
                 # Check if there are tool calls
                 if message.tool_calls:
                     # Handle tool calls
@@ -277,7 +277,7 @@ class MasterAgent:
                         return {"error": f"Function {function_name} not found in function map."}
                 else:
                     # Return the content if no tool calls
-                    return response.get('content', '')
+                    return self.handle_simple_interaction()
             else:
                 # If response is not a dictionary, assume it's the direct content
                 return response
