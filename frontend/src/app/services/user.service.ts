@@ -312,7 +312,7 @@ export class UserService {
     await this.deleteProfilePicture(user);
     // use the FileStorageService to delete uploaded files
     const fileStorageService = this.injector.get(FileStorageService);
-    await fileStorageService.deletePath('/');
+    await fileStorageService.deletePath(['/']);
     // use the SessionService to delete all sessions
     const sessionService = this.injector.get(SessionsService);
     await sessionService.deleteAllSessions();

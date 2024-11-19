@@ -13,7 +13,7 @@
     "declaration": false,
     "experimentalDecorators": true,
     "moduleResolution": "bundler",
-    "preserveSymlinks":true,
+    "preserveSymlinks": true,
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
@@ -31,6 +31,9 @@
       ],
       "@spartan-ng/ui-button-helm": [
         "./src/app/components/ui/ui-button-helm/src/index.ts"
+      ],
+      "@spartan-ng/ui-checkbox-helm": [
+        "./src/app/components/ui/ui-checkbox-helm/src/index.ts"
       ],
       "@spartan-ng/ui-dialog-helm": [
         "./src/app/components/ui/ui-dialog-helm/src/index.ts"
@@ -67,6 +70,9 @@
       ],
       "@spartan-ng/ui-tabs-helm": [
         "./src/app/components/ui/ui-tabs-helm/src/index.ts"
+      ],
+      "@spartan-ng/ui-table-helm": [
+        "./src/app/components/ui/ui-table-helm/src/index.ts"
       ],
       "@spartan-ng/ui-toggle-helm": [
         "./src/app/components/ui/ui-toggle-helm/src/index.ts"

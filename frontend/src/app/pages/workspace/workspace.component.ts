@@ -19,6 +19,7 @@ import { ChatService } from '../../services/chat.service';
 import { FileStorageService } from '../../services/file-storage.service';
 import { SandboxService } from '../../services/sandbox.service';
 import { SessionsService } from '../../services/sessions.service';
+import { UserService } from '../../services/user.service';
 
 import { ChatMessage } from '../../models/chat-message';
 import { getLucideIconFromType } from '../../models/extension-type';
@@ -32,8 +33,46 @@ import { PlanMessagePipe } from '../../pipes/planmessage.pipe';
 import { adjustTextareaHeight } from '../../utils/adjust-textarea-height';
 import { delay } from '../../utils/time-utils';
 
-// icon imports
-import { provideIcons } from '@ng-icons/core';
+import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
+import {
+  BrnDialogCloseDirective,
+  BrnDialogContentDirective,
+  BrnDialogTriggerDirective,
+} from '@spartan-ng/ui-dialog-brain';
+import {
+  HlmDialogComponent,
+  HlmDialogContentComponent,
+  HlmDialogFooterComponent,
+  HlmDialogHeaderComponent,
+  HlmDialogTitleDirective,
+} from '@spartan-ng/ui-dialog-helm';
+import { HlmIconComponent, provideIcons } from '@spartan-ng/ui-icon-helm';
+import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
+import { BrnMenuTriggerDirective } from '@spartan-ng/ui-menu-brain';
+import {
+  HlmMenuComponent,
+  HlmMenuItemDirective,
+  HlmMenuItemIconDirective,
+} from '@spartan-ng/ui-menu-helm';
+import { HlmSeparatorDirective } from '@spartan-ng/ui-separator-helm';
+import { HlmSpinnerComponent } from '@spartan-ng/ui-spinner-helm';
+import {
+  HlmTabsComponent,
+  HlmTabsContentDirective,
+  HlmTabsListComponent,
+  HlmTabsTriggerDirective,
+} from '@spartan-ng/ui-tabs-helm';
+import {
+  HlmCodeDirective,
+  HlmH2Directive,
+  HlmH3Directive,
+  HlmLargeDirective,
+  HlmMutedDirective,
+  HlmPDirective,
+  HlmSmallDirective,
+  HlmUlDirective,
+} from '@spartan-ng/ui-typography-helm';
+
 import {
   lucideArrowUpFromLine,
   lucideCheck,
@@ -57,51 +96,6 @@ import {
   lucideSettings,
   lucideTrash2,
 } from '@ng-icons/lucide';
-
-// ui imports
-import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
-import {
-  BrnDialogCloseDirective,
-  BrnDialogContentDirective,
-  BrnDialogTriggerDirective,
-} from '@spartan-ng/ui-dialog-brain';
-import {
-  HlmDialogComponent,
-  HlmDialogContentComponent,
-  HlmDialogFooterComponent,
-  HlmDialogHeaderComponent,
-  HlmDialogTitleDirective,
-} from '@spartan-ng/ui-dialog-helm';
-import { HlmIconComponent } from '@spartan-ng/ui-icon-helm';
-import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
-import { BrnMenuTriggerDirective } from '@spartan-ng/ui-menu-brain';
-import {
-  HlmMenuComponent,
-  HlmMenuItemDirective,
-  HlmMenuItemIconDirective,
-} from '@spartan-ng/ui-menu-helm';
-import { HlmScrollAreaComponent } from '@spartan-ng/ui-scrollarea-helm';
-import { HlmSeparatorDirective } from '@spartan-ng/ui-separator-helm';
-import { HlmSpinnerComponent } from '@spartan-ng/ui-spinner-helm';
-import {
-  HlmTabsComponent,
-  HlmTabsContentDirective,
-  HlmTabsListComponent,
-  HlmTabsTriggerDirective,
-} from '@spartan-ng/ui-tabs-helm';
-import { BrnToggleDirective } from '@spartan-ng/ui-toggle-brain';
-import { HlmToggleDirective } from '@spartan-ng/ui-toggle-helm';
-import {
-  HlmCodeDirective,
-  HlmH2Directive,
-  HlmH3Directive,
-  HlmLargeDirective,
-  HlmMutedDirective,
-  HlmPDirective,
-  HlmSmallDirective,
-  HlmUlDirective,
-} from '@spartan-ng/ui-typography-helm';
-import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-chat',
@@ -134,7 +128,6 @@ import { UserService } from '../../services/user.service';
     HlmMenuItemDirective,
     HlmMenuItemIconDirective,
 
-    HlmScrollAreaComponent,
     HlmSeparatorDirective,
     HlmSpinnerComponent,
 
@@ -142,9 +135,6 @@ import { UserService } from '../../services/user.service';
     HlmTabsContentDirective,
     HlmTabsListComponent,
     HlmTabsTriggerDirective,
-
-    BrnToggleDirective,
-    HlmToggleDirective,
 
     HlmCodeDirective,
     HlmH2Directive,

@@ -37,26 +37,24 @@ export class SessionsService {
     if (!name.trim()) return;
 
     session.name = name;
-    await this.http
-      .post(`${this.baseUrl}rename_session`, {
+    await firstValueFrom(
+      this.http.post(`${this.baseUrl}rename_session`, {
         session_id: session.id,
         newName: name,
       })
-      .toPromise();
+    );
   }
 
   async loadAllSessions() {
     const currentUser = await firstValueFrom(this.userService.getCurrentUser());
-    if (currentUser) {
-      this.userSessions =
-        (await this.http
-          .get<
-            Session[]
-          >(`${this.baseUrl}get_sessions?userId=${currentUser.id}`)
-          .toPromise()) ?? [];
+    this.userSessions =
+      (await firstValueFrom(
+        this.http.get<Session[]>(
+          `${this.baseUrl}get_sessions?userId=${currentUser!.id}`
+        )
+      )) ?? [];
 
-      console.log(this.userSessions);
-    }
+    console.log(this.userSessions);
   }
 
   async addMessageToSession(session: Session, message: ChatMessage) {
@@ -68,20 +66,20 @@ export class SessionsService {
   }
 
   async deleteSession(session: Session) {
-    await this.http
-      .delete(`${this.baseUrl}delete_session?id=${session.id}`)
-      .toPromise();
+    await firstValueFrom(
+      this.http.delete(`${this.baseUrl}delete_session?id=${session.id}`)
+    );
     this.userSessions = this.userSessions.filter((s) => s.id !== session.id);
     console.log(`Session ${session.id} deleted successfully.`);
   }
 
   async deleteAllSessions() {
     const currentUser = await firstValueFrom(this.userService.getCurrentUser());
-    if (currentUser) {
-      await this.http
-        .delete(`${this.baseUrl}delete_all_sessions?userId=${currentUser.id}`)
-        .toPromise();
-      this.userSessions = [];
-    }
+    await firstValueFrom(
+      this.http.delete(
+        `${this.baseUrl}delete_all_sessions?userId=${currentUser!.id}`
+      )
+    );
+    this.userSessions = [];
   }
 }

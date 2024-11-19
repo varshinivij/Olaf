@@ -3,22 +3,21 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 import { UserService } from '../../services/user.service';
 
-import { provideIcons } from '@ng-icons/core';
-import {
-  lucideClipboardCheck,
-  lucideFiles,
-  lucideSettings,
-} from '@ng-icons/lucide';
-
 import {
   HlmAvatarImageDirective,
   HlmAvatarComponent,
   HlmAvatarFallbackDirective,
 } from '@spartan-ng/ui-avatar-helm';
 import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
-import { HlmIconComponent } from '@spartan-ng/ui-icon-helm';
+import { HlmIconComponent, provideIcons } from '@spartan-ng/ui-icon-helm';
 import { HlmSeparatorDirective } from '@spartan-ng/ui-separator-helm';
 import { HlmH3Directive } from '@spartan-ng/ui-typography-helm';
+
+import {
+  lucideClipboardCheck,
+  lucideFiles,
+  lucideSettings,
+} from '@ng-icons/lucide';
 
 export type PageName = 'projects' | 'data' | 'settings';
 
