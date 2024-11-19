@@ -31,7 +31,7 @@ export class HomeComponent {
     private chatService: ChatService,
     private sandboxService: SandboxService,
     public uploadService: UploadService,
-    public userService: UserService
+    public userService: UserService,
   ) {}
 
   ngOnInit() {
@@ -68,7 +68,7 @@ export class HomeComponent {
       (error) => {
         console.error('Error:', error);
         this.loading = false;
-      }
+      },
     );
   }
 
@@ -83,7 +83,7 @@ export class HomeComponent {
       this.newMessage = '';
       this.loading = true;
 
-      this.chatService.sendMessage(this.messages).subscribe(
+      this.chatService.sendMessage(this.newMessage, '', '', '').subscribe(
         (response: ChatMessage[]) => {
           this.processResponse(response);
           this.messages = [...this.messages, ...response];
@@ -92,14 +92,14 @@ export class HomeComponent {
         (error) => {
           console.error('Error:', error);
           this.loading = false;
-        }
+        },
       );
     }
   }
 
   continue() {
     this.loading = true;
-    this.chatService.sendMessage(this.messages).subscribe(
+    this.chatService.sendMessage(this.newMessage, '', '', '').subscribe(
       (response: ChatMessage[]) => {
         this.messages = [...this.messages, ...response];
         this.loading = false;
@@ -107,7 +107,7 @@ export class HomeComponent {
       (error) => {
         console.error('Error:', error);
         this.loading = false;
-      }
+      },
     );
   }
 
@@ -125,7 +125,7 @@ export class HomeComponent {
       (error) => {
         console.error('Error:', error);
         this.loading = false;
-      }
+      },
     );
   }
 
@@ -143,7 +143,7 @@ export class HomeComponent {
     this.selectedUploadFiles = Array.from(files);
     this.selectedUploadFiles.forEach((file: File) => {
       this.uploadService.uploadFile(file, '/');
-    })
+    });
     console.log('Files selected: ', files);
   }
 

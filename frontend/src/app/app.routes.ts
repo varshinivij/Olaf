@@ -8,6 +8,9 @@ import { OnboardingComponent } from './pages/onboarding/onboarding.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { WorkspaceComponent } from './pages/workspace/workspace.component';
 
+
+
+
 const redirectUnauthorizedToLogin = () => redirectUnauthorizedTo(['/login']);
 
 export const routes: Routes = [
