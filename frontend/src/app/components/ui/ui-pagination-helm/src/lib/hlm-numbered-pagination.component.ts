@@ -23,7 +23,7 @@ import { HlmPaginationDirective } from './hlm-pagination.directive';
 @Component({
 	selector: 'hlm-numbered-pagination',
 	template: `
-		<div class="flex items-center justify-between gap-2 px-4 py-2 cursor-default">
+		<div class="flex items-center justify-between gap-2 px-3 py-2">
 			@if (showTotal()) {
 				<div class="flex items-center gap-1 text-nowrap text-sm text-gray-600">
 					<b>{{ totalItems() }}</b>
@@ -36,13 +36,13 @@ import { HlmPaginationDirective } from './hlm-pagination.directive';
 			<nav hlmPagination>
 				<ul hlmPaginationContent>
 					@if (showEdges() && !isFirstPageActive()) {
-						<li hlmPaginationItem (click)="goToPrevious()">
+						<li hlmPaginationItem (click)="goToPrevious()" class="cursor-pointer">
 							<hlm-pagination-previous />
 						</li>
 					}
 
 					@for (page of pages(); track page) {
-						<li hlmPaginationItem>
+						<li hlmPaginationItem class="cursor-pointer">
 							@if (page === '...') {
 								<hlm-pagination-ellipsis />
 							} @else {
@@ -54,7 +54,7 @@ import { HlmPaginationDirective } from './hlm-pagination.directive';
 					}
 
 					@if (showEdges() && !isLastPageActive()) {
-						<li hlmPaginationItem (click)="goToNext()">
+						<li hlmPaginationItem (click)="goToNext()" class="cursor-pointer">
 							<hlm-pagination-next />
 						</li>
 					}

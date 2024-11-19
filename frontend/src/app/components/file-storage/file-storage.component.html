@@ -1,6 +1,6 @@
-<div class="flex h-full w-full flex-col gap-y-3 rounded-lg bg-foreground p-4">
+<div class="flex h-full w-full flex-col gap-y-2 rounded-lg bg-foreground p-3">
   <!-- search bar + upload button row -->
-  <div class="flex gap-x-3">
+  <div class="flex gap-x-3 px-3">
     <!-- search bar -->
     <div class="relative h-fit w-fit flex-1">
       <input
@@ -40,17 +40,21 @@
     </button>
   </div>
   <!-- current dir labels -->
-  <div class="flex items-center">
-    <button hlmBtn hlmH2 variant="ghost" type="button">My Files</button>
+  <div class="flex items-center px-0.5">
+    @if (fileStorageService.getPathFilter() | async; as pathFilter) {
+      <button hlmBtn hlmH2 variant="ghost" size="sm" type="button">
+        My Files
+      </button>
+    }
   </div>
   <!-- file data table -->
   <hlm-table class="cursor-default overflow-auto">
     <hlm-trow class="rounded-t-lg">
-      <hlm-th class="min-w-40 flex-1">Name</hlm-th>
-      <hlm-th class="w-40">Type</hlm-th>
-      <hlm-th class="w-40">File size</hlm-th>
-      <hlm-th class="min-w-40 flex-1">Last modified</hlm-th>
-      <hlm-th class="w-40 justify-center">Actions</hlm-th>
+      <hlm-th class="h-10 min-w-40 flex-1">Name</hlm-th>
+      <hlm-th class="h-10 w-40">Type</hlm-th>
+      <hlm-th class="h-10 w-40">File size</hlm-th>
+      <hlm-th class="h-10 min-w-40 flex-1">Last modified</hlm-th>
+      <hlm-th class="h-10 w-40 justify-center">Actions</hlm-th>
     </hlm-trow>
     @for (file of fileStorageService.getFiles() | async; track file.id) {
       <hlm-trow class="h-10">
@@ -103,3 +107,5 @@
 <!-- searching should probably should the folder path too, maybe click to jump -->
 <!-- implement actions menu -->
 <!-- implement upload progress -->
+<!-- remove outside padding make this responsive -->
+<!-- filter buttons -->
