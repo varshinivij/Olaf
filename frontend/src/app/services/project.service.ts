@@ -29,14 +29,14 @@ import { User } from '../models/user';
 export class ProjectService {
   // behaviorsubjects can be modified to change initial settings
   private projects$: Observable<Project[]>;
-  private searchFilter$: BehaviorSubject<string> = new BehaviorSubject('');
-  private pageSize$: BehaviorSubject<number> = new BehaviorSubject(10);
-  private pageNumber$: BehaviorSubject<number> = new BehaviorSubject(1);
-  private totalPages$: BehaviorSubject<number> = new BehaviorSubject(1);
+  private searchFilter$ = new BehaviorSubject<string>('');
+  private pageSize$ = new BehaviorSubject<number>(10);
+  private pageNumber$ = new BehaviorSubject<number>(1);
+  private totalPages$ = new BehaviorSubject<number>(1);
 
   constructor(
     private firestore: Firestore,
-    private userService: UserService,
+    private userService: UserService
   ) {
     this.projects$ = this.userService.getCurrentUser().pipe(
       switchMap((user: User | null) => {
@@ -45,7 +45,7 @@ export class ProjectService {
             this.firestore,
             'users',
             user.id,
-            'projects',
+            'projects'
           );
           return (collectionData(collectionRef) as Observable<Project[]>).pipe(
             map((projects: Project[]) =>
@@ -54,21 +54,21 @@ export class ProjectService {
                   ...project,
                   updatedAt: project.updatedAt.toDate(),
                 } as Project;
-              }),
-            ),
+              })
+            )
           );
         } else {
           return of([]);
         }
-      }),
+      })
     );
   }
 
   /**
-   * Retrieves the user projects as an Observable array. The search and page filters
-   * are automatically applied.
+   * Retrieves the user's projects as an Observable array. The search, path,
+   * type, page, and sort filters are automatically applied.
    *
-   * @returns An Observable array of the user's projects with search filter applied.
+   * @returns An Observable array of the user's projects with filters applied.
    */
   getProjects(): Observable<Project[]> {
     return combineLatest([
@@ -79,7 +79,7 @@ export class ProjectService {
     ]).pipe(
       map(([projects, search, pageSize, pageNumber]) => {
         const filter = projects
-          .filter((p) => p.name.startsWith(search))
+          .filter((p) => p.name.toLowerCase().startsWith(search.toLowerCase()))
           // currently sorting by date
           .sort((a, b) => {
             return a.updatedAt.valueOf() - b.updatedAt.valueOf();
@@ -90,12 +90,12 @@ export class ProjectService {
         const pageIndexStart = pageSize * (pageNumber - 1);
         const pageIndexLast = pageIndexStart + pageSize;
         return filter.slice(pageIndexStart, pageIndexLast);
-      }),
+      })
     );
   }
 
   /**
-   * Retrieves the current search filter as on Observable.
+   * Retrieves the current search filter as an Observable.
    *
    * @returns An Observable of the search filter.
    */
@@ -114,7 +114,7 @@ export class ProjectService {
   }
 
   /**
-   * Retrieves the current size of each page as on Observable.
+   * Retrieves the current size of each page as an Observable.
    *
    * @returns An Observable of the current page size.
    */
@@ -126,11 +126,11 @@ export class ProjectService {
    * Sets the current size of each page.
    */
   setPageSize(size: number): void {
-    return this.pageSize$.next(size);
+    this.pageSize$.next(size);
   }
 
   /**
-   * Retrieves the current page number as on Observable.
+   * Retrieves the current page number as an Observable.
    *
    * @returns An Observable of the current page number.
    */
@@ -146,11 +146,11 @@ export class ProjectService {
       return;
     }
 
-    return this.pageNumber$.next(page);
+    this.pageNumber$.next(page);
   }
 
   /**
-   * Retrieves the total pages available as on Observable.
+   * Retrieves the total pages available as an Observable.
    *
    * @returns An Observable of the total pages.
    */
@@ -169,7 +169,7 @@ export class ProjectService {
   async createProject(
     name: string,
     language: ProjectLanguage,
-    model: ProjectModel,
+    model: ProjectModel
   ): Promise<void> {
     if (!name.trim()) {
       return;
@@ -180,7 +180,7 @@ export class ProjectService {
       this.firestore,
       'users',
       user!.id,
-      'projects',
+      'projects'
     );
     // automatically generates a new project id, no double write
     const documentRef = doc(collectionRef);
@@ -218,13 +218,13 @@ export class ProjectService {
       'users',
       user!.id,
       'projects',
-      project.id,
+      project.id
     );
 
     await setDoc(
       documentRef,
       { ...data, updatedAt: new Date() },
-      { merge: true },
+      { merge: true }
     );
   }
 
@@ -241,7 +241,7 @@ export class ProjectService {
       'users',
       user!.id,
       'projects',
-      project.id,
+      project.id
     );
 
     await deleteDoc(documentRef);
@@ -259,7 +259,7 @@ export class ProjectService {
       this.firestore,
       'users',
       user!.id,
-      'projects',
+      'projects'
     );
 
     let promises: Promise<void>[] = [];
@@ -268,6 +268,6 @@ export class ProjectService {
       promises.push(deleteDoc(doc.ref));
     });
 
-    await Promise.all(promises)
+    await Promise.all(promises);
   }
 }

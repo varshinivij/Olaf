@@ -1,7 +1,6 @@
 /**
  * [CURRENTLY UNUSED] Returns the lexicographically next string from a given string.
- *
- * Used to check if a string starts with a certain substring.
+ * Used to Firebase query whether a string starts with a certain substring.
  * Reference: https://stackoverflow.com/questions/46573804/firestore-query-documents-startswith-a-string
  *
  * @param string The string to reference.
