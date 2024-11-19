@@ -101,6 +101,7 @@ import {
   HlmSmallDirective,
   HlmUlDirective,
 } from '@spartan-ng/ui-typography-helm';
+import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-chat',
@@ -208,7 +209,8 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     private chatService: ChatService,
     public fileStorageService: FileStorageService,
     private sandboxService: SandboxService,
-    public sessionsService: SessionsService
+    public sessionsService: SessionsService,
+    public userService: UserService
   ) {
     this.currentProject =
       this.router.getCurrentNavigation()?.extras.state?.['project'];
@@ -274,6 +276,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     this.currentSession = this.sessionsService.blankSession(
       this.currentProject
     );
+    this.sessionsService.loadAllSessions();
   }
 
   changeSession(session: Session) {
@@ -418,6 +421,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       const message = this.newMessage;
       this.newMessage = '';
       this.responseLoading = true;
+
       await this.addUserMessage(message);
 
       let responseType:
@@ -427,6 +431,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
         | 'error'
         | 'image'
         | 'result' = 'text'; // Default type
+      let receivedSessionId = '';
       let responseContent = ''; // To store the content from the rest of the chunks
 
       // Create an initial placeholder message in the chat
@@ -442,6 +447,12 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       );
       const messageIndex = this.currentSession.history.length - 1; // Get the index of the added message
 
+      // Extract sessionId, userId, and projectId from the current session
+      const sessionId = this.currentSession.id;
+      const userId = (await firstValueFrom(this.userService.getCurrentUser()))!
+        .id;
+      const projectId = this.currentProject.id;
+
       // generate a new name for session if not yet done so
       if (this.currentSession.name === null) {
         this.chatService
@@ -451,47 +462,52 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
           });
       }
 
-      this.chatService.sendMessage(this.currentSession.history).subscribe({
-        next: (event: any) => {
-          if (event.type === HttpEventType.DownloadProgress && event.loaded) {
-            const chunk = event.partialText || ''; // Handle the chunked text
-
-            if (responseContent === '') {
-              // First chunk is the type
-              responseType = chunk;
-              responseMessage.type = responseType;
-              responseContent += ' ';
-            } else {
-              // Append subsequent chunks to the content
-              responseContent = chunk;
-              if (
-                responseType === 'text' ||
-                responseType === 'code' ||
-                responseType === 'plan'
-              ) {
-                // Remove the first four letters from the content (the "code" identifier)
-                responseContent = responseContent.slice(4).trim();
+      this.chatService
+        .sendMessage(message, sessionId, userId, projectId)
+        .subscribe({
+          next: (event: any) => {
+            if (event.type === HttpEventType.DownloadProgress && event.loaded) {
+              const chunk = event.partialText || ''; // Handle the chunked text
+              if (receivedSessionId === '') {
+                // First chunk is the session_id
+                receivedSessionId = chunk;
+                this.currentSession.id = receivedSessionId;
+              } else if (responseContent === '') {
+                // Second chunk is the type
+                responseType = chunk.slice(20).trim();
+                responseMessage.type = responseType;
+                responseContent += ' ';
+              } else {
+                // Append subsequent chunks to the content
+                responseContent = chunk;
+                if (
+                  responseType === 'text' ||
+                  responseType === 'code' ||
+                  responseType === 'plan'
+                ) {
+                  // Remove the first four letters from the content (the "code" identifier)
+                  responseContent = responseContent.slice(24).trim();
+                }
+                if (responseType === 'plan') {
+                  responseContent = jsonrepair(responseContent);
+                  const jsonData = JSON.parse(responseContent);
+                  responseContent = JSON.stringify(jsonData, null, 2);
+                }
+                this.currentSession.history[messageIndex].content =
+                  responseContent;
               }
-              if (responseType === 'plan') {
-                responseContent = jsonrepair(responseContent);
-                const jsonData = JSON.parse(responseContent);
-                responseContent = JSON.stringify(jsonData, null, 2);
-              }
-              this.currentSession.history[messageIndex].content =
-                responseContent;
             }
-          }
-        },
-        error: (error) => {
-          console.error('Error:', error);
-          this.responseLoading = false;
-        },
-        complete: () => {
-          this.responseLoading = false;
-          this.sessionsService.saveSession(this.currentSession);
-          this.executeLatestCode();
-        },
-      });
+          },
+          error: (error) => {
+            console.error('Error:', error);
+            this.responseLoading = false;
+          },
+          complete: () => {
+            this.sessionsService.loadAllSessions();
+            this.responseLoading = false;
+            this.executeLatestCode();
+          },
+        });
     }
   }
 
