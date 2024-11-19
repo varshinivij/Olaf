@@ -1,16 +1,50 @@
-<div class="h-full w-full rounded-lg bg-foreground p-6">
-  <hlm-table class="cursor-default overflow-auto">
+<div
+  class="flex h-full w-full flex-col gap-y-3 overflow-auto rounded-lg bg-foreground p-5"
+>
+  <!-- search bar + upload button row -->
+  <div class="flex gap-x-3">
+    <input hlmInput class="min-w-40 flex-1" placeholder="Search files..." />
+    <!-- upload files button -->
+    <div
+      hlmBtn
+      variant="secondary"
+      class="relative gap-x-2 truncate"
+      type="button"
+    >
+      <hlm-icon size="sm" name="lucideUpload" class="-ml-1 flex-none" />
+      Upload data
+      <input
+        class="absolute left-0 top-0 h-full w-full opacity-0"
+        type="file"
+        (change)="onUploadFilesSelected($event)"
+        multiple
+      />
+    </div>
+    <!-- new folder button -->
+    <button
+      hlmBtn
+      variant="secondary"
+      class="relative gap-x-2 truncate"
+      type="button"
+    >
+      <hlm-icon size="sm" name="lucideFolderPlus" class="-ml-1 flex-none" />
+      New folder
+
+    </button>
+  </div>
+  <!-- file data table -->
+  <hlm-table class="cursor-default">
     <hlm-trow class="rounded-t-lg">
-      <hlm-th class="w-52">Name</hlm-th>
-      <hlm-th class="w-60">Type</hlm-th>
-      <hlm-th class="flex-1">File size</hlm-th>
-      <hlm-th class="flex-1">Last modified</hlm-th>
-      <hlm-th class="w-40 justify-end">Actions</hlm-th>
+      <hlm-th class="min-w-40 flex-1">Name</hlm-th>
+      <hlm-th class="w-40">Type</hlm-th>
+      <hlm-th class="w-40">File size</hlm-th>
+      <hlm-th class="min-w-40 flex-1">Last modified</hlm-th>
+      <hlm-th class="w-40 justify-center">Actions</hlm-th>
     </hlm-trow>
     @for (file of fileStorageService.getFiles() | async; track file.id) {
       <hlm-trow class="h-10">
         <hlm-td
-          class="mt-0.5 w-52"
+          class="mt-0.5 min-w-40 flex-1"
           [ngClass]="{
             'cursor-pointer hover:underline': file.type === 'folder',
           }"
@@ -24,12 +58,14 @@
             {{ file.name }}
           </span>
         </hlm-td>
-        <hlm-td class="w-60">{{ file.type | titlecase }}</hlm-td>
-        <hlm-td class="flex-1">{{ formatBytes(file.size) }}</hlm-td>
-        <hlm-td class="flex-1">{{
+        <hlm-td truncate class="w-40">{{ file.type | titlecase }}</hlm-td>
+        <hlm-td truncate class="w-40">{{ formatBytes(file.size) }}</hlm-td>
+        <hlm-td truncate class="min-w-40 flex-1">{{
           file.uploadedOn.toLocaleString()
         }}</hlm-td>
-        <hlm-td class="w-40 justify-end">{{ file.size }}</hlm-td>
+        <hlm-td class="w-40 justify-center"
+          ><hlm-icon size="sm" name="lucideCircleEllipsis" class=""
+        /></hlm-td>
       </hlm-trow>
     }
   </hlm-table>

@@ -13,7 +13,7 @@ import { UploadService } from '../../services/upload.service';
 import {
   ExtensionType,
   getImageUrlFromType,
-  getLucideIconFromType
+  getLucideIconFromType,
 } from '../../models/extension-type';
 import { UserFile } from '../../models/user-file';
 import { UserUploadTask } from '../../models/user-upload-task';
@@ -48,14 +48,20 @@ import {
   PaginatorState,
   useBrnColumnManager,
 } from '@spartan-ng/ui-table-brain';
-import { hlmMuted } from '@spartan-ng/ui-typography-helm';
+import { HlmMutedDirective } from '@spartan-ng/ui-typography-helm';
 import {
+  lucideCircleEllipsis,
   lucideFileArchive,
   lucideFileChartColumn,
   lucideFileCode,
   lucideFileQuestion,
   lucideFileText,
   lucideFolder,
+  lucideFolderClosed,
+  lucideFolderOpen,
+  lucideFolderPlus,
+  lucidePlus,
+  lucideUpload,
 } from '@ng-icons/lucide';
 
 interface FilterButton {
@@ -93,15 +99,22 @@ interface FilterButton {
 
     BrnSelectModule,
     HlmSelectModule,
+
+    HlmMutedDirective,
   ],
   providers: [
     provideIcons({
-      lucideFileCode,
-      lucideFileChartColumn,
-      lucideFolder,
+      lucideCircleEllipsis,
       lucideFileArchive,
+      lucideFileChartColumn,
+      lucideFileCode,
       lucideFileText,
       lucideFileQuestion,
+      lucideFolder,
+      lucideFolderOpen,
+      lucideFolderClosed,
+      lucideFolderPlus,
+      lucideUpload,
     }),
   ],
   templateUrl: './file-storage.component.html',
@@ -122,7 +135,6 @@ export class FileStorageComponent implements OnInit, OnDestroy {
   // make imported util functions available to template
   formatBytes = formatBytes;
   getLucideIconFromType = getLucideIconFromType;
-
 
   constructor(
     public fileStorageService: FileStorageService,

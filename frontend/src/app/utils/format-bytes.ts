@@ -7,13 +7,13 @@
  * @param decimals The number of decimals to truncate to.
  * @returns A formatted string containing the size in MBs, GBs, etc.
  */
-export function formatBytes(bytes: number, decimals = 2): string {
-  if (!+bytes) return "0 Bytes";
+export function formatBytes(bytes: number, decimals = 0): string {
+  if (!+bytes) return "0 bytes";
 
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
   const sizes = [
-    "Bytes",
+    "bytes",
     "KB",
     "MB",
     "GB",
