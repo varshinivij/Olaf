@@ -292,7 +292,7 @@ export class FileStorageService {
    * @param size The page size to apply.
    */
   setPageSize(size: number): void {
-    if (size <= 0) {
+    if (size < 1) {
       return;
     }
 
