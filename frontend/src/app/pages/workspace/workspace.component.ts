@@ -64,8 +64,8 @@ import {
 } from '@spartan-ng/ui-tabs-helm';
 import {
   HlmCodeDirective,
-  HlmH2Directive,
   HlmH3Directive,
+  HlmH4Directive,
   HlmLargeDirective,
   HlmMutedDirective,
   HlmPDirective,
@@ -137,8 +137,8 @@ import {
     HlmTabsTriggerDirective,
 
     HlmCodeDirective,
-    HlmH2Directive,
     HlmH3Directive,
+    HlmH4Directive,
     HlmLargeDirective,
     HlmMutedDirective,
     HlmPDirective,

@@ -3,7 +3,7 @@ import { hlm } from '@spartan-ng/ui-core';
 import type { ClassValue } from 'clsx';
 
 export const hlmH2 =
-	'scroll-m-20 border-border border-b pb-1.5 text-lg font-semibold tracking-tight transition-colors [&:not(:first-child)]:pt-1.5';
+	'scroll-m-20 text-xl font-semibold tracking-tight';
 
 @Directive({
 	selector: '[hlmH2]',

@@ -11,7 +11,7 @@ import {
 import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
 import { HlmIconComponent, provideIcons } from '@spartan-ng/ui-icon-helm';
 import { HlmSeparatorDirective } from '@spartan-ng/ui-separator-helm';
-import { HlmH3Directive } from '@spartan-ng/ui-typography-helm';
+import { HlmH4Directive } from '@spartan-ng/ui-typography-helm';
 
 import {
   lucideClipboardCheck,
@@ -40,7 +40,7 @@ interface Page {
     HlmIconComponent,
     HlmSeparatorDirective,
 
-    HlmH3Directive,
+    HlmH4Directive,
   ],
   providers: [
     provideIcons({

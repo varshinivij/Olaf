@@ -271,14 +271,14 @@
             }"
           >
             <!-- plan overview -->
-            <div hlmH2>Plan Overview</div>
+            <div hlmH3>Plan Overview</div>
             <div hlmP>
               {{ plan.overview }}
             </div>
             <!-- plan steps -->
-            <div hlmH2>Required Steps</div>
+            <div hlmH3>Required Steps</div>
             @for (step of plan.steps; track $index) {
-              <div hlmH3>Step {{ step.step_number }}: {{ step.title }}</div>
+              <div hlmH4>Step {{ step.step_number }}: {{ step.title }}</div>
               <ul hlmUl>
                 <li><strong>Description: </strong>{{ step.description }}</li>
                 <li>
@@ -293,7 +293,7 @@
               </ul>
             }
             <!-- final check -->
-            <div hlmH2>Final Check</div>
+            <div hlmH3>Final Check</div>
             <div hlmP>
               {{ plan.final_check }}
             </div>
