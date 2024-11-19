@@ -4,7 +4,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrderByDirection } from '@angular/fire/firestore';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
 
 import { FileStorageService } from '../../services/file-storage.service';
@@ -42,12 +42,19 @@ import { HlmMenuModule } from '@spartan-ng/ui-menu-helm';
 import { HlmTableModule } from '@spartan-ng/ui-table-helm';
 import { BrnSelectModule } from '@spartan-ng/ui-select-brain';
 import { HlmSelectModule } from '@spartan-ng/ui-select-helm';
-import {
-  BrnTableModule,
-  PaginatorState,
-  useBrnColumnManager,
-} from '@spartan-ng/ui-table-brain';
 import { HlmMutedDirective } from '@spartan-ng/ui-typography-helm';
+import {
+  HlmPaginationContentDirective,
+  HlmPaginationDirective,
+  HlmPaginationEllipsisComponent,
+  HlmPaginationItemDirective,
+  HlmPaginationLinkDirective,
+  HlmPaginationNextComponent,
+  HlmPaginationPreviousComponent,
+} from '@spartan-ng/ui-pagination-helm';
+import { HlmNumberedPaginationComponent } from '@spartan-ng/ui-pagination-helm';
+
+
 import {
   lucideCircleEllipsis,
   lucideFileArchive,
@@ -74,6 +81,7 @@ interface FilterButton {
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
 
     BrnProgressComponent,
     BrnProgressIndicatorComponent,
@@ -83,7 +91,16 @@ interface FilterButton {
     BrnMenuTriggerDirective,
     HlmMenuModule,
 
-    BrnTableModule,
+    HlmPaginationContentDirective,
+    HlmPaginationDirective,
+    HlmPaginationEllipsisComponent,
+    HlmPaginationItemDirective,
+    HlmPaginationLinkDirective,
+    HlmPaginationNextComponent,
+    HlmPaginationPreviousComponent,
+
+    HlmNumberedPaginationComponent,
+
     HlmTableModule,
 
     HlmButtonModule,
@@ -141,7 +158,9 @@ export class FileStorageComponent implements OnInit, OnDestroy {
     public uploadService: UploadService
   ) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+
+  }
 
   ngOnDestroy(): void {
     this.uploadSubscription?.unsubscribe();

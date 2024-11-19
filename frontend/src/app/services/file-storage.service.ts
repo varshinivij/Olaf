@@ -353,7 +353,7 @@ export class FileStorageService {
    *
    * @param file The file to retrieve.
    */
-  async getDownloadUrl(file: UserFile): Promise<string> {
+  async downloadUrl(file: UserFile): Promise<string> {
     const storageRef = ref(this.storage, file.storageLink);
     return await getDownloadURL(storageRef);
   }
@@ -363,7 +363,7 @@ export class FileStorageService {
    *
    * @param file The file to retrieve.
    */
-  async getFileBlob(file: UserFile): Promise<Blob> {
+  async downloadBlob(file: UserFile): Promise<Blob> {
     const storageRef = ref(this.storage, file.storageLink);
     return await getBlob(storageRef);
   }

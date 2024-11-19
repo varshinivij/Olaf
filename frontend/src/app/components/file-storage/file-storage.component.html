@@ -3,7 +3,12 @@
   <div class="flex gap-x-3">
     <!-- search bar -->
     <div class="relative h-fit w-fit flex-1">
-      <input hlmInput class="absolute w-full pl-9" placeholder="Search files" />
+      <input
+        hlmInput
+        class="absolute w-full pl-9"
+        placeholder="Search files"
+        (input)="fileStorageService.setSearchFilter($any($event.target).value)"
+      />
       <hlm-icon
         hlmMuted
         size="sm"
@@ -12,19 +17,15 @@
       />
     </div>
     <!-- file upload button -->
-    <div
-      hlmBtn
-      variant="secondary"
-      class="relative gap-x-2 truncate"
-      type="button"
-    >
+    <div hlmBtn variant="secondary" class="relative gap-x-2 truncate">
       <hlm-icon size="sm" name="lucideFileUp" class="-ml-1 flex-none" />
       File upload
       <input
-        class="absolute left-0 top-0 h-full w-full opacity-0"
+        class="absolute left-0 top-0 h-full w-full cursor-pointer opacity-0"
         type="file"
-        (change)="onUploadFilesSelected($event)"
+        title=" "
         multiple
+        (change)="onUploadFilesSelected($event)"
       />
     </div>
     <!-- new folder button -->
@@ -75,4 +76,25 @@
       </hlm-trow>
     }
   </hlm-table>
+  <!-- page navigator -->
+  @if (fileStorageService.getPageNumber() | async; as pageNumber) {
+    @if (fileStorageService.getPageSize() | async; as pageSize) {
+      @if (fileStorageService.getTotalPages() | async; as totalPages) {
+        <hlm-numbered-pagination
+          [currentPage]="pageNumber"
+          (currentPageChange)="fileStorageService.setPageNumber($event)"
+          [itemsPerPage]="pageSize"
+          (itemsPerPageChange)="fileStorageService.setPageSize($event)"
+          [totalItems]="pageSize * totalPages"
+        />
+      }
+    }
+  }
 </div>
+<!-- TODO -->
+<!-- empty state for searches -->
+<!-- implement the file uploads + support entire folder upload -->
+<!-- implement sorting buttons -->
+<!-- implement the path/current folder path -->
+<!-- searching should probably should the folder path too, maybe click to jump -->
+<!-- implement actions menu -->
