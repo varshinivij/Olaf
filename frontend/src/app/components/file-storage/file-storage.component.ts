@@ -12,7 +12,6 @@ import { UploadService } from '../../services/upload.service';
 
 import {
   ExtensionType,
-  getImageUrlFromType,
   getLucideIconFromType,
 } from '../../models/extension-type';
 import { UserFile } from '../../models/user-file';
@@ -56,11 +55,11 @@ import {
   lucideFileCode,
   lucideFileQuestion,
   lucideFileText,
-  lucideFolder,
-  lucideFolderClosed,
+  lucideFileUp,
   lucideFolderOpen,
   lucideFolderPlus,
-  lucidePlus,
+  lucideFolderUp,
+  lucideSearch,
   lucideUpload,
 } from '@ng-icons/lucide';
 
@@ -108,12 +107,13 @@ interface FilterButton {
       lucideFileArchive,
       lucideFileChartColumn,
       lucideFileCode,
-      lucideFileText,
       lucideFileQuestion,
-      lucideFolder,
+      lucideFileText,
+      lucideFileUp,
       lucideFolderOpen,
-      lucideFolderClosed,
       lucideFolderPlus,
+      lucideFolderUp,
+      lucideSearch,
       lucideUpload,
     }),
   ],

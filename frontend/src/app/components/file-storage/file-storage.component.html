@@ -1,18 +1,25 @@
-<div
-  class="flex h-full w-full flex-col gap-y-3 overflow-auto rounded-lg bg-foreground p-5"
->
+<div class="flex h-full w-full flex-col gap-y-3 rounded-lg bg-foreground p-4">
   <!-- search bar + upload button row -->
   <div class="flex gap-x-3">
-    <input hlmInput class="min-w-40 flex-1" placeholder="Search files..." />
-    <!-- upload files button -->
+    <!-- search bar -->
+    <div class="relative h-fit w-fit flex-1">
+      <input hlmInput class="absolute w-full pl-9" placeholder="Search files" />
+      <hlm-icon
+        hlmMuted
+        size="sm"
+        name="lucideSearch"
+        class="absolute left-2.5 translate-y-[50%]"
+      />
+    </div>
+    <!-- file upload button -->
     <div
       hlmBtn
       variant="secondary"
       class="relative gap-x-2 truncate"
       type="button"
     >
-      <hlm-icon size="sm" name="lucideUpload" class="-ml-1 flex-none" />
-      Upload data
+      <hlm-icon size="sm" name="lucideFileUp" class="-ml-1 flex-none" />
+      File upload
       <input
         class="absolute left-0 top-0 h-full w-full opacity-0"
         type="file"
@@ -29,11 +36,10 @@
     >
       <hlm-icon size="sm" name="lucideFolderPlus" class="-ml-1 flex-none" />
       New folder
-
     </button>
   </div>
   <!-- file data table -->
-  <hlm-table class="cursor-default">
+  <hlm-table class="cursor-default overflow-auto">
     <hlm-trow class="rounded-t-lg">
       <hlm-th class="min-w-40 flex-1">Name</hlm-th>
       <hlm-th class="w-40">Type</hlm-th>
