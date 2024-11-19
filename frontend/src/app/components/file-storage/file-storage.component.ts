@@ -42,7 +42,7 @@ import { HlmMenuModule } from '@spartan-ng/ui-menu-helm';
 import { HlmTableModule } from '@spartan-ng/ui-table-helm';
 import { BrnSelectModule } from '@spartan-ng/ui-select-brain';
 import { HlmSelectModule } from '@spartan-ng/ui-select-helm';
-import { HlmMutedDirective } from '@spartan-ng/ui-typography-helm';
+import { HlmH1Directive, HlmH2Directive, HlmH4Directive, HlmLargeDirective, HlmMutedDirective } from '@spartan-ng/ui-typography-helm';
 import {
   HlmPaginationContentDirective,
   HlmPaginationDirective,
@@ -117,6 +117,10 @@ interface FilterButton {
     HlmSelectModule,
 
     HlmMutedDirective,
+    HlmLargeDirective,
+    HlmH2Directive,
+    HlmH1Directive,
+    HlmH4Directive
   ],
   providers: [
     provideIcons({

@@ -214,15 +214,26 @@ export class FileStorageService {
     return this.pathFilter$.asObservable();
   }
 
+
   /**
-   * Sets the path filter. Set to`['/']`at minimum.
+   * Appends to the path filter. Set to`['/']`at minimum.
    *
-   * @param path The path filter to apply.
+   * @param path The path filter to append.
    */
-  setPathFilter(path: string[]): void {
-    this.pathFilter$.next(path);
+  setPathFilterAppend(path: string): void {
+    this.pathFilter$.next(this.pathFilter$.value.concat(path));
     this.pageNumber$.next(1);
   }
+
+    /**
+   * Pops the path filter to a specified index. Set to`0`at minimum.
+   *
+   * @param pathIndex The path index to pop to.
+   */
+    setPathFilterPop(pathIndex: number): void {
+      this.pathFilter$.next(this.pathFilter$.value.slice(0, pathIndex + 1));
+      this.pageNumber$.next(1);
+    }
 
   /**
    * Retrieves the current type filter as on Observable.
