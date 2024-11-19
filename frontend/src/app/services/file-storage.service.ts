@@ -38,6 +38,7 @@ import {
   combineLatest,
   map,
   of,
+  shareReplay,
   switchMap,
 } from 'rxjs';
 
@@ -99,16 +100,8 @@ export class FileStorageService {
         }
       })
     );
-  }
 
-  /**
-   * Retrieves the user files as an Observable array. The search, path, type,
-   * page, and sort filters are automatically applied.
-   *
-   * @returns An Observable array of the user's files with filters applied.
-   */
-  getFiles(): Observable<UserFile[]> {
-    return combineLatest([
+    this.files$ = combineLatest([
       this.files$,
       this.searchFilter$,
       this.pathFilter$,
@@ -177,8 +170,19 @@ export class FileStorageService {
           const pageIndexLast = pageIndexStart + pageSize;
           return filter.slice(pageIndexStart, pageIndexLast);
         }
-      )
+      ),
+      shareReplay(1)
     );
+  }
+
+  /**
+   * Retrieves the user files as an Observable array. The search, path, type,
+   * page, and sort filters are automatically applied.
+   *
+   * @returns An Observable array of the user's files with filters applied.
+   */
+  getFiles(): Observable<UserFile[]> {
+    return this.files$
   }
 
   /**

@@ -1,2 +1,36 @@
-<div class="flex h-screen w-full flex-col rounded-lg bg-foreground p-6">
+<div class="h-full w-full rounded-lg bg-foreground p-6">
+  <hlm-table class="cursor-default overflow-auto">
+    <hlm-trow class="rounded-t-lg">
+      <hlm-th class="w-52">Name</hlm-th>
+      <hlm-th class="w-60">Type</hlm-th>
+      <hlm-th class="flex-1">File size</hlm-th>
+      <hlm-th class="flex-1">Last modified</hlm-th>
+      <hlm-th class="w-40 justify-end">Actions</hlm-th>
+    </hlm-trow>
+    @for (file of fileStorageService.getFiles() | async; track file.id) {
+      <hlm-trow class="h-10">
+        <hlm-td
+          class="mt-0.5 w-52"
+          [ngClass]="{
+            'cursor-pointer hover:underline': file.type === 'folder',
+          }"
+        >
+          <hlm-icon
+            size="sm"
+            [name]="getLucideIconFromType(file.type)"
+            class="mb-0.5 mr-2 inline-block flex-none align-middle no-underline"
+          />
+          <span class="truncate">
+            {{ file.name }}
+          </span>
+        </hlm-td>
+        <hlm-td class="w-60">{{ file.type | titlecase }}</hlm-td>
+        <hlm-td class="flex-1">{{ formatBytes(file.size) }}</hlm-td>
+        <hlm-td class="flex-1">{{
+          file.uploadedOn.toLocaleString()
+        }}</hlm-td>
+        <hlm-td class="w-40 justify-end">{{ file.size }}</hlm-td>
+      </hlm-trow>
+    }
+  </hlm-table>
 </div>

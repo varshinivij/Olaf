@@ -11,11 +11,12 @@ import {
 import {
   BehaviorSubject,
   Observable,
-  firstValueFrom,
-  of,
-  map,
-  switchMap,
   combineLatest,
+  firstValueFrom,
+  map,
+  of,
+  shareReplay,
+  switchMap,
 } from 'rxjs';
 
 import { UserService } from './user.service';
@@ -62,16 +63,8 @@ export class ProjectService {
         }
       })
     );
-  }
 
-  /**
-   * Retrieves the user's projects as an Observable array. The search, path,
-   * type, page, and sort filters are automatically applied.
-   *
-   * @returns An Observable array of the user's projects with filters applied.
-   */
-  getProjects(): Observable<Project[]> {
-    return combineLatest([
+    this.projects$ = combineLatest([
       this.projects$,
       this.searchFilter$,
       this.pageSize$,
@@ -90,8 +83,19 @@ export class ProjectService {
         const pageIndexStart = pageSize * (pageNumber - 1);
         const pageIndexLast = pageIndexStart + pageSize;
         return filter.slice(pageIndexStart, pageIndexLast);
-      })
+      }),
+      shareReplay(1)
     );
+  }
+
+  /**
+   * Retrieves the user's projects as an Observable array. The search, path,
+   * type, page, and sort filters are automatically applied.
+   *
+   * @returns An Observable array of the user's projects with filters applied.
+   */
+  getProjects(): Observable<Project[]> {
+    return this.projects$;
   }
 
   /**

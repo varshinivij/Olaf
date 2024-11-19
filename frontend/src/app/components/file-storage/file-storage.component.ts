@@ -1,11 +1,11 @@
 /* TODO:
-1) maybe some sort of toast message on upload success/fail
+1) maybe some sort of toast message on upload success/fail (spartan sonner)
 */
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrderByDirection } from '@angular/fire/firestore';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 
 import { FileStorageService } from '../../services/file-storage.service';
 import { UploadService } from '../../services/upload.service';
@@ -13,6 +13,7 @@ import { UploadService } from '../../services/upload.service';
 import {
   ExtensionType,
   getImageUrlFromType,
+  getLucideIconFromType
 } from '../../models/extension-type';
 import { UserFile } from '../../models/user-file';
 import { UserUploadTask } from '../../models/user-upload-task';
@@ -27,19 +28,35 @@ import {
   HlmProgressDirective,
   HlmProgressIndicatorDirective,
 } from '@spartan-ng/ui-progress-helm';
+
 import { DecimalPipe, TitleCasePipe } from '@angular/common';
 import { HlmButtonModule } from '@spartan-ng/ui-button-helm';
-import { HlmCheckboxCheckIconComponent, HlmCheckboxComponent } from '@spartan-ng/ui-checkbox-helm';
+import {
+  HlmCheckboxCheckIconComponent,
+  HlmCheckboxComponent,
+} from '@spartan-ng/ui-checkbox-helm';
 import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
 import { BrnMenuTriggerDirective } from '@spartan-ng/ui-menu-brain';
 import { HlmIconComponent, provideIcons } from '@spartan-ng/ui-icon-helm';
 
 import { HlmMenuModule } from '@spartan-ng/ui-menu-helm';
-import { BrnTableModule, PaginatorState, useBrnColumnManager } from '@spartan-ng/ui-table-brain';
 import { HlmTableModule } from '@spartan-ng/ui-table-helm';
 import { BrnSelectModule } from '@spartan-ng/ui-select-brain';
 import { HlmSelectModule } from '@spartan-ng/ui-select-helm';
+import {
+  BrnTableModule,
+  PaginatorState,
+  useBrnColumnManager,
+} from '@spartan-ng/ui-table-brain';
 import { hlmMuted } from '@spartan-ng/ui-typography-helm';
+import {
+  lucideFileArchive,
+  lucideFileChartColumn,
+  lucideFileCode,
+  lucideFileQuestion,
+  lucideFileText,
+  lucideFolder,
+} from '@ng-icons/lucide';
 
 interface FilterButton {
   name: string;
@@ -57,7 +74,6 @@ interface FilterButton {
     BrnProgressIndicatorComponent,
     HlmProgressDirective,
     HlmProgressIndicatorDirective,
-
 
     BrnMenuTriggerDirective,
     HlmMenuModule,
@@ -78,11 +94,20 @@ interface FilterButton {
     BrnSelectModule,
     HlmSelectModule,
   ],
+  providers: [
+    provideIcons({
+      lucideFileCode,
+      lucideFileChartColumn,
+      lucideFolder,
+      lucideFileArchive,
+      lucideFileText,
+      lucideFileQuestion,
+    }),
+  ],
   templateUrl: './file-storage.component.html',
   styleUrl: './file-storage.component.scss',
 })
 export class FileStorageComponent implements OnInit, OnDestroy {
-  private fileStorageSubscription?: Subscription;
   private uploadSubscription?: Subscription;
 
   filterButtons: FilterButton[] = [
@@ -96,25 +121,17 @@ export class FileStorageComponent implements OnInit, OnDestroy {
 
   // make imported util functions available to template
   formatBytes = formatBytes;
-  getImageUrlFromType = getImageUrlFromType;
+  getLucideIconFromType = getLucideIconFromType;
+
 
   constructor(
     public fileStorageService: FileStorageService,
     public uploadService: UploadService
   ) {}
 
-  ngOnInit() {
-    this.fileStorageSubscription = this.fileStorageService
-      .getFiles()
-      .subscribe((files: UserFile[] | null) => {
-        if (files) {
-        } else {
-        }
-      });
-  }
+  ngOnInit() {}
 
   ngOnDestroy(): void {
-    this.fileStorageSubscription?.unsubscribe();
     this.uploadSubscription?.unsubscribe();
   }
 
@@ -125,7 +142,6 @@ export class FileStorageComponent implements OnInit, OnDestroy {
   onUploadFilesSelected(event: Event) {
     // const target = event.target as HTMLInputElement;
     // const files = target.files as FileList;
-
     // Array.from(files).forEach((file: File) => {
     //   this.uploadService.uploadFile(
     //     file,
@@ -140,8 +156,7 @@ export class FileStorageComponent implements OnInit, OnDestroy {
     //     }
     //   );
     // }
-  // );
-
+    // );
     // reset selected files, else you can't select the same files again
     // target.value = '';
   }
@@ -176,10 +191,8 @@ export class FileStorageComponent implements OnInit, OnDestroy {
     */
     // const buttonElement = event.target as HTMLButtonElement;
     // const fileFullPath = posix.join(file.path, file.name);
-
     // buttonElement.textContent = 'progress_activity';
     // buttonElement.classList.toggle('animate-spin');
-
     // this.fileStorageService
     //   .deletePath(fileFullPath)
     //   .then(() => {
@@ -199,49 +212,5 @@ export class FileStorageComponent implements OnInit, OnDestroy {
     } else {
       // this.fileStorageService.downloadFile(file);
     }
-  }
-
-  /*
-    PAGE NAVIGATOR METHODS
-  */
-
-  previousPage() {
-  }
-
-  nextPage() {
-  }
-
-  setPage(page: number) {
-  }
-
-  /*
-    SORT/FILTER UTILITY METHODS
-  */
-
-  toPreviousDirectory(pathIndex: number) {
-  }
-
-  toNextDirectory(directory: string) {
-  }
-
-  applySearchFilter() {
-  }
-
-  applyTypeFilter(type: ExtensionType) {
-  }
-
-  applySortFilter(sort: keyof UserFile) {
-
-  }
-
-  getSortDirectionMatIcon(sort: keyof UserFile) {
-    // if (sort == this.sortFilter) {
-    //   if (this.sortDirectionFilter == 'asc') {
-    //     return 'expand_less';
-    //   } else {
-    //     return 'expand_more';
-    //   }
-    // }
-    // return 'unfold_more';
   }
 }
