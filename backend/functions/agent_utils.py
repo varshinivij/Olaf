@@ -39,8 +39,6 @@ def chat_completion(history, tools=None):
 
     
 def chat_completion_function(history, tools=None):
-    print("ff32332")
-
     stream = client.chat.completions.create(
         model="gpt-4o",
         messages=[

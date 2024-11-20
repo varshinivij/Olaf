@@ -1,7 +1,6 @@
 import json
 class History:
     def __init__(self, system):
-        print("Kooj for this please")
         if isinstance(system, str):
             self.history = json.loads(system)[0]
         else:
