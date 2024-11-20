@@ -414,100 +414,82 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   }
 
   /**
-   * Send a message to the generalist chat service
-   */
+ * Send a message to the generalist chat service
+ */
   async sendMessage() {
     if (this.newMessage.trim() && !this.responseLoading) {
       const message = this.newMessage;
       this.newMessage = '';
       this.responseLoading = true;
-
+  
       await this.addUserMessage(message);
-
-      let responseType:
-        | 'text'
-        | 'code'
-        | 'plan'
-        | 'error'
-        | 'image'
-        | 'result' = 'text'; // Default type
-      let receivedSessionId = '';
-      let responseContent = ''; // To store the content from the rest of the chunks
-
+  
       // Create an initial placeholder message in the chat
       const responseMessage: ChatMessage = {
-        type: responseType,
+        type: 'text', // Default type
         role: 'assistant',
         content: '', // Initially empty
       };
-      // Add the placeholder message to the session and store a reference to it
+  
+      // Add the placeholder message to the session
       await this.sessionsService.addMessageToSession(
         this.currentSession,
         responseMessage
       );
-      const messageIndex = this.currentSession.history.length - 1; // Get the index of the added message
-
-      // Extract sessionId, userId, and projectId from the current session
+  
+      // Extract necessary IDs
       const sessionId = this.currentSession.id;
-      const userId = (await firstValueFrom(this.userService.getCurrentUser()))!
-        .id;
+      const userId = (await firstValueFrom(this.userService.getCurrentUser()))!.id;
       const projectId = this.currentProject.id;
-
-      // generate a new name for session if not yet done so
-      if (this.currentSession.name === null) {
+  
+      // Generate a new name for session if not yet done so
+      if (!this.currentSession.name) {
         this.chatService
           .generateChatNameFromHistory(this.currentSession.history)
           .then((name: string) => {
             this.sessionsService.renameSession(this.currentSession, name);
           });
       }
-
-      this.chatService
-        .sendMessage(message, sessionId, userId, projectId)
-        .subscribe({
-          next: (event: any) => {
-            if (event.type === HttpEventType.DownloadProgress && event.loaded) {
-              const chunk = event.partialText || ''; // Handle the chunked text
-              if (receivedSessionId === '') {
-                // First chunk is the session_id
-                receivedSessionId = chunk;
-                this.currentSession.id = receivedSessionId;
-              } else if (responseContent === '') {
-                // Second chunk is the type
-                responseType = chunk.slice(20).trim();
-                responseMessage.type = responseType;
-                responseContent += ' ';
-              } else {
-                // Append subsequent chunks to the content
-                responseContent = chunk;
-                if (
-                  responseType === 'text' ||
-                  responseType === 'code' ||
-                  responseType === 'plan'
-                ) {
-                  // Remove the first four letters from the content (the "code" identifier)
-                  responseContent = responseContent.slice(24).trim();
-                }
-                if (responseType === 'plan') {
-                  responseContent = jsonrepair(responseContent);
-                  const jsonData = JSON.parse(responseContent);
-                  responseContent = JSON.stringify(jsonData, null, 2);
-                }
-                this.currentSession.history[messageIndex].content =
-                  responseContent;
-              }
-            }
-          },
-          error: (error) => {
-            console.error('Error:', error);
-            this.responseLoading = false;
-          },
-          complete: () => {
-            this.sessionsService.loadAllSessions();
-            this.responseLoading = false;
-            this.executeLatestCode();
-          },
-        });
+  
+      // Subscribe to the SSE stream
+      this.chatService.sendMessage(message, sessionId, userId, projectId).subscribe({
+        next: (data: any) => {
+          // Each 'data' is a string sent from the server
+          // Parse and handle accordingly
+          const chunk = JSON.parse(data);
+          const { type, content } = chunk;
+  
+          // Find the last assistant message in history
+          let lastMessageIndex = this.currentSession.history.length - 1;
+          let lastMessage = this.currentSession.history[lastMessageIndex];
+  
+          // If the type changes, start a new message
+          if (lastMessage.type !== type) {
+            const newMessage: ChatMessage = {
+              type,
+              role: 'assistant',
+              content: '',
+            };
+            this.sessionsService.addMessageToSession(this.currentSession, newMessage);
+            lastMessageIndex++;
+            lastMessage = this.currentSession.history[lastMessageIndex];
+          }
+  
+          // Update the content
+          lastMessage.content += content;
+  
+          // Optionally, trigger change detection or update the UI
+        },
+        error: (error: any) => {
+          console.error('Error occurred during message processing:', error);
+          this.responseLoading = false;
+        },
+        complete: () => {
+          this.sessionsService.loadAllSessions();
+          this.responseLoading = false;
+          this.executeLatestCode();
+        },
+      });
     }
   }
 
