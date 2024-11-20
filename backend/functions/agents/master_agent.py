@@ -1,8 +1,11 @@
+from typing import Callable
+from agent_utils import extract_code_and_text
 import openai
 from agent_utils import chat_completion_api
 from agent_utils import chat_completion_plan
 from agent_utils import chat_completion_function
 import json
+import re
 
 system_prompt = """
 You are a highly skilled bioinformatics agent specializing in single-cell RNA-seq data analysis using Python. Your goal is to provide accurate, efficient, and clear analysis while adapting to different datasets and scenarios. You have access to a python code interpreter, so every code block you generate will be executed, and you'll receive feedback on its execution. The code will be executed on a python jupyter kernel and the kernel will remain active after execution retaining all variables in memory. Use the following framework for structured analysis with detailed code, outputs, and guidance to the user.
@@ -188,6 +191,14 @@ class MasterAgent:
                     "parameters": {
                         "type": "object",
                         "properties": {
+                            "text": {
+                                "type": "string",
+                                "description": "The text to process."
+                            },
+                            "destination": {
+                                "type": "string",
+                                "description": "The destination of the message. must be 'user'"
+                            }
                         },
                         "required": ["history"],
                         "additionalProperties": False
@@ -197,8 +208,23 @@ class MasterAgent:
             # {
             #     "type": "function",
             #     "function": {
-            #         "name": "write_basic_code",
-            #         "description": "This function writes simple python code queries where not a lot of computations or code is required use this when going for very small functions . Use this function for creating code when very small piece of code is asked like simple functions code or simple class or anything.",
+            #         "name": "Ask coder agent to write basic code",
+            #         "description": "This tool will ask our coder agent to write a basic code for you. You can ask for any code related query or task. It is an expert bioinformatician",
+            #         "parameters": {
+            #             "type": "object",
+            #             "properties": {
+                            
+            #             },
+            #             "required": ["history"],
+            #             "additionalProperties": False
+            #         }
+            #     }
+            # },
+            # {
+            #     "type": "function",
+            #     "function": {
+            #         "name": "create_sequential_plan",
+            #         "description": "Creates a detailed, step-by-step plan for a complex task or larger code-related query. Use this function for planning out intricate workflows or comprehensive code architectures. This function should also be used if asked for regenrate or modify the plan okay. ",
             #         "parameters": {
             #             "type": "object",
             #             "properties": {
@@ -208,20 +234,6 @@ class MasterAgent:
             #         }
             #     }
             # },
-            {
-                "type": "function",
-                "function": {
-                    "name": "create_sequential_plan",
-                    "description": "Creates a detailed, step-by-step plan for a complex task or larger code-related query. Use this function for planning out intricate workflows or comprehensive code architectures. This function should also be used if asked for regenrate or modify the plan okay. ",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                        },
-                        "required": ["history"],
-                        "additionalProperties": False
-                    }
-                }
-            },
         ]
         
         self.function_map = {
@@ -230,75 +242,93 @@ class MasterAgent:
             "create_sequential_plan": self.create_sequential_plan,
         }
 
-    def generate(self):
+
+    def generate(self) -> tuple[str, "Generator"] | dict:
+        """
+        The Generate function is the standard agent function
+        @return: Tuple of the system of message destination and the generator function to call
+        """
         try:
             self.history.remove_system_messages()
             self.history.upsert(self.system_prompt)
             # Call the chat completion API
             response = chat_completion_function(self.history, tools=self.functions)
             
-            # Check if response is a dictionary (API response)
-            if isinstance(response, openai.types.chat.chat_completion.ChatCompletion):
-                # Extract the message from the API response
+            if isinstance(response, openai.types.chat.ChatCompletion):
                 message = response.choices[0].message
-                
-                # Check if there are tool calls
                 if message.tool_calls:
-                    # Handle tool calls
                     tool_call = message.tool_calls[0]
                     function_name = tool_call.function.name
                     function_arguments = tool_call.function.arguments
-                    print(function_name)
-                    # Ensure function name is present
-                    if not function_name:
-                        return {"error": "Function name is missing in the tool call."}
-
-                    # Convert the arguments from JSON to a Python dictionary if they exist
-                    args_dict = {}
-                    if function_arguments:
-                        try:
-                            args_dict = json.loads(function_arguments)
-                        except json.JSONDecodeError:
-                            return {"error": "Function arguments could not be parsed as JSON."}
-
-                    # Check if the function exists in the function map
+                    args_dict = json.loads(function_arguments) if function_arguments else {}
+                    
                     if function_name in self.function_map:
-                        print("function name : ",function_name)
-                        try:
-                            # Call the appropriate function with or without arguments
-                            if args_dict:
-                                result = self.function_map[function_name](**args_dict)
-                            else:
-                                result = self.function_map[function_name]()
-                            return result
-                        except Exception as e:
-                            return {"error": f"Error calling function {function_name}: {str(e)}"}
+                        # Get the destination and response generator
+                        destination, response_generator = self.function_map[function_name](**args_dict)
+                        return destination, response_generator
                     else:
-                        return {"error": f"Function {function_name} not found in function map."}
+                        return "user", self.handle_simple_interaction(**args_dict) #type: ignore
                 else:
-                    # Return the content if no tool calls
-                    return self.handle_simple_interaction()
+                    return "user", self.handle_simple_interaction(**args_dict) #type: ignore
             else:
-                # If response is not a dictionary, assume it's the direct content
-                return response
-        except json.JSONDecodeError:
-            return {"error": "Invalid response from API (JSON decode error)."}
+                return "user", self.handle_simple_interaction(**args_dict) #type: ignore
         except Exception as e:
-            return {"error": f"An unexpected error occurred: {str(e)}"}
+            return "error",str(e) #type: ignore
+        
+    def route_message(self, destination: str, content: str) -> tuple[str, "Generator"]:
+        # Separate code from text
+        text, code = extract_code_and_text(content)
+        # Prepare the response generator
+        def response_generator():
+            if text:
+                yield {"type": "text", "content": text}
+            if code:
+                yield {"type": "code", "content": code}
+        return destination, response_generator()
 
-    def handle_simple_interaction(self):
-        yield "Response: text" 
-        interaction_response = chat_completion_api(self.history, system_prompt)
+    def handle_simple_interaction(self, text, destination='user'):
+        """
+        Handles simple user interactions, separating text and code.
+        
+        Yields:
+            Dict[str, str]: A dictionary with 'type' (either 'text' or 'code') and 'content'.
+        """
+        interaction_response = chat_completion_api(self.history, self.system_prompt)
         result = ""
+        content_accumulated = ""
+
+        def extract_code_and_text(content: str) -> dict[str, str]:
+            """Helper function to split code and text."""
+            code_blocks = re.findall(r'```(.*?)```', content, re.DOTALL)
+            text_parts = re.split(r'```.*?```', content, flags=re.DOTALL)
+            text = ' '.join([part.strip() for part in text_parts if part.strip()])
+            code = '\n'.join([block.strip() for block in code_blocks if block.strip()])
+            return {"text": text, "code": code}
+
         for chunk in interaction_response:
             try:
+                # Accumulate content
                 content = chunk['choices'][0]['delta']['content']
                 if content:
-                    result += content
-                yield chunk
-            except:
-                continue  
-        self.history.log("assistant", result)
+                    content_accumulated += content
+            except KeyError:
+                continue
+        
+        # Once the response is fully accumulated, process it
+        split_content = extract_code_and_text(content_accumulated)
+        print("Split Content: ", split_content)
+        # Yield text part
+        if split_content['text']:
+            print("Yielding Text: ", split_content['text'])
+            yield {"type": "text", "content": split_content['text']}
+            print("Yielded Text: ", split_content['text'])
+        
+        # Yield code part
+        if split_content['code']:
+            yield {"type": "code", "content": split_content['code']}
+        
+        # Log the full accumulated response
+        self.history.log("assistant", content_accumulated)
 
     def write_basic_code(self):
         yield "Response: code" 

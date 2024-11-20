@@ -1,5 +1,6 @@
 import json
 import time
+from typing import Callable
 from executor import Executor
 from agents.coder_agent import CoderAgent
 from agents.master_agent import MasterAgent
@@ -61,8 +62,8 @@ def master_route_function(session):
     if not history:
             return None
     history = History(history)
-    master_agent = CodeMasterAgent("Python", history) #using CodeMasterAgent
-    return master_agent
+    master_agent = MasterAgent(history) #using CodeMasterAgent
+    return master_agent.generate()
     
 
 @http
@@ -86,33 +87,33 @@ def master_agent_interaction(req: Request) -> Response:
             session_data = sessions_functions.add_message_to_session(session_id, message, role="user")
         else:
             session_id, session_data = sessions_functions.create_new_session(user_id, project_id, message)
-
+        
         # Route the session history for response generation
         router = Router()
         router.add_route("master", master_route_function)
-        updated_session = router.route_session("master", session_data["history"])
+        print("pre route")
+        response_generator = router.route_session("master", session_data["history"])
+        print("post route")
 
         def generate_stream():
-            yield session_id.encode('utf-8')
+            yield f"id: {session_id}\n".encode('utf-8')
             full_response = ""
-            response_type = ""
-            for line in stream(updated_session):
-                if response_type == "":
-                    response_type = line.decode('utf-8')
-                else:
-                    full_response += line.decode('utf-8')
-                yield line
-            
+            for chunk in response_generator:
+                if chunk["type"] == "text":
+                    # Handle text chunk
+                    full_response += chunk["content"]
+                    yield f"data: ```text{chunk['content']}```\n\n".encode('utf-8')
+                elif chunk["type"] == "code":
+                    # Handle code chunk
+                    full_response += chunk["content"]
+                    yield f"data: ```code{chunk['content']}```\n\n".encode('utf-8')
             # Update the session history with the complete assistant response
             add_message_to_session(session_id, full_response, role="assistant")
 
-        if updated_session is None:
-            return sesponse(json.dumps({"error": "'history' is required"}), status=400)
-
         return Response(flask.stream_with_context(generate_stream()), headers={"session_id": session_id}, mimetype="text/event-stream")
-    
+        
     except Exception as e:
-        print(f"Error in generate_plan: {str(e)}")
+        print(f"Error in master_agent_interaction: {str(e)}")
         return flask.Response(json.dumps({"error": str(e)}), status=500)
 
 # --- CoderAgent Functions ---

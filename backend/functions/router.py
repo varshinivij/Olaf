@@ -69,20 +69,27 @@ class Router:
         """
         if key not in self.routes:
             raise KeyError(f"Route not found: {key}")
-            
-        # Fetch session data
+                
         processed_session = session.copy()
-
         # Apply global pipes
         for pipe in self.global_pipes:
-            processed_session =  pipe.process(processed_session)
-
+            processed_session = pipe.process(processed_session)
         # Apply route-specific pipe if it exists
         if key in self.pipes:
-            processed_session =  self.pipes[key].process(processed_session)
-
-        # Return the processed session to the route function
-        return  self.routes[key](processed_session)
+            processed_session = self.pipes[key].process(processed_session)
+        # Get the destination and response generator
+        print("here")
+        print(key)
+        print(self.routes[key](processed_session))
+        destination, response_generator = self.routes[key](processed_session)
+        # Handle routing based on the destination
+        if destination == "user":
+            return response_generator
+        elif destination in self.routes:
+            # Route to another agent
+            return self.route_session(destination, processed_session)
+        else:
+            raise ValueError(f"Unknown destination: {destination}")
 
     async def route_without_pipe(self, key: str, session_id: str) -> Any:
         """
