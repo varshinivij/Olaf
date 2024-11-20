@@ -89,6 +89,9 @@ export class ProjectsComponent {
   }
 
   ngOnInit() {
+    this.projectService.setPageNumber(1);
+    this.projectService.setSearchFilter('');
+
     this.projectSubscription = this.projectService
       .getProjects()
       .subscribe((projects) => {

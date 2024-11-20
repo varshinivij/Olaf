@@ -50,8 +50,13 @@
               class="justify-between pl-3 pr-0"
               (click)="changeSession(session)"
             >
-              <div class="truncate">
-                {{ session.name }}
+              <div
+                class="truncate"
+                [ngClass]="{
+                  'font-semibold': currentSession.id === session.id,
+                }"
+              >
+                {{ session.name || '&lt;untitled session&gt;' }}
               </div>
               <button
                 hlmBtn
@@ -68,7 +73,7 @@
                     <button
                       hlmMenuItem
                       brnDialogTrigger
-                      (click)="newSessionName = session.name"
+                      (click)="newSessionName = session.name || '<untitled session>'"
                     >
                       <hlm-icon name="lucidePencil" hlmMenuIcon />
                       Rename
@@ -88,11 +93,7 @@
                   <hlm-dialog-header>
                     <div hlmDialogTitle>Rename Session</div>
                   </hlm-dialog-header>
-                  <input
-                    hlmInput
-                    class="w-96"
-                    [(ngModel)]="newSessionName"
-                  />
+                  <input hlmInput class="w-96" [(ngModel)]="newSessionName" />
                   <hlm-dialog-footer>
                     <button hlmBtn brnDialogClose variant="outline" size="sm">
                       Cancel
@@ -132,7 +133,7 @@
       </button>
       <div hlmSmall hlmMuted class="overflow-visible truncate">
         / {{ this.currentProject.name }} /
-        {{ this.currentSession.name }}
+        {{ this.currentSession.name || '&lt;untitled session&gt;' }}
       </div>
       <button hlmBtn variant="ghost" size="icon" class="ml-auto">
         <hlm-icon size="sm" name="lucideCircleStop" />

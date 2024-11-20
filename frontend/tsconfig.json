@@ -13,6 +13,7 @@
     "declaration": false,
     "experimentalDecorators": true,
     "moduleResolution": "bundler",
+    "preserveSymlinks":true,
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
@@ -48,6 +49,9 @@
       ],
       "@spartan-ng/ui-popover-helm": [
         "./src/app/components/ui/ui-popover-helm/src/index.ts"
+      ],
+      "@spartan-ng/ui-progress-helm": [
+        "./src/app/components/ui/ui-progress-helm/src/index.ts"
       ],
       "@spartan-ng/ui-scrollarea-helm": [
         "./src/app/components/ui/ui-scrollarea-helm/src/index.ts"
