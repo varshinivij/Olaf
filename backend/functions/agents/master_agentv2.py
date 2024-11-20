@@ -1,10 +1,11 @@
-from history import History
-from agent_utils import chat_completion_function,chat_completion, extract_python_code
-import json
+from typing import Callable
+from agent_utils import extract_code_and_text
 import openai
-from executor import Executor
 from agent_utils import chat_completion_api
 from agent_utils import chat_completion_plan
+from agent_utils import chat_completion_function
+import json
+import re
 
 system_prompt = """
 You are a highly skilled bioinformatics agent specializing in single-cell RNA-seq data analysis using Python. Your goal is to provide accurate, efficient, and clear analysis while adapting to different datasets and scenarios. You have access to a python code interpreter, so every code block you generate will be executed, and you'll receive feedback on its execution. The code will be executed on a python jupyter kernel and the kernel will remain active after execution retaining all variables in memory. Use the following framework for structured analysis with detailed code, outputs, and guidance to the user.
@@ -170,24 +171,141 @@ You can proceed with executing code that utilizes any of these packages without 
 Your objective is to guide the user through single-cell RNA-seq analysis, ensuring accuracy, reproducibility, and meaningful insights from the data.
 """
 
-system = {"role": "system", "content": system_prompt}
 
-class CodeMasterAgent:
-    def __init__(self,language, history):
-        self.language = language
-        self.history = history
+system = {
+    "role": "system",
+    "content": system_prompt
+}
+
+
+class MasterAgent:
+    def __init__(self,history):
         self.system_prompt = system_prompt
+        self.history = history
+        self.functions = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "handle_simple_interaction",
+                    "description": "Handles simple user interactions. This is for like human interactions or something like that.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "text": {
+                                "type": "string",
+                                "description": "The text to process."
+                            },
+                            "destination": {
+                                "type": "string",
+                                "description": "The destination of the message. must be 'user'"
+                            }
+                        },
+                        "required": ["history"],
+                        "additionalProperties": False
+                    }
+                }
+            },
+            # {
+            #     "type": "function",
+            #     "function": {
+            #         "name": "route_message",
+            #         "description": "Routes the message to the specified destination.",
+            #         "parameters": {
+            #             "type": "object",
+            #             "properties": {
+            #                 "destination": {
+            #                     "type": "string",
+            #                     "description": "The destination where the message should be routed. The only option right now is 'user'."
+            #                 },
+            #                 "content": {
+            #                     "type": "string",
+            #                     "description": "The message content to be sent to the destination."
+            #                 }
+            #             },
+            #             "required": ["destination", "content"],
+            #             "additionalProperties": False
+            #         }
+            #     }
+            # },
 
-    def generate(self):
-        yield "Response: code"
+        ]
+        
+        self.function_map = {
+            "base_interaction": self.base_interaction,
+        }
+
+
+    def generate(self) -> tuple[str, "Generator"] | dict:
+        """
+        The Generate function is the standard agent function
+        @return: Tuple of the system of message destination and the generator function to call
+        """
+        try:
+            self.history.remove_system_messages()
+            self.history.upsert(self.system_prompt)
+            # Call the chat completion API
+            response = chat_completion_function(self.history, tools=self.functions)
+            
+            if isinstance(response, openai.types.chat.ChatCompletion):
+                message = response.choices[0].message
+                if message.tool_calls:
+                    tool_call = message.tool_calls[0]
+                    function_name = tool_call.function.name
+                    function_arguments = tool_call.function.arguments
+                    args_dict = json.loads(function_arguments) if function_arguments else {}
+                    
+                    if function_name in self.function_map:
+                        # Get the destination and response generator
+                        destination, response_generator = self.function_map[function_name](**args_dict)
+                        return destination, response_generator
+                    else:
+                        return "user", self.base_interaction(**args_dict) #type: ignore
+                else:
+                    return "user", self.base_interaction(**args_dict) #type: ignore
+            else:
+                return "user", self.base_interaction(**args_dict) #type: ignore
+        except Exception as e:
+            return "error",str(e) #type: ignore
+        
+    # def route_message(self, destination: str, content: str) -> tuple[str, "Generator"]:
+    #     # Separate code from text
+    #     text, code = extract_code_and_text(content)
+    #     # Prepare the response generator
+    #     def response_generator():
+    #         if text:
+    #             yield {"type": "text", "content": text}
+    #         if code:
+    #             yield {"type": "code", "content": code}
+    #     return destination, response_generator()
+
+    def base_interaction(self, text, destination='user'):
+        """
+        Handles simple user interactions, separating text and code.
+        
+        Yields:
+            Dict[str, str]: A dictionary with 'type' (either 'text' or 'code') and 'content'.
+        """
+        interaction_response = chat_completion_api(self.history, self.system_prompt)
         result = ""
-        for chunk in chat_completion_api(self.history, self.system_prompt):
+        content_accumulated = ""
+
+        current_chunk_type = "text"
+        for chunk in interaction_response:
             try:
-                print(chunk)
+                # Accumulate content
                 content = chunk['choices'][0]['delta']['content']
                 if content:
-                    result += content
-                yield chunk
-            except:
-                continue  
-        self.history.log("assistant", result)
+                    if content.startswith("```"):
+                        current_chunk_type = "code"
+                    elif content.endswith("```"):
+                        current_chunk_type = "text"
+
+                    content_accumulated += content
+                    yield {"type": current_chunk_type, "content": content}
+            except KeyError:
+                continue
+        self.history.log("assistant", content_accumulated)
+
+    
+        
+

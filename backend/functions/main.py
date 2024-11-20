@@ -1,9 +1,10 @@
 import json
 import time
 from typing import Callable
+
 from executor import Executor
 from agents.coder_agent import CoderAgent
-from agents.master_agent import MasterAgent
+from agents.master_agentv2 import MasterAgent
 from agents.codemaster_agent import CodeMasterAgent
 import flask
 
@@ -71,7 +72,7 @@ def master_route_function(session):
 def master_agent_interaction(req: Request) -> Response:
     try:
         session_id = req.args.get("session_id")
-        message = req.json.get("message")
+        message = req.args.get("message")
         user_id = req.args.get("user_id")
         project_id = req.args.get("project_id")
         
@@ -91,25 +92,26 @@ def master_agent_interaction(req: Request) -> Response:
         # Route the session history for response generation
         router = Router()
         router.add_route("master", master_route_function)
-        print("pre route")
         response_generator = router.route_session("master", session_data["history"])
-        print("post route")
 
         def generate_stream():
-            yield f"id: {session_id}\n".encode('utf-8')
+            yield f"id: {session_id}\n\n".encode('utf-8')
             full_response = ""
             for chunk in response_generator:
-                if chunk["type"] == "text":
-                    # Handle text chunk
+                try:
+                    # Prepare a JSON object with 'type' and 'content'
+                    data = json.dumps({
+                        "type": chunk["type"],     # 'text' or 'code'
+                        "content": chunk["content"]
+                    })
+                    yield f"data: {data}\n\n".encode('utf-8')
                     full_response += chunk["content"]
-                    yield f"data: ```text{chunk['content']}```\n\n".encode('utf-8')
-                elif chunk["type"] == "code":
-                    # Handle code chunk
-                    full_response += chunk["content"]
-                    yield f"data: ```code{chunk['content']}```\n\n".encode('utf-8')
-            # Update the session history with the complete assistant response
-            add_message_to_session(session_id, full_response, role="assistant")
-
+                except KeyError as e:
+                    # Handle malformed chunk gracefully
+                    print(f"Malformed chunk: {chunk} - Error: {str(e)}")
+                    continue
+            # Update the session history with the assistant's full response
+            sessions_functions.add_message_to_session(session_id, full_response, role="assistant")
         return Response(flask.stream_with_context(generate_stream()), headers={"session_id": session_id}, mimetype="text/event-stream")
         
     except Exception as e:
