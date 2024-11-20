@@ -3,6 +3,7 @@ import time
 from executor import Executor
 from agents.coder_agent import CoderAgent
 from agents.master_agent import MasterAgent
+from agents.codemaster_agent import CodeMasterAgent
 import flask
 
 from firebase_admin import initialize_app
@@ -60,7 +61,7 @@ def master_route_function(session):
     if not history:
             return None
     history = History(history)
-    master_agent = MasterAgent(history)
+    master_agent = CodeMasterAgent("Python", history) #using CodeMasterAgent
     return master_agent
     
 
@@ -106,14 +107,13 @@ def master_agent_interaction(req: Request) -> Response:
             add_message_to_session(session_id, full_response, role="assistant")
 
         if updated_session is None:
-            return Response(json.dumps({"error": "'history' is required"}), status=400)
+            return sesponse(json.dumps({"error": "'history' is required"}), status=400)
 
         return Response(flask.stream_with_context(generate_stream()), headers={"session_id": session_id}, mimetype="text/event-stream")
     
     except Exception as e:
-        print(f"Error in master_agent_interaction: {str(e)}")
-        return Response(json.dumps({"error": str(e)}), status=500)
-
+        print(f"Error in generate_plan: {str(e)}")
+        return flask.Response(json.dumps({"error": str(e)}), status=500)
 
 # --- CoderAgent Functions ---
 @http
@@ -133,9 +133,6 @@ def generate_code(req: Request) -> flask.Response:
     except Exception as e:
         print(f"Error in generate_code: {str(e)}")
         return flask.Response(json.dumps({"error": str(e)}), status=500)
-
-
-
 
 # http://127.0.0.1:4000/twocube-web//us-central1/?query=I%20have%20uploaded%2016%20files,%204%20files%20per%20cell-type.%20For%20each%20cell%20type%20there%20are%20three%20negative%20sequence%20files%20and%20one%20positive%20sequence%20file.%20Build%20a%20convolution%20neural%20network%20based%20model%20to%20classify%20positive%20and%20negative%20DNA%20sequences.%20For%20evaluation%20results,%20plot%20the%20area%20under%20precision%20recall%20curve%20and%20area%20under%20the%20receiver%20operator%20characteristic%20curve.
 # --- LLM Agent Function ---
@@ -174,5 +171,28 @@ def ask_agent(req: Request) -> Response:
     response_data = {
         "message": response,
     }
-    
     return Response(json.dumps(response_data), status=200)
+
+
+@http
+@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
+def name_maker(req: Request) -> Response:
+    # a request will be conversation history
+    system = """
+    You are given a conversation history.
+    Please construct a super short title for the conversation.
+    """
+    history = req.json.get("history")
+    history = History(history)
+    history.log("system", system)
+    response = chat_completion(history)
+    # Initialize an empty string to accumulate the response text
+    response_str = ""
+    for chunk in response:
+        response_str += chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
+    response_data = {
+        "message": response_str,
+    }
+    # Return the response as a JSON response
+    return Response(json.dumps(response_data), status=200)
+

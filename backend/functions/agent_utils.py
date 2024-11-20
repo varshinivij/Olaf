@@ -39,7 +39,6 @@ def chat_completion(history, tools=None):
 
     
 def chat_completion_function(history, tools=None):
-
     stream = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -185,6 +184,7 @@ def extract_python_code(text):
 
 def stream(agent):
     for chunk in agent.generate():
+        print(chunk)
         try:
             content = chunk['choices'][0]['delta']['content']
             yield content.encode('utf-8')

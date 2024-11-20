@@ -207,7 +207,7 @@ def execute_on_sandbox(req: https_fn.Request) -> https_fn.Response:
         }
         error: None or str of E2B Error message
         results: List[ {mimetype: str of data or None} ]
-            example:
+            example
             List [{
                     "image/png": (base64 encoded PNG data as string)
                     "text/plain": "<Figure size 1000x600 with 1 Axes>"
