@@ -115,18 +115,6 @@
         }
       </div>
     }
-    <!-- project settings button -->
-    <button
-      hlmBtn
-      variant="ghost"
-      size="sm"
-      class="mt-auto flex-none justify-start gap-x-2 pl-2"
-    >
-      <hlm-icon size="sm" name="lucideSettings" class="flex-none" />
-      @if (!collapsed) {
-        <div class="truncate">Project Settings</div>
-      }
-    </button>
   </div>
   <!-- chat interface -->
   <div
@@ -247,13 +235,11 @@
   <!-- twocube den -->
   <hlm-tabs
     id="den-sidebar"
-    tab="planner"
-    class="flex flex-col rounded-md bg-foreground p-3"
+    tab="code"
+    class="flex flex-col p-3 bg-foreground rounded-md"
   >
     <!-- header tab buttons -->
-    <hlm-tabs-list class="grid w-full grid-cols-4">
-      <button hlmTabsTrigger="planner">Planner</button>
-      <button hlmTabsTrigger="terminal">Terminal</button>
+    <hlm-tabs-list class="w-full grid grid-cols-2">
       <button hlmTabsTrigger="code">Code</button>
       <button hlmTabsTrigger="files">Files</button>
     </hlm-tabs-list>
