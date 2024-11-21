@@ -280,9 +280,20 @@
         <hlm-td truncate class="min-w-40 flex-1">{{
           file.uploadedOn.toLocaleString()
         }}</hlm-td>
-        <hlm-td class="w-40 justify-center"
-          ><hlm-icon size="sm" name="lucideCircleEllipsis" class=""
-        /></hlm-td>
+        <hlm-td class="w-40 justify-center">
+          <button hlmBtn variant="float" size="icon" [brnMenuTriggerFor]="menu">
+            <hlm-icon size="sm" name="lucideCircleEllipsis" />
+          </button>
+        </hlm-td>
+        <!-- actions menu -->
+        <ng-template #menu>
+          <hlm-menu>
+            <button hlmMenuItem class="text-destructive hover:text-destructive">
+              <hlm-icon name="lucideTrash2" hlmMenuIcon />
+              Delete
+            </button>
+          </hlm-menu>
+        </ng-template>
       </hlm-trow>
     }
   </hlm-table>

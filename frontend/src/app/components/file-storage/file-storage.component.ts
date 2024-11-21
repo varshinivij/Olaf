@@ -59,6 +59,23 @@ import {
   HlmPaginationPreviousComponent,
 } from '@spartan-ng/ui-pagination-helm';
 import { HlmNumberedPaginationComponent } from '@spartan-ng/ui-pagination-helm';
+import {
+  BrnDialogCloseDirective,
+  BrnDialogContentDirective,
+  BrnDialogTriggerDirective,
+} from '@spartan-ng/ui-dialog-brain';
+import {
+  HlmDialogComponent,
+  HlmDialogContentComponent,
+  HlmDialogFooterComponent,
+  HlmDialogHeaderComponent,
+  HlmDialogTitleDirective,
+} from '@spartan-ng/ui-dialog-helm';
+import {
+  HlmMenuComponent,
+  HlmMenuItemDirective,
+  HlmMenuItemIconDirective,
+} from '@spartan-ng/ui-menu-helm';
 
 import {
   lucideArrowDownUp,
@@ -77,6 +94,7 @@ import {
   lucideFolderPlus,
   lucideFolderUp,
   lucideSearch,
+  lucideTrash2,
   lucideUpload,
 } from '@ng-icons/lucide';
 
@@ -131,6 +149,20 @@ interface FilterOption {
     HlmH2Directive,
     HlmH1Directive,
     HlmH4Directive,
+
+    BrnDialogContentDirective,
+    BrnDialogCloseDirective,
+    BrnDialogTriggerDirective,
+    HlmDialogComponent,
+    HlmDialogContentComponent,
+    HlmDialogFooterComponent,
+    HlmDialogHeaderComponent,
+    HlmDialogTitleDirective,
+
+    BrnMenuTriggerDirective,
+    HlmMenuComponent,
+    HlmMenuItemDirective,
+    HlmMenuItemIconDirective,
   ],
   providers: [
     provideIcons({
@@ -150,6 +182,7 @@ interface FilterOption {
       lucideFolderPlus,
       lucideFolderUp,
       lucideSearch,
+      lucideTrash2,
       lucideUpload,
     }),
   ],
