@@ -4,7 +4,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrderByDirection } from '@angular/fire/firestore';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, NgModel, ReactiveFormsModule } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
 
 import { FileStorageService } from '../../services/file-storage.service';
@@ -40,9 +40,15 @@ import { HlmIconComponent, provideIcons } from '@spartan-ng/ui-icon-helm';
 
 import { HlmMenuModule } from '@spartan-ng/ui-menu-helm';
 import { HlmTableModule } from '@spartan-ng/ui-table-helm';
-import { BrnSelectModule } from '@spartan-ng/ui-select-brain';
-import { HlmSelectModule } from '@spartan-ng/ui-select-helm';
-import { HlmH1Directive, HlmH2Directive, HlmH4Directive, HlmLargeDirective, HlmMutedDirective } from '@spartan-ng/ui-typography-helm';
+import { BrnSelectImports } from '@spartan-ng/ui-select-brain';
+import { HlmSelectImports } from '@spartan-ng/ui-select-helm';
+import {
+  HlmH1Directive,
+  HlmH2Directive,
+  HlmH4Directive,
+  HlmLargeDirective,
+  HlmMutedDirective,
+} from '@spartan-ng/ui-typography-helm';
 import {
   HlmPaginationContentDirective,
   HlmPaginationDirective,
@@ -54,9 +60,13 @@ import {
 } from '@spartan-ng/ui-pagination-helm';
 import { HlmNumberedPaginationComponent } from '@spartan-ng/ui-pagination-helm';
 
-
 import {
+  lucideArrowDownUp,
+  lucideArrowDownWideNarrow,
+  lucideArrowUpNarrowWide,
+  lucideChevronRight,
   lucideCircleEllipsis,
+  lucideEllipsis,
   lucideFileArchive,
   lucideFileChartColumn,
   lucideFileCode,
@@ -70,7 +80,7 @@ import {
   lucideUpload,
 } from '@ng-icons/lucide';
 
-interface FilterButton {
+interface FilterOption {
   name: string;
   type: ExtensionType;
 }
@@ -113,18 +123,23 @@ interface FilterButton {
     HlmCheckboxCheckIconComponent,
     HlmCheckboxComponent,
 
-    BrnSelectModule,
-    HlmSelectModule,
+    BrnSelectImports,
+    HlmSelectImports,
 
     HlmMutedDirective,
     HlmLargeDirective,
     HlmH2Directive,
     HlmH1Directive,
-    HlmH4Directive
+    HlmH4Directive,
   ],
   providers: [
     provideIcons({
+      lucideArrowDownUp,
+      lucideArrowDownWideNarrow,
+      lucideArrowUpNarrowWide,
+      lucideChevronRight,
       lucideCircleEllipsis,
+      lucideEllipsis,
       lucideFileArchive,
       lucideFileChartColumn,
       lucideFileCode,
@@ -144,16 +159,19 @@ interface FilterButton {
 export class FileStorageComponent implements OnInit, OnDestroy {
   private uploadSubscription?: Subscription;
 
-  filterButtons: FilterButton[] = [
-    { name: 'Folder', type: 'folder' } as const,
-    { name: 'Dataset', type: 'dataset' } as const,
+  filterOptions: FilterOption[] = [
     { name: 'Code', type: 'code' } as const,
+    { name: 'Dataset', type: 'dataset' } as const,
+    { name: 'Document', type: 'document' } as const,
+    { name: 'Folder', type: 'folder' } as const,
     { name: 'Model', type: 'model' } as const,
+    { name: 'Unknown', type: 'unknown' } as const,
   ];
 
   userUploads?: UserUploadTask[];
 
   // make imported util functions available to template
+  console = console;
   formatBytes = formatBytes;
   getLucideIconFromType = getLucideIconFromType;
 
@@ -162,9 +180,7 @@ export class FileStorageComponent implements OnInit, OnDestroy {
     public uploadService: UploadService
   ) {}
 
-  ngOnInit() {
-
-  }
+  ngOnInit() {}
 
   ngOnDestroy(): void {
     this.uploadSubscription?.unsubscribe();

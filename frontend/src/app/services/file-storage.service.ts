@@ -60,7 +60,7 @@ export class FileStorageService {
 
   private searchFilter$ = new BehaviorSubject<string>('');
   private pathFilter$ = new BehaviorSubject<string[]>(['/']);
-  private typeFilter$ = new BehaviorSubject<ExtensionType | null>(null);
+  private typeFilter$ = new BehaviorSubject<ExtensionType[]>([]);
   private sortFilter$ = new BehaviorSubject<keyof UserFile>('uploadedOn');
   private sortDirectionFilter$ = new BehaviorSubject<OrderByDirection>('desc');
 
@@ -134,8 +134,9 @@ export class FileStorageService {
             filterFunc = (f) => f.path === posix.join(...path);
           }
           // finally, apply type filter
-          if (type !== null) {
-            filterFunc = (f) => filterFunc(f) && f.type === type;
+          if (type.length !== 0) {
+            const previousFilterFunc = filterFunc;
+            filterFunc = (f) => previousFilterFunc(f) && type.includes(f.type);
           }
 
           let sortFunc: (a: UserFile, b: UserFile) => number;
@@ -182,7 +183,7 @@ export class FileStorageService {
    * @returns An Observable array of the user's files with filters applied.
    */
   getFiles(): Observable<UserFile[]> {
-    return this.files$
+    return this.files$;
   }
 
   /**
@@ -214,7 +215,6 @@ export class FileStorageService {
     return this.pathFilter$.asObservable();
   }
 
-
   /**
    * Appends to the path filter. Set to`['/']`at minimum.
    *
@@ -225,36 +225,37 @@ export class FileStorageService {
     this.pageNumber$.next(1);
   }
 
-    /**
+  /**
    * Pops the path filter to a specified index. Set to`0`at minimum.
+   * If no value is provided, pops the latest path from the array.
    *
    * @param pathIndex The path index to pop to.
    */
-    setPathFilterPop(pathIndex: number): void {
-      this.pathFilter$.next(this.pathFilter$.value.slice(0, pathIndex + 1));
-      this.pageNumber$.next(1);
+  setPathFilterPop(pathIndex: number = this.pathFilter$.value.length - 2): void {
+    if (pathIndex < 0) {
+      return;
     }
+
+    this.pathFilter$.next(this.pathFilter$.value.slice(0, pathIndex + 1));
+    this.pageNumber$.next(1);
+  }
 
   /**
    * Retrieves the current type filter as on Observable.
    *
    * @returns An Observable of the type filter.
    */
-  getTypeFilter(): Observable<ExtensionType | null> {
+  getTypeFilter(): Observable<ExtensionType[]> {
     return this.typeFilter$.asObservable();
   }
 
   /**
-   * Sets the type filter. Setting to the same value
-   * will revert the type filter back to null.
+   * Sets the type filters as an array of types.
    *
-   * @param type The type filter to apply.
+   * @param types The type filters to apply.
    */
-  setTypeFilter(type: ExtensionType): void {
-    type === this.typeFilter$.value
-      ? this.typeFilter$.next(null)
-      : this.typeFilter$.next(type);
-
+  setTypeFilter(types: ExtensionType[]): void {
+    this.typeFilter$.next(types);
     this.pageNumber$.next(1);
   }
 

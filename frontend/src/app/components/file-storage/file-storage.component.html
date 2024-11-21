@@ -1,8 +1,8 @@
-<div class="flex h-full w-full flex-col gap-y-2 rounded-lg bg-foreground p-3">
+<div class="flex h-full min-w-96 flex-col gap-y-2 rounded-lg bg-foreground p-3">
   <!-- search bar + upload button row -->
   <div class="flex gap-x-3 px-3">
     <!-- search bar -->
-    <div class="relative h-fit w-fit flex-1">
+    <div class="relative h-10 flex-1">
       <input
         hlmInput
         class="absolute w-full pl-9"
@@ -17,8 +17,12 @@
       />
     </div>
     <!-- file upload button -->
-    <div hlmBtn variant="secondary" class="relative gap-x-2 truncate">
-      <hlm-icon size="sm" name="lucideFileUp" class="-ml-1 flex-none" />
+    <div
+      hlmBtn
+      variant="secondary"
+      class="relative hidden gap-x-2 truncate md:flex"
+    >
+      <hlm-icon size="sm" name="lucideFileUp" class="-ml-1" />
       File upload
       <input
         class="absolute left-0 top-0 h-full w-full cursor-pointer opacity-0"
@@ -32,30 +36,222 @@
     <button
       hlmBtn
       variant="secondary"
-      class="relative gap-x-2 truncate"
+      class="relative hidden gap-x-2 truncate md:flex"
       type="button"
     >
-      <hlm-icon size="sm" name="lucideFolderPlus" class="-ml-1 flex-none" />
+      <hlm-icon size="sm" name="lucideFolderPlus" class="-ml-1" />
       New folder
     </button>
   </div>
-  <!-- current dir labels -->
-  <div class="flex items-center px-0.5">
+  <!-- directory/type filter row -->
+  <div
+    class="flex w-full flex-none items-center truncate text-nowrap pl-0.5 pr-3"
+  >
+    <!-- current dir labels -->
     @if (fileStorageService.getPathFilter() | async; as pathFilter) {
-      <button hlmBtn hlmH2 variant="ghost" size="sm" type="button">
+      <!-- my files/home label -->
+      <button
+        hlmBtn
+        hlmH2
+        variant="ghost"
+        size="sm"
+        type="button"
+        (click)="fileStorageService.setPathFilterPop(0)"
+      >
         My Files
       </button>
+      <!-- display last 2 folder labels -->
+      @for (filter of pathFilter.slice(1).slice(-2); track $index) {
+        <!-- display ellipsis if too many labels, else chevron -->
+        @if ($first) {
+          <button
+            hlmBtn
+            variant="ghost"
+            size="icon"
+            type="button"
+            [disabled]="!(pathFilter.length > 3)"
+            (click)="fileStorageService.setPathFilterPop(pathFilter.length - 3)"
+          >
+            <hlm-icon
+              size="sm"
+              [name]="
+                pathFilter.length > 3 ? 'lucideEllipsis' : 'lucideChevronRight'
+              "
+            />
+          </button>
+        }
+        <!-- display folder label -->
+        <button
+          hlmBtn
+          hlmH2
+          variant="ghost"
+          size="sm"
+          type="button"
+          (click)="!$last && fileStorageService.setPathFilterPop()"
+        >
+          <div class="max-w-60 truncate">{{ filter }}</div>
+        </button>
+        <!-- display chevron separator -->
+        @if (!$last) {
+          <button hlmBtn variant="ghost" size="icon" type="button" disabled>
+            <hlm-icon size="sm" name="lucideChevronRight" />
+          </button>
+        }
+      }
+    }
+    <!-- type filter selector -->
+    @if (fileStorageService.getTypeFilter() | async; as typeFilter) {
+      <brn-select
+        placeholder="Filter by type"
+        class="ml-auto hidden md:flex"
+        [multiple]="true"
+        [ngModel]="typeFilter"
+        (ngModelChange)="fileStorageService.setTypeFilter($event)"
+      >
+        <hlm-select-trigger class="w-40">
+          <hlm-select-value />
+        </hlm-select-trigger>
+        <hlm-select-content>
+          @for (button of filterOptions; track $index) {
+            <hlm-option [value]="button.type"
+              >{{ button.name }}
+              <hlm-icon
+                size="sm"
+                [name]="getLucideIconFromType(button.type)"
+                class="ml-2"
+              />
+            </hlm-option>
+          }
+        </hlm-select-content>
+      </brn-select>
     }
   </div>
   <!-- file data table -->
   <hlm-table class="cursor-default overflow-auto">
-    <hlm-trow class="rounded-t-lg">
-      <hlm-th class="h-10 min-w-40 flex-1">Name</hlm-th>
-      <hlm-th class="h-10 w-40">Type</hlm-th>
-      <hlm-th class="h-10 w-40">File size</hlm-th>
-      <hlm-th class="h-10 min-w-40 flex-1">Last modified</hlm-th>
-      <hlm-th class="h-10 w-40 justify-center">Actions</hlm-th>
-    </hlm-trow>
+    <!-- table header/sort buttons -->
+    @if (fileStorageService.getSortFilter() | async; as sortFilter) {
+      @if (
+        fileStorageService.getSortDirectionFilter() | async;
+        as sortDirectionFilter
+      ) {
+        <hlm-trow class="sticky top-0 rounded-t-lg bg-foreground">
+          <hlm-th class="h-10 min-w-40 flex-1">
+            <button
+              hlmBtn
+              variant="ghost"
+              size="sm"
+              class="-ml-3"
+              type="button"
+              (click)="fileStorageService.setSortFilter('name')"
+            >
+              Name
+              <hlm-icon
+                size="xs"
+                [name]="
+                  sortFilter === 'name'
+                    ? sortDirectionFilter === 'asc'
+                      ? 'lucideArrowUpNarrowWide'
+                      : 'lucideArrowDownWideNarrow'
+                    : 'lucideArrowDownUp'
+                "
+                class="ml-2"
+              />
+            </button>
+          </hlm-th>
+          <hlm-th class="h-10 w-40">
+            <button
+              hlmBtn
+              variant="ghost"
+              size="sm"
+              class="-ml-3"
+              type="button"
+              (click)="fileStorageService.setSortFilter('type')"
+            >
+              Type
+              <hlm-icon
+                size="xs"
+                [name]="
+                  sortFilter === 'type'
+                    ? sortDirectionFilter === 'asc'
+                      ? 'lucideArrowUpNarrowWide'
+                      : 'lucideArrowDownWideNarrow'
+                    : 'lucideArrowDownUp'
+                "
+                class="ml-2"
+              />
+            </button>
+          </hlm-th>
+          <hlm-th class="h-10 w-40">
+            <button
+              hlmBtn
+              variant="ghost"
+              size="sm"
+              class="-ml-3"
+              type="button"
+              (click)="fileStorageService.setSortFilter('size')"
+            >
+              File size
+              <hlm-icon
+                size="xs"
+                name="lucideArrowDownUp"
+                [name]="
+                  sortFilter === 'size'
+                    ? sortDirectionFilter === 'asc'
+                      ? 'lucideArrowUpNarrowWide'
+                      : 'lucideArrowDownWideNarrow'
+                    : 'lucideArrowDownUp'
+                "
+                class="ml-2"
+              />
+            </button>
+          </hlm-th>
+          <hlm-th class="h-10 min-w-40 flex-1">
+            <button
+              hlmBtn
+              variant="ghost"
+              size="sm"
+              class="-ml-3"
+              type="button"
+              (click)="fileStorageService.setSortFilter('uploadedOn')"
+            >
+              Last modified
+              <hlm-icon
+                size="xs"
+                [name]="
+                  sortFilter === 'uploadedOn'
+                    ? sortDirectionFilter === 'asc'
+                      ? 'lucideArrowUpNarrowWide'
+                      : 'lucideArrowDownWideNarrow'
+                    : 'lucideArrowDownUp'
+                "
+                class="ml-2"
+              />
+            </button>
+          </hlm-th>
+          <hlm-th class="h-10 w-40 justify-center">Actions</hlm-th>
+        </hlm-trow>
+      }
+    }
+    <!-- prev dir row -->
+    @if (
+      ((fileStorageService.getPathFilter() | async)?.length ?? 0) > 1 &&
+      !(fileStorageService.getSearchFilter() | async)?.length
+    ) {
+      <hlm-trow class="h-10">
+        <hlm-td
+          class="mt-0.5 min-w-40 flex-1 cursor-pointer hover:underline"
+          (click)="fileStorageService.setPathFilterPop()"
+        >
+          <hlm-icon
+            size="sm"
+            [name]="getLucideIconFromType('folder')"
+            class="mb-0.5 mr-2 inline-block flex-none align-middle no-underline"
+          />
+          <span class="truncate"> ../ </span>
+        </hlm-td>
+      </hlm-trow>
+    }
+    <!-- normal file rows -->
     @for (file of fileStorageService.getFiles() | async; track file.id) {
       <hlm-trow class="h-10">
         <hlm-td
@@ -63,6 +259,10 @@
           [ngClass]="{
             'cursor-pointer hover:underline': file.type === 'folder',
           }"
+          (click)="
+            file.type === 'folder' &&
+              fileStorageService.setPathFilterAppend(file.name)
+          "
         >
           <hlm-icon
             size="sm"
@@ -74,7 +274,9 @@
           </span>
         </hlm-td>
         <hlm-td truncate class="w-40">{{ file.type | titlecase }}</hlm-td>
-        <hlm-td truncate class="w-40">{{ formatBytes(file.size) }}</hlm-td>
+        <hlm-td truncate class="w-40">{{
+          file.type !== 'folder' ? formatBytes(file.size) : null
+        }}</hlm-td>
         <hlm-td truncate class="min-w-40 flex-1">{{
           file.uploadedOn.toLocaleString()
         }}</hlm-td>
@@ -102,10 +304,7 @@
 <!-- TODO -->
 <!-- empty state for searches -->
 <!-- implement the file uploads + support entire folder upload -->
-<!-- implement sorting buttons -->
-<!-- implement the path/current folder path -->
-<!-- searching should probably should the folder path too, maybe click to jump -->
+<!-- searching should probably show the folder path too, maybe click to jump there -->
 <!-- implement actions menu -->
 <!-- implement upload progress -->
 <!-- remove outside padding make this responsive -->
-<!-- filter buttons -->
