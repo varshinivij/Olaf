@@ -1,4 +1,4 @@
-import { AfterViewInit, Component } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component } from '@angular/core';
 
 import { FileStorageComponent } from '../../components/file-storage/file-storage.component';
 import { ProjectsComponent } from '../../components/projects/projects.component'
@@ -8,6 +8,7 @@ import Split from 'split.js';
 
 @Component({
   selector: 'app-dashboard',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [FileStorageComponent, SidebarComponent, ProjectsComponent],
   templateUrl: './dashboard.component.html',

@@ -4,7 +4,7 @@ export interface UserUploadTask {
   name: string;
   type: 'file' | 'folder'
   progress: number;
-  uploadPath: string;
+  uploadPath: string[];
   downloadURL: string | null;
   status: 'pending' | 'uploading' | 'completed' | 'error';
   onCompleted?: (uploadRef: UserUploadTask) => void;

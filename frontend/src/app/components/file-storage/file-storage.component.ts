@@ -1,11 +1,22 @@
 /* TODO:
 1) maybe some sort of toast message on upload success/fail (spartan sonner)
 */
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { OrderByDirection } from '@angular/fire/firestore';
-import { FormsModule, NgModel, ReactiveFormsModule } from '@angular/forms';
-import { Observable, Subscription } from 'rxjs';
+import {
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  NgModel,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+import { firstValueFrom, Observable, Subscription } from 'rxjs';
 
 import { FileStorageService } from '../../services/file-storage.service';
 import { UploadService } from '../../services/upload.service';
@@ -39,7 +50,11 @@ import { BrnMenuTriggerDirective } from '@spartan-ng/ui-menu-brain';
 import { HlmIconComponent, provideIcons } from '@spartan-ng/ui-icon-helm';
 
 import { HlmMenuModule } from '@spartan-ng/ui-menu-helm';
-import { HlmTableModule } from '@spartan-ng/ui-table-helm';
+import {
+  HlmTableModule,
+  HlmTdComponent,
+  HlmTrowComponent,
+} from '@spartan-ng/ui-table-helm';
 import { BrnSelectImports } from '@spartan-ng/ui-select-brain';
 import { HlmSelectImports } from '@spartan-ng/ui-select-helm';
 import {
@@ -84,6 +99,7 @@ import {
   lucideChevronRight,
   lucideCircleEllipsis,
   lucideEllipsis,
+  lucideFile,
   lucideFileArchive,
   lucideFileChartColumn,
   lucideFileCode,
@@ -97,6 +113,10 @@ import {
   lucideTrash2,
   lucideUpload,
 } from '@ng-icons/lucide';
+import { HlmSpinnerComponent } from '@spartan-ng/ui-spinner-helm';
+
+import { toast } from 'ngx-sonner';
+import { HlmToasterComponent } from '@spartan-ng/ui-sonner-helm';
 
 interface FilterOption {
   name: string;
@@ -105,6 +125,7 @@ interface FilterOption {
 
 @Component({
   selector: 'app-file-storage',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule,
@@ -163,6 +184,9 @@ interface FilterOption {
     HlmMenuComponent,
     HlmMenuItemDirective,
     HlmMenuItemIconDirective,
+
+    HlmSpinnerComponent,
+    HlmToasterComponent,
   ],
   providers: [
     provideIcons({
@@ -172,6 +196,7 @@ interface FilterOption {
       lucideChevronRight,
       lucideCircleEllipsis,
       lucideEllipsis,
+      lucideFile,
       lucideFileArchive,
       lucideFileChartColumn,
       lucideFileCode,
@@ -189,8 +214,8 @@ interface FilterOption {
   templateUrl: './file-storage.component.html',
   styleUrl: './file-storage.component.scss',
 })
-export class FileStorageComponent implements OnInit, OnDestroy {
-  private uploadSubscription?: Subscription;
+export class FileStorageComponent {
+  createFolderForm: FormGroup;
 
   filterOptions: FilterOption[] = [
     { name: 'Code', type: 'code' } as const,
@@ -201,95 +226,78 @@ export class FileStorageComponent implements OnInit, OnDestroy {
     { name: 'Unknown', type: 'unknown' } as const,
   ];
 
-  userUploads?: UserUploadTask[];
-
   // make imported util functions available to template
-  console = console;
   formatBytes = formatBytes;
   getLucideIconFromType = getLucideIconFromType;
 
   constructor(
+    private formBuilder: FormBuilder,
     public fileStorageService: FileStorageService,
     public uploadService: UploadService
-  ) {}
-
-  ngOnInit() {}
-
-  ngOnDestroy(): void {
-    this.uploadSubscription?.unsubscribe();
+  ) {
+    this.createFolderForm = this.formBuilder.group({
+      name: ['', [Validators.required]],
+    });
   }
 
-  /*
-    UPLOAD/DOWNLOAD FILE/FOLDER UTILITY METHODS
-  */
+  async onFileUploadSelected(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const files = target.files as FileList;
+    const path = await firstValueFrom(this.fileStorageService.getPathFilter());
 
-  onUploadFilesSelected(event: Event) {
-    // const target = event.target as HTMLInputElement;
-    // const files = target.files as FileList;
-    // Array.from(files).forEach((file: File) => {
-    //   this.uploadService.uploadFile(
-    //     file,
-    //     this.currentPathString,
-    //     (completedUpload) => {
-    //       console.log('Upload succeeded:', completedUpload);
-    //       this.uploadService.removeUpload(completedUpload);
-    //     },
-    //     (errorUpload) => {
-    //       console.error('Upload failed:', errorUpload);
-    //       this.uploadService.removeUpload(errorUpload);
-    //     }
-    //   );
-    // }
-    // );
-    // reset selected files, else you can't select the same files again
-    // target.value = '';
+    Array.from(files).forEach((file: File) => {
+      this.uploadService.uploadFile(
+        file,
+        path,
+        (completedUpload) => {
+          this.uploadService.removeUpload(completedUpload);
+        },
+        (errorUpload) => {
+          this.uploadService.removeUpload(errorUpload);
+          toast.error(`File "${file.name}" upload failed, try again later.`);
+        }
+      );
+    });
+
+    // reset selected files, else files remain selected
+    target.value = '';
   }
 
-  createFolder() {
-    // this.createFolderName already updated through ngModel
-    // this.uploadService.createNewFolder(
-    //   this.createFolderName,
-    //   this.currentPathString,
-    //   (completedUpload) => {
-    //     console.log('Upload succeeded:', completedUpload);
-    //     this.uploadService.removeUpload(completedUpload);
-    //   },
-    //   (errorUpload) => {
-    //     console.error('Upload failed:', errorUpload);
-    //     this.uploadService.removeUpload(errorUpload);
-    //   }
-    // );
-    // this.createFolderName = '';
+  async createFolder() {
+    const path = await firstValueFrom(this.fileStorageService.getPathFilter());
+
+    this.uploadService.createNewFolder(
+      this.createFolderForm.value.name,
+      path,
+      (completedUpload) => {
+        this.uploadService.removeUpload(completedUpload);
+      },
+      (errorUpload) => {
+        this.uploadService.removeUpload(errorUpload);
+        toast.error(`Folder creation failed, try again later.`);
+      }
+    );
+
+    this.createFolderForm.reset();
   }
 
-  deleteFileOrFolder(event: Event, file: UserFile) {
-    /*
-      Currently uses direct DOM manipulation. Another way would be
-      to store the "deleted/error" state in the actual data model,
-      but that doesn't make too much sense. Maybe an entirely separate
-      layer that represents each table row, but this is good enough for now.
-
-      If we did an entirely separate layer, then maybe separate all the
-      filtering/pagination to a utility class. But since we're loading
-      every file into memory at the moment this simple is enough.
-    */
-    // const buttonElement = event.target as HTMLButtonElement;
-    // const fileFullPath = posix.join(file.path, file.name);
-    // buttonElement.textContent = 'progress_activity';
-    // buttonElement.classList.toggle('animate-spin');
-    // this.fileStorageService
-    //   .deletePath(fileFullPath)
-    //   .then(() => {
-    //     buttonElement.classList.toggle('animate-spin');
-    //     buttonElement.textContent = 'delete';
-    //   })
-    //   .catch((error) => {
-    //     buttonElement.classList.toggle('animate-spin');
-    //     buttonElement.textContent = 'error';
-    //   });
+  async deleteItem(
+    file: UserFile,
+    fileRow: HlmTrowComponent,
+    fileData: HlmTdComponent
+  ) {
+    try {
+      fileRow.muted.set(true);
+      fileData.fileStorageComponentDeleting.set(true);
+      await this.fileStorageService.deletePath([file.path, file.name]);
+    } catch (error) {
+      fileRow.muted.set(false);
+      fileData.fileStorageComponentDeleting.set(false);
+      toast.error(`File "${file.name}" failed to delete, try again later.`);
+    }
   }
 
-  async downloadFileOrFolder(file: UserFile) {
+  async downloadItem(file: UserFile) {
     // TODO: doesn't work right now. see FileStorageService
     if (file.isFolder) {
       // this.fileStorageService.downloadFolder(file);

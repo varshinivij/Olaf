@@ -7,6 +7,7 @@ import {
 	computed,
 	inject,
 	input,
+	signal,
 } from '@angular/core';
 import { hlm } from '@spartan-ng/ui-core';
 import { BrnColumnDefComponent } from '@spartan-ng/ui-table-brain';
@@ -21,7 +22,11 @@ import type { ClassValue } from 'clsx';
 	},
 	template: `
 		<ng-template #content>
-			<ng-content />
+			@if (fileStorageComponentDeleting()) {
+				<div class="loading">Deleting</div>
+			} @else {
+				<ng-content />
+			}
 		</ng-template>
 		@if (truncate()) {
 			<span class="flex-1 truncate">
@@ -37,6 +42,7 @@ import type { ClassValue } from 'clsx';
 export class HlmTdComponent {
 	private readonly _columnDef? = inject(BrnColumnDefComponent, { optional: true });
 	public readonly truncate = input(false, { transform: booleanAttribute });
+	public fileStorageComponentDeleting = signal<boolean>(false);
 
 	public readonly userClass = input<ClassValue>('', { alias: 'class' });
 	protected readonly _computedClass = computed(() =>

@@ -41,6 +41,7 @@ import {
 import { Observable, of, map, switchMap, shareReplay } from 'rxjs';
 
 import { FileStorageService } from './file-storage.service';
+import { ProjectService } from './project.service';
 import { SessionsService } from './sessions.service';
 
 import { User } from '../models/user';
@@ -305,16 +306,19 @@ export class UserService {
   // deletes Firestore and Firebase Auth user data based on given FirebaseUser
   private async deleteUserInfo(user: FirebaseUser): Promise<void> {
     // delete Firebase auth record
-    await user.delete();
+    user.delete();
     // delete Firestore record
-    await deleteDoc(doc(this.firestore, 'users', user.uid));
+    deleteDoc(doc(this.firestore, 'users', user.uid));
     // delete profile picture
-    await this.deleteProfilePicture(user);
+    this.deleteProfilePicture(user);
     // use the FileStorageService to delete uploaded files
     const fileStorageService = this.injector.get(FileStorageService);
-    await fileStorageService.deletePath(['/']);
+    fileStorageService.deletePath(['/']);
+    // use the ProjectService to delete all projects
+    const projectService = this.injector.get(ProjectService);
+    projectService.deleteAllProjects();
     // use the SessionService to delete all sessions
     const sessionService = this.injector.get(SessionsService);
-    await sessionService.deleteAllSessions();
+    sessionService.deleteAllSessions();
   }
 }

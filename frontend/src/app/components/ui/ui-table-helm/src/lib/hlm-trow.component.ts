@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ViewEncapsulation, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ViewEncapsulation, computed, input, signal } from '@angular/core';
 import { hlm } from '@spartan-ng/ui-core';
 import type { ClassValue } from 'clsx';
 
@@ -17,9 +17,10 @@ import type { ClassValue } from 'clsx';
 })
 export class HlmTrowComponent {
 	public readonly userClass = input<ClassValue>('', { alias: 'class' });
+	public muted = signal<boolean>(false);
 	protected _computedClass = computed(() =>
 		hlm(
-			'flex flex border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
+			'flex flex border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted' + (this.muted() ? ' text-muted-foreground' : ''),
 			this.userClass(),
 		),
 	);

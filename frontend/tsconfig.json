@@ -51,7 +51,7 @@
         "./src/app/components/ui/ui-menu-helm/src/index.ts"
       ],
       "@spartan-ng/ui-pagination-helm": [
-        ".\\src/app/components/ui/ui-pagination-helm/src/index.ts"
+        "./src/app/components/ui/ui-pagination-helm/src/index.ts"
       ],
       "@spartan-ng/ui-popover-helm": [
         "./src/app/components/ui/ui-popover-helm/src/index.ts"
@@ -67,6 +67,9 @@
       ],
       "@spartan-ng/ui-select-helm": [
         "./src/app/components/ui/ui-select-helm/src/index.ts"
+      ],
+      "@spartan-ng/ui-sonner-helm": [
+        "./src/app/components/ui/ui-sonner-helm/src/index.ts"
       ],
       "@spartan-ng/ui-spinner-helm": [
         "./src/app/components/ui/ui-spinner-helm/src/index.ts"
