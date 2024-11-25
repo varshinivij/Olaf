@@ -261,3 +261,35 @@ def execute_on_sandbox(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         json_error = json.dumps({"error": str(e)})
         return https_fn.Response(json_error, status=500)
+    
+
+
+def run_terminal_command(sandbox_id: str, command: str) -> dict:
+    """
+    Runs a terminal command on the E2B sandbox terminal using exec_cell.
+
+    Args:
+        sandbox_id (str): The ID of the sandbox to connect to.
+        command (str): The terminal command to execute.
+
+    Returns:
+        dict: A dictionary containing the command output, errors, and status.
+    """
+    try:
+        # Reconnect to the sandbox
+        sandbox = CodeInterpreter.reconnect(sandbox_id, api_key=E2B_API_KEY)
+        
+        # Execute the command as a Python subprocess call
+        execution = sandbox.notebook.exec_cell(f"!{command}")
+
+        # Parse results
+        result = {
+            "stdout": execution.logs.stdout,
+            "stderr": execution.logs.stderr,
+            "error": execution.error.traceback if execution.error else None,
+        }
+
+        return result
+
+    except Exception as e:
+        return {"error": str(e)}
