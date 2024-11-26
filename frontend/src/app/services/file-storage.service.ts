@@ -222,6 +222,7 @@ export class FileStorageService {
    */
   setPathFilterAppend(path: string): void {
     this.pathFilter$.next(this.pathFilter$.value.concat(path));
+    this.searchFilter$.next('');
     this.pageNumber$.next(1);
   }
 
@@ -231,12 +232,15 @@ export class FileStorageService {
    *
    * @param pathIndex The path index to pop to.
    */
-  setPathFilterPop(pathIndex: number = this.pathFilter$.value.length - 2): void {
+  setPathFilterPop(
+    pathIndex: number = this.pathFilter$.value.length - 2
+  ): void {
     if (pathIndex < 0) {
       return;
     }
 
     this.pathFilter$.next(this.pathFilter$.value.slice(0, pathIndex + 1));
+    this.searchFilter$.next('');
     this.pageNumber$.next(1);
   }
 
