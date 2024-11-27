@@ -4,7 +4,13 @@
     @if (page === 'projects') {
       <app-projects></app-projects>
     } @else if (page === 'data') {
-      <app-file-storage></app-file-storage>
+      <div class="flex h-full flex-col rounded-lg bg-foreground p-3">
+        <div hlmH2 class="ml-3 mt-1 text-2xl">Data</div>
+        <div hlmLarge class="mb-2.5 ml-3 font-normal">
+          Upload and manage different types of data.
+        </div>
+        <app-file-storage class="h-0 flex-1"></app-file-storage>
+      </div>
     } @else if (page === 'settings') {}
   </div>
 </div>

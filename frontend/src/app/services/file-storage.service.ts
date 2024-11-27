@@ -216,7 +216,18 @@ export class FileStorageService {
   }
 
   /**
-   * Appends to the path filter. Set to`['/']`at minimum.
+   * Sets the path filter. Set to`'/'`at minimum.
+   *
+   * @param path The path filter to apply.
+   */
+  setPathFilter(path: string): void {
+    this.pathFilter$.next(['/', ...path.split(posix.sep).filter(Boolean)]);
+    this.searchFilter$.next('');
+    this.pageNumber$.next(1);
+  }
+
+  /**
+   * Appends to the path filter. Starts at`['/']`.
    *
    * @param path The path filter to append.
    */

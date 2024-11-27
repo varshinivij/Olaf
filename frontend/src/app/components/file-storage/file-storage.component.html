@@ -1,4 +1,4 @@
-<div class="flex h-full min-w-96 flex-col gap-y-2 rounded-lg bg-foreground p-3">
+<div class="flex max-h-full min-w-96 flex-col gap-y-2">
   @if (
     {
       searchFilter: fileStorageService.getSearchFilter() | async,
@@ -6,10 +6,11 @@
       typeFilter: fileStorageService.getTypeFilter() | async,
       sortFilter: fileStorageService.getSortFilter() | async,
       sortDirectionFilter: fileStorageService.getSortDirectionFilter() | async,
-      files: fileStorageService.getFiles() | async,
       pageNumber: fileStorageService.getPageNumber() | async,
       pageSize: fileStorageService.getPageSize() | async,
       totalPages: fileStorageService.getTotalPages() | async,
+      files: fileStorageService.getFiles() | async,
+      uploads: uploadService.getUploadProgress() | async,
     };
     as data
   ) {
@@ -48,7 +49,7 @@
         />
       </div>
       <!-- folder upload button -->
-      <div
+      <!-- <div
         hlmBtn
         variant="secondary"
         class="relative hidden gap-x-2 truncate md:flex"
@@ -62,7 +63,7 @@
           multiple
           (change)="onFileUploadSelected($event)"
         />
-      </div>
+      </div> -->
       <!-- new folder button + dialog -->
       <hlm-dialog>
         <button
@@ -83,9 +84,8 @@
             id="newFolderForm"
             class="flex flex-col gap-y-2"
             [formGroup]="createFolderForm"
-            (ngSubmit)="createFolder()"
           >
-            <!-- project name input -->
+            <!-- folder name input -->
             <input
               hlmInput
               class="w-96"
@@ -208,7 +208,7 @@
       </brn-select>
     </div>
     <!-- file data table -->
-    <hlm-table class="cursor-default overflow-auto">
+    <hlm-table class="min-h-10 flex-grow cursor-default overflow-auto">
       <!-- table header/sort buttons -->
       <hlm-trow class="sticky top-0 z-10 rounded-t-lg bg-foreground">
         <hlm-th class="h-10 min-w-40 flex-1">
@@ -304,6 +304,9 @@
             />
           </button>
         </hlm-th>
+        @if (data.searchFilter?.length) {
+          <hlm-th class="h-10 w-40">Location</hlm-th>
+        }
         <hlm-th class="h-10 w-40 justify-center">Actions</hlm-th>
       </hlm-trow>
       <!-- prev dir row -->
@@ -323,14 +326,11 @@
         </hlm-trow>
       }
       <!-- uploads row -->
-      @for (
-        upload of uploadService.getUploadProgress() | async;
-        track upload.id
-      ) {
+      @for (upload of data.uploads; track upload.id) {
         @if (
           !data.searchFilter?.length &&
           data.pageNumber === 1 &&
-          data.pathFilter === upload.uploadPath
+          arraysEqual(data.pathFilter, upload.uploadPath)
         ) {
           <hlm-trow hlmMuted class="h-10">
             <hlm-td class="min-w-40 flex-1">
@@ -365,7 +365,7 @@
             }"
             (click)="
               file.type === 'folder' &&
-                fileStorageService.setPathFilterAppend(file.name)
+                fileStorageService.setPathFilter(file.path + '/' + file.name)
             "
           >
             <hlm-icon
@@ -384,6 +384,19 @@
           <hlm-td #fileData truncate class="min-w-40 flex-1">
             {{ file.uploadedOn.toLocaleString() }}
           </hlm-td>
+          @if (data.searchFilter?.length) {
+            <hlm-td
+              class="w-40 cursor-pointer hover:underline"
+              (click)="fileStorageService.setPathFilter(file.path)"
+            >
+              <hlm-icon
+                size="sm"
+                [name]="getLucideIconFromType('folder')"
+                class="mr-2 flex-none"
+              />
+              <span class="truncate"> Open location </span>
+            </hlm-td>
+          }
           <hlm-td class="w-40 justify-center">
             <button
               hlmBtn
@@ -410,6 +423,31 @@
         </hlm-trow>
       }
     </hlm-table>
+    <!-- empty state (search failed) -->
+    @if (
+      data.files?.length === 0 &&
+      (data.searchFilter?.length || data.typeFilter?.length)
+    ) {
+      <div class="mr-[7.8rem] flex h-full flex-col items-center justify-center">
+        <img
+          class="mb-1 h-12 w-12 rounded-lg"
+          src="assets/twocube-logo-black-bg.png"
+        />
+        <div hlmLarge>No matching results</div>
+        <div hlmSmall>try another search, or use filters to find by type.</div>
+      </div>
+    }
+    <!-- empty state (no files uploaded) -->
+    @else if (data.files?.length === 0 && data.uploads?.length === 0) {
+      <div class="mr-[7.8rem] flex h-full flex-col items-center justify-center">
+        <img
+          class="mb-1 h-12 w-12 rounded-lg"
+          src="assets/twocube-logo-black-bg.png"
+        />
+        <div hlmLarge>No files found</div>
+        <div hlmSmall>use the "File upload" button to get started.</div>
+      </div>
+    }
     <!-- page navigator -->
     <hlm-numbered-pagination
       [currentPage]="data.pageNumber ?? 1"
@@ -422,7 +460,4 @@
   }
 </div>
 <!-- TODO -->
-<!-- empty state for searches -->
 <!-- support entire folder upload -->
-<!-- searching should probably show the folder path too, maybe click to jump there -->
-<!-- remove outside padding make this responsive -->

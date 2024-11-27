@@ -1,22 +1,15 @@
-/* TODO:
-1) maybe some sort of toast message on upload success/fail (spartan sonner)
-*/
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnDestroy,
-  OnInit,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
   FormGroup,
   FormsModule,
-  NgModel,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { firstValueFrom, Observable, Subscription } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
+
+import { toast } from 'ngx-sonner';
 
 import { FileStorageService } from '../../services/file-storage.service';
 import { UploadService } from '../../services/upload.service';
@@ -26,54 +19,11 @@ import {
   getLucideIconFromType,
 } from '../../models/extension-type';
 import { UserFile } from '../../models/user-file';
-import { UserUploadTask } from '../../models/user-upload-task';
 
+import { arraysEqual } from '../../utils/arrays-equal';
 import { formatBytes } from '../../utils/format-bytes';
 
-import {
-  BrnProgressComponent,
-  BrnProgressIndicatorComponent,
-} from '@spartan-ng/ui-progress-brain';
-import {
-  HlmProgressDirective,
-  HlmProgressIndicatorDirective,
-} from '@spartan-ng/ui-progress-helm';
-
-import { DecimalPipe, TitleCasePipe } from '@angular/common';
 import { HlmButtonModule } from '@spartan-ng/ui-button-helm';
-import {
-  HlmCheckboxCheckIconComponent,
-  HlmCheckboxComponent,
-} from '@spartan-ng/ui-checkbox-helm';
-import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
-import { BrnMenuTriggerDirective } from '@spartan-ng/ui-menu-brain';
-import { HlmIconComponent, provideIcons } from '@spartan-ng/ui-icon-helm';
-
-import { HlmMenuModule } from '@spartan-ng/ui-menu-helm';
-import {
-  HlmTableModule,
-  HlmTdComponent,
-  HlmTrowComponent,
-} from '@spartan-ng/ui-table-helm';
-import { BrnSelectImports } from '@spartan-ng/ui-select-brain';
-import { HlmSelectImports } from '@spartan-ng/ui-select-helm';
-import {
-  HlmH1Directive,
-  HlmH2Directive,
-  HlmH4Directive,
-  HlmLargeDirective,
-  HlmMutedDirective,
-} from '@spartan-ng/ui-typography-helm';
-import {
-  HlmPaginationContentDirective,
-  HlmPaginationDirective,
-  HlmPaginationEllipsisComponent,
-  HlmPaginationItemDirective,
-  HlmPaginationLinkDirective,
-  HlmPaginationNextComponent,
-  HlmPaginationPreviousComponent,
-} from '@spartan-ng/ui-pagination-helm';
-import { HlmNumberedPaginationComponent } from '@spartan-ng/ui-pagination-helm';
 import {
   BrnDialogCloseDirective,
   BrnDialogContentDirective,
@@ -86,11 +36,37 @@ import {
   HlmDialogHeaderComponent,
   HlmDialogTitleDirective,
 } from '@spartan-ng/ui-dialog-helm';
+import { HlmIconComponent, provideIcons } from '@spartan-ng/ui-icon-helm';
+import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
+import { BrnMenuTriggerDirective } from '@spartan-ng/ui-menu-brain';
 import {
   HlmMenuComponent,
   HlmMenuItemDirective,
   HlmMenuItemIconDirective,
 } from '@spartan-ng/ui-menu-helm';
+import { HlmNumberedPaginationComponent } from '@spartan-ng/ui-pagination-helm';
+import {
+  BrnProgressComponent,
+  BrnProgressIndicatorComponent,
+} from '@spartan-ng/ui-progress-brain';
+import {
+  HlmProgressDirective,
+  HlmProgressIndicatorDirective,
+} from '@spartan-ng/ui-progress-helm';
+import { BrnSelectImports } from '@spartan-ng/ui-select-brain';
+import { HlmSelectImports } from '@spartan-ng/ui-select-helm';
+import { HlmToasterComponent } from '@spartan-ng/ui-sonner-helm';
+import {
+  HlmTableModule,
+  HlmTdComponent,
+  HlmTrowComponent,
+} from '@spartan-ng/ui-table-helm';
+import {
+  HlmH2Directive,
+  HlmLargeDirective,
+  HlmMutedDirective,
+  HlmSmallDirective,
+} from '@spartan-ng/ui-typography-helm';
 
 import {
   lucideArrowDownUp,
@@ -113,10 +89,6 @@ import {
   lucideTrash2,
   lucideUpload,
 } from '@ng-icons/lucide';
-import { HlmSpinnerComponent } from '@spartan-ng/ui-spinner-helm';
-
-import { toast } from 'ngx-sonner';
-import { HlmToasterComponent } from '@spartan-ng/ui-sonner-helm';
 
 interface FilterOption {
   name: string;
@@ -132,44 +104,7 @@ interface FilterOption {
     FormsModule,
     ReactiveFormsModule,
 
-    BrnProgressComponent,
-    BrnProgressIndicatorComponent,
-    HlmProgressDirective,
-    HlmProgressIndicatorDirective,
-
-    BrnMenuTriggerDirective,
-    HlmMenuModule,
-
-    HlmPaginationContentDirective,
-    HlmPaginationDirective,
-    HlmPaginationEllipsisComponent,
-    HlmPaginationItemDirective,
-    HlmPaginationLinkDirective,
-    HlmPaginationNextComponent,
-    HlmPaginationPreviousComponent,
-
-    HlmNumberedPaginationComponent,
-
-    HlmTableModule,
-
     HlmButtonModule,
-
-    DecimalPipe,
-    TitleCasePipe,
-    HlmIconComponent,
-    HlmInputDirective,
-
-    HlmCheckboxCheckIconComponent,
-    HlmCheckboxComponent,
-
-    BrnSelectImports,
-    HlmSelectImports,
-
-    HlmMutedDirective,
-    HlmLargeDirective,
-    HlmH2Directive,
-    HlmH1Directive,
-    HlmH4Directive,
 
     BrnDialogContentDirective,
     BrnDialogCloseDirective,
@@ -180,13 +115,31 @@ interface FilterOption {
     HlmDialogHeaderComponent,
     HlmDialogTitleDirective,
 
+    HlmIconComponent,
+    HlmInputDirective,
+
     BrnMenuTriggerDirective,
     HlmMenuComponent,
     HlmMenuItemDirective,
     HlmMenuItemIconDirective,
 
-    HlmSpinnerComponent,
+    HlmNumberedPaginationComponent,
+
+    BrnProgressComponent,
+    BrnProgressIndicatorComponent,
+    HlmProgressDirective,
+    HlmProgressIndicatorDirective,
+
+    BrnSelectImports,
+    HlmSelectImports,
+
     HlmToasterComponent,
+    HlmTableModule,
+
+    HlmH2Directive,
+    HlmLargeDirective,
+    HlmMutedDirective,
+    HlmSmallDirective,
   ],
   providers: [
     provideIcons({
@@ -227,6 +180,7 @@ export class FileStorageComponent {
   ];
 
   // make imported util functions available to template
+  arraysEqual = arraysEqual;
   formatBytes = formatBytes;
   getLucideIconFromType = getLucideIconFromType;
 

@@ -1,7 +1,7 @@
 /**
  * Receives a number of bytes and formats into MBs, GBs, etc. as a string.
  *
- * Reference: https://stackoverflow.com/questions/15900485/correct-way-to-convert-size-in-bytes-to-kb-mb-gb-in-javascript
+ * Reference: https://stackoverflow.com/a/18650828
  *
  * @param bytes The number of bytes.
  * @param decimals The number of decimals to truncate to.
