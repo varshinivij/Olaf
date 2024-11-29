@@ -2,6 +2,8 @@ from openai import OpenAI
 import requests
 import re
 import json
+from fpdf import FPDF
+import io
 
 api_key = "REMOVED"
 url = "https://api.openai.com/v1/chat/completions"
@@ -192,3 +194,53 @@ def stream(agent):
             if (chunk.startswith("Response: ")):
                 yield chunk.replace("Response: ", "").encode('utf-8')
             continue
+
+def chat_completion_summary(history):
+
+    headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+    
+    history.append({"role": "user", "content": "Please provide a clear and structured summary of the entire conversation in a user-assistant format, detailing exactly who asked what and who responded with what. Focus solely on the main points discussed without any introductory or concluding remarks. Ensure the summary is easily understandable to non-technical individuals.", "type": "text"})
+
+    payload = {
+        "model": "gpt-4o",
+        "messages": history,
+        "temperature": 0.1
+    }
+
+    response = requests.post(url, headers=headers, json=payload, stream=True)
+
+    if response.status_code == 200:
+        return response.json()
+
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        return None
+
+def create_pdf(conversation_summary, session_id):
+    """
+    Generates a structured PDF with a clear heading and formatted content.
+    """
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    # Set title font for the heading
+    pdf.set_font("Helvetica", style="B", size=16)
+    pdf.cell(0, 10, "Session Summary", ln=True, align='C')
+    pdf.ln(10)
+
+    # Add session ID as a subtitle
+    pdf.set_font("Helvetica", style="B", size=12)
+    pdf.cell(0, 10, f"Session ID: {session_id}", ln=True, align='L')
+    pdf.ln(5)
+
+    # Add conversation summary content
+    pdf.set_font("Helvetica", size=11)
+    pdf.multi_cell(0, 8, conversation_summary)
+
+    # Output PDF as a string (bytes)
+    pdf_output = pdf.output(dest='S').encode('latin1')
+    return pdf_output

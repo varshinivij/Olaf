@@ -41,7 +41,8 @@ from sessions_functions import (
     delete_session,
     get_sessions,
     delete_all_sessions,
-    rename_session
+    rename_session,
+    get_session_summary
 )
 
 # This needs to be cleaned up
@@ -107,7 +108,7 @@ def master_agent_interaction(req: Request) -> Response:
             add_message_to_session(session_id, full_response, role="assistant")
 
         if updated_session is None:
-            return sesponse(json.dumps({"error": "'history' is required"}), status=400)
+            return Response(json.dumps({"error": "'history' is required"}), status=400)
 
         return Response(flask.stream_with_context(generate_stream()), headers={"session_id": session_id}, mimetype="text/event-stream")
     

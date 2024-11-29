@@ -2,6 +2,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
+from agent_utils import chat_completion_summary, create_pdf
 from functions_framework import http
 import json
 import flask
@@ -155,3 +156,39 @@ def set_sand_box_id(session_id, sandbox_id):
     session_ref = db.collection("sessions").document(session_id)
     session_data = session_ref.get().to_dict()
     return session_data
+
+
+@http
+@on_request(cors=CorsOptions(cors_origins="*", cors_methods=["get"]))
+def get_session_summary(req: Request) -> Response:
+    try:
+        session_id = req.args.get('session_id')
+        if not session_id:
+            return Response(json.dumps({"error": "Session ID is required"}), status=400, mimetype='application/json')
+
+        session_ref = db.collection('sessions').document(session_id)
+        session_data = session_ref.get().to_dict()
+        if not session_data:
+            return Response(json.dumps({"error": "Session not found"}), status=404, mimetype='application/json')
+
+        history = session_data.get('history', [])
+
+        # Generate summary from chat_completion_summary
+        summary_response = chat_completion_summary(history)
+        if not summary_response or 'choices' not in summary_response:
+            return Response(json.dumps({"error": "Failed to generate summary"}), status=500, mimetype='application/json')
+
+        summary_text = summary_response['choices'][0]['message']['content']
+
+        # Generate PDF content as bytes
+        pdf_output = create_pdf(summary_text, session_id)
+
+        # Return the PDF content as a response
+        return Response(pdf_output, content_type="application/pdf", status=200, headers={
+            "Content-Disposition": f"attachment; filename={session_id}_summary.pdf"
+        })
+
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
+
