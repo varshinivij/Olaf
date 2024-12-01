@@ -9,6 +9,7 @@ import {
   query,
   setDoc,
   where,
+  getDoc,
 } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 
@@ -98,6 +99,13 @@ export class SessionsService {
   }
 
   /**
+   * Pushes a message to the current session and DOES NOT writes to Firestore.
+   */
+    addMessageToLocalSession(session: Session, message: ChatMessage) {
+      session.history.push(message);
+    }
+
+  /**
    * Sets the sandbox id of the current session and writes to Firestore.
    */
   async setSessionSandBoxId(session: Session, sandboxId: string) {
@@ -116,6 +124,24 @@ export class SessionsService {
     );
 
     console.log(`Session ${session.id} deleted successfully.`);
+  }
+
+
+  async getSession(sessionId: string) {
+    const sessionRef = doc(this.firestore, 'sessions', sessionId);
+    const sessionDoc = await getDoc(sessionRef);
+    return sessionDoc.data() as Session;
+  }
+  
+
+  /**
+   * Syncs the local session with the session in Firestore.
+   * Local -> Cloud
+   * @param session 
+   */
+  async syncLocalSession(session: Session) {
+    await this.updateSession(session
+    );
   }
 
   /**

@@ -32,6 +32,8 @@ import { PlanMessagePipe } from '../../pipes/planmessage.pipe';
 import { adjustTextareaHeight } from '../../utils/adjust-textarea-height';
 import { delay } from '../../utils/time-utils';
 
+import { ChangeDetectorRef } from '@angular/core';
+
 // icon imports
 import { provideIcons } from '@ng-icons/core';
 import {
@@ -210,7 +212,8 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     public fileStorageService: FileStorageService,
     private sandboxService: SandboxService,
     public sessionsService: SessionsService,
-    public userService: UserService
+    public userService: UserService,
+    private cdr: ChangeDetectorRef
   ) {
     this.currentProject =
       this.router.getCurrentNavigation()?.extras.state?.['project'];
@@ -432,7 +435,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       };
   
       // Add the placeholder message to the session
-      await this.sessionsService.addMessageToSession(
+      this.sessionsService.addMessageToLocalSession(
         this.currentSession,
         responseMessage
       );
@@ -454,14 +457,16 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       // Subscribe to the SSE stream
       this.chatService.sendMessage(message, sessionId, userId, projectId).subscribe({
         next: (data: any) => {
+
+          // Find the last assistant message in history
+          // This is the placeholder repsons 
+          let lastMessageIndex = this.currentSession.history.length - 1;
+          let lastMessage = this.currentSession.history[lastMessageIndex];
+
           // Each 'data' is a string sent from the server
           // Parse and handle accordingly
           const chunk = JSON.parse(data);
           const { type, content } = chunk;
-  
-          // Find the last assistant message in history
-          let lastMessageIndex = this.currentSession.history.length - 1;
-          let lastMessage = this.currentSession.history[lastMessageIndex];
   
           // If the type changes, start a new message
           if (lastMessage.type !== type) {
@@ -470,15 +475,15 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
               role: 'assistant',
               content: '',
             };
-            this.sessionsService.addMessageToSession(this.currentSession, newMessage);
+            this.sessionsService.addMessageToLocalSession(this.currentSession, newMessage);
             lastMessageIndex++;
             lastMessage = this.currentSession.history[lastMessageIndex];
           }
   
           // Update the content
           lastMessage.content += content;
-  
-          // Optionally, trigger change detection or update the UI
+          this.cdr.detectChanges();
+          this.currentSession.history[lastMessageIndex] = lastMessage;
         },
         error: (error: any) => {
           console.error('Error occurred during message processing:', error);
@@ -603,22 +608,25 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     return codeParts.join('\n\n');
   }
 
-  extractTextWithoutCode(response: string) {
+  extractTextWithoutCode(response: string): string {
     let isInCodeBlock = false; // To track whether we're inside a code block
     let result = ''; // To store the processed text
     const lines = response.split('\n'); // Split response by lines to process them one by one
 
     for (let line of lines) {
-      if (line.startsWith('```')) {
-        // Toggle the code block state when encountering ```
-        isInCodeBlock = !isInCodeBlock;
-        continue; // Skip the line containing ```
-      }
+        if (line.startsWith('```')) {
+            // Toggle the code block state when encountering ```
+            isInCodeBlock = !isInCodeBlock;
+            continue; // Skip the line containing ```
+        }
 
-      if (!isInCodeBlock) {
-        // Process text lines outside of code blocks
-        result += line + '\n';
-      }
+        if (!isInCodeBlock) {
+            // Process text lines outside of code blocks
+            // Remove any starting <br> tags from the line
+            line = line.replace(/^<br\s*\/?>/, '').trim();
+            // Append the cleaned line to the result
+            result += line + '\n';
+        }
     }
 
     // Bold formatting for headers
@@ -630,6 +638,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     // Replace multiple newlines with <br/> for better line break handling in HTML
     result = result.replace(/\n{2,}/g, '<br/><br/>');
 
-    return '<br/>' + result.trim();
+    // Ensure the result starts clean and is trimmed
+    return result.trim();
   }
 }

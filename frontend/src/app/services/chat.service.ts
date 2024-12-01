@@ -8,7 +8,7 @@ import { ChatMessage } from '../models/chat-message';
 })
 export class ChatService {
   private chatAPIEndpoint =
-    'http://127.0.0.1:5001/twocube-web/us-central1/master_agent_interaction'; // generalist chatder agent
+    'REMOVED'; // generalist chatder agent
   private nameMakerAPIEndpoint = 'REMOVED';
 
   constructor(private http: HttpClient) {}
