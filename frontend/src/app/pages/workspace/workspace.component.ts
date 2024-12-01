@@ -479,38 +479,35 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
             lastMessageIndex++;
             lastMessage = this.currentSession.history[lastMessageIndex];
           }
-  
           // Update the content
           lastMessage.content += content;
           this.cdr.detectChanges();
           this.currentSession.history[lastMessageIndex] = lastMessage;
         },
         error: (error: any) => {
-          console.error('Error occurred during message processing:', error);
+          //TODO fix the fact that we rely on an end of chunk error to know when to stop loading
           this.responseLoading = false;
-        },
-        complete: () => {
           this.sessionsService.loadAllSessions();
           this.responseLoading = false;
           this.executeLatestCode();
         },
       });
+
     }
   }
 
   async executeLatestCode() {
     const history = this.currentSession.history;
+    console.log("running")
     const latestCodeMessage = history
       .slice()
       .reverse()
       .find((message) => message.type === 'code');
     if (latestCodeMessage) {
       this.executingCode = true;
-
       if (!this.isConnected) {
         await this.connectToSandbox();
       }
-
       let code = this.extractCode(latestCodeMessage.content);
       this.executeCode(code);
     }
@@ -537,7 +534,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
             role: 'assistant',
             content: stdoutContent,
           };
-          this.sessionsService.addMessageToSession(
+          this.sessionsService.addMessageToLocalSession(
             this.currentSession,
             codeResultMessage
           );
@@ -550,7 +547,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
               role: 'assistant',
               content: base64Image,
             };
-            this.sessionsService.addMessageToSession(
+            this.sessionsService.addMessageToLocalSession(
               this.currentSession,
               imageMessage
             );
@@ -562,12 +559,13 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
             role: 'assistant',
             content: result.error,
           };
-          this.sessionsService.addMessageToSession(
+          this.sessionsService.addMessageToLocalSession(
             this.currentSession,
             errorMessage
           );
         }
         this.executingCode = false;
+        this.sessionsService.syncLocalSession
       },
       (error) => {
         console.error('Error:', error);

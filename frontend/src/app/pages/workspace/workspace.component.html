@@ -177,9 +177,9 @@
                     [innerHTML]="extractTextWithoutCode(message.content).trim()"
                   ></div>
                 }
-                @if (message.type === 'text') {
+                @if (message.type === 'text' && message.content !== '') {
                   <div
-                    [innerHTML]="extractTextWithoutCode(message.content).trim()"
+                    [innerHTML]="message.content.trim()"
                   ></div>
                 }
               </div>
