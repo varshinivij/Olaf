@@ -1,3 +1,4 @@
+from urllib import response
 from pipe import Pipe
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
@@ -75,6 +76,7 @@ class Router:
             processed_session = self.pipes[key].process(processed_session)
         # Get the destination and response generator
         destination, response_generator = self.routes[key](processed_session)
+        print("destination: ", destination)
         # Handle routing based on the destination
         if destination == "user":
             return response_generator

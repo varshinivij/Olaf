@@ -62,7 +62,7 @@ def master_route_function(session):
     if not history:
             return None
     history = History(history)
-    master_agent = MasterAgent(history) #using CodeMasterAgent
+    master_agent = CodeMasterAgent("python",history) #using CodeMasterAgent
     return master_agent.generate()
     
 
@@ -74,12 +74,10 @@ def master_agent_interaction(req: Request) -> Response:
         message = req.args.get("message")
         user_id = req.args.get("user_id")
         project_id = req.args.get("project_id")
-
         print(f"session_id: {session_id}")
         print(f"message: {message}")
         print(f"user_id: {user_id}")
         print(f"project_id: {project_id}")
-        
         if not message:
             return Response(json.dumps({"error": "'message' is required"}), status=400)
         if not user_id:
@@ -88,7 +86,7 @@ def master_agent_interaction(req: Request) -> Response:
             return Response(json.dumps({"error": "'project_id' is required"}), status=400)
 
         if session_id: 
-            # Append the new user message to the existexport OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YESing session history
+            # Append the new user message to the existing session
             print("adding message to session")
             session_data = sessions_functions.add_message_to_session(session_id, message, role="user")
             print("added message to session")
@@ -118,8 +116,7 @@ def master_agent_interaction(req: Request) -> Response:
                     continue
             # Update the session history with the assistant's full response
             sessions_functions.add_message_to_session(session_id, full_response, role="assistant")
-        return Response(flask.stream_with_context(generate_stream()), headers={"session_id": session_id}, mimetype="text/event-stream")
-        
+        return Response(flask.stream_with_context(generate_stream()), headers={"session_id": session_id}, mimetype="text/event-stream")   
     except Exception as e:
         print(f"Error in master_agent_interaction: {str(e)}")
         return flask.Response(json.dumps({"error": str(e)}), status=500)

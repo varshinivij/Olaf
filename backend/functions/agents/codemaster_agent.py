@@ -179,15 +179,24 @@ class CodeMasterAgent:
         self.system_prompt = system_prompt
 
     def generate(self):
+        return "user", self.base_interaction()
+
+    def base_interaction(self):
         yield "Response: code"
-        result = ""
+        content_accumulated = ""
+        current_chunk_type = "text"
         for chunk in chat_completion_api(self.history, self.system_prompt):
             try:
-                print(chunk)
+                # Accumulate content
                 content = chunk['choices'][0]['delta']['content']
                 if content:
-                    result += content
-                yield chunk
-            except:
-                continue  
-        self.history.log("assistant", result)
+                    if content.startswith("```"):
+                        current_chunk_type = "code"
+                    elif content.endswith("```"):
+                        current_chunk_type = "text"
+
+                    content_accumulated += content
+                    yield {"type": current_chunk_type, "content": content}
+            except KeyError:
+                continue
+        self.history.log("assistant", content_accumulated)

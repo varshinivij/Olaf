@@ -231,7 +231,7 @@ class MasterAgent:
         ]
         
         self.function_map = {
-            "base_interaction": self.base_interaction,
+            # "base_interaction": self.base_interaction,
         }
 
 
