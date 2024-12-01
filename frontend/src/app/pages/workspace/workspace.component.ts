@@ -200,6 +200,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   responseLoading: boolean = false;
   executingCode: boolean = false;
   isConnected: boolean = false;
+  errorCount: number = 0;
 
   // a bit ugly of a solution but we're going to rework files soon anyway.
   // this entire component needs serious refactoring on the chat/session side.
@@ -329,6 +330,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       (response: any) => {
         console.log('add file response: ', response);
         this.uploadedFiles.add(file.id);
+        this.sendMessage(true, "Please create code to analyze the uploaded file. Then ask the user a question about it. Ask immediate questions do not wait for code execution results.");
         this.responseLoading = false;
       },
       (error) => {
@@ -417,16 +419,42 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   }
 
   /**
+   * Send a message to the generalist chat service
+   */
+  async addHiddenMessage(message: string): Promise<void> {
+    if (message.trim()) {
+      const userMessage: ChatMessage = {
+        type: 'hidden',
+        role: 'user',
+        content: message,
+      };
+      await this.sessionsService.addMessageToSession(
+        this.currentSession,
+        userMessage
+      );
+    }
+  }
+
+  /**
  * Send a message to the generalist chat service
  */
-  async sendMessage() {
-    if (this.newMessage.trim() && !this.responseLoading) {
-      const message = this.newMessage;
+  async sendMessage(hidden=false, messageOveride=""): Promise<void> {
+    console.log("sending message")
+    if ((this.newMessage.trim() && !this.responseLoading) || messageOveride) {
+      let message = this.newMessage;
       this.newMessage = '';
       this.responseLoading = true;
-  
-      await this.addUserMessage(message);
-  
+      
+      if(messageOveride){
+        message = messageOveride
+      }
+      if (hidden) {
+        await this.addHiddenMessage(message);
+      }
+      else {
+        await this.addUserMessage(message);
+      }
+      console.log("sent message")
       // Create an initial placeholder message in the chat
       const responseMessage: ChatMessage = {
         type: 'text', // Default type
@@ -457,7 +485,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       // Subscribe to the SSE stream
       this.chatService.sendMessage(message, sessionId, userId, projectId).subscribe({
         next: (data: any) => {
-
+          
           // Find the last assistant message in history
           // This is the placeholder repsons 
           let lastMessageIndex = this.currentSession.history.length - 1;
@@ -552,6 +580,17 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
               imageMessage
             );
           }
+          if(result.results[0]['text/plain']){
+            const textMessage: ChatMessage = {
+              type: 'result',
+              role: 'assistant',
+              content: result.results[0]['text/plain'],
+            };
+            this.sessionsService.addMessageToLocalSession(
+              this.currentSession,
+              textMessage
+            );
+          }
         }
         if (result.error && result.error.length > 0) {
           const errorMessage: ChatMessage = {
@@ -563,6 +602,11 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
             this.currentSession,
             errorMessage
           );
+          this.errorCount +=1;
+          if(this.errorCount < 2){
+            this.sendMessage(true, "Please explain this error.");
+            this.errorCount = 0;
+          }
         }
         this.executingCode = false;
         this.sessionsService.syncLocalSession
