@@ -43,20 +43,19 @@ from sessions_functions import (
     delete_session,
     get_sessions,
     delete_all_sessions,
-    rename_session
+    rename_session,
+    get_session_summary
 )
 
 # This needs to be cleaned up
 E2B_API_KEY = "REMOVED"
 db = firestore.client()
 
-
 # --- EXAMPLE ---
 @http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["get", "post"]))
 def on_request_example(req: Request) -> Response:
     return Response("Hello world this is me!!")
-
 
 def master_route_function(session):
     history = session
@@ -75,6 +74,11 @@ def master_agent_interaction(req: Request) -> Response:
         message = req.args.get("message")
         user_id = req.args.get("user_id")
         project_id = req.args.get("project_id")
+
+        print(f"session_id: {session_id}")
+        print(f"message: {message}")
+        print(f"user_id: {user_id}")
+        print(f"project_id: {project_id}")
         
         if not message:
             return Response(json.dumps({"error": "'message' is required"}), status=400)
@@ -83,19 +87,21 @@ def master_agent_interaction(req: Request) -> Response:
         if not project_id:
             return Response(json.dumps({"error": "'project_id' is required"}), status=400)
 
-        if session_id:
-            # Append the new user message to the existing session history
+        if session_id: 
+            # Append the new user message to the existexport OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YESing session history
+            print("adding message to session")
             session_data = sessions_functions.add_message_to_session(session_id, message, role="user")
+            print("added message to session")
         else:
             session_id, session_data = sessions_functions.create_new_session(user_id, project_id, message)
         
         # Route the session history for response generation
         router = Router()
+        print("created router")
         router.add_route("master", master_route_function)
         response_generator = router.route_session("master", session_data["history"])
-
+        print(f"response_generator: {response_generator}")
         def generate_stream():
-            yield f"id: {session_id}\n\n".encode('utf-8')
             full_response = ""
             for chunk in response_generator:
                 try:
@@ -106,7 +112,7 @@ def master_agent_interaction(req: Request) -> Response:
                     })
                     yield f"data: {data}\n\n".encode('utf-8')
                     full_response += chunk["content"]
-                except KeyError as e:
+                except Exception as e:
                     # Handle malformed chunk gracefully
                     print(f"Malformed chunk: {chunk} - Error: {str(e)}")
                     continue

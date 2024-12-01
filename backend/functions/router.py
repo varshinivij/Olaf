@@ -6,10 +6,6 @@ from typing import Callable, Dict, List, Any, Optional
 import time
 from datetime import datetime
 
-
-
-
-
 class Router:
     def __init__(self):
         self.routes: Dict[str, Callable] = {}
@@ -78,9 +74,6 @@ class Router:
         if key in self.pipes:
             processed_session = self.pipes[key].process(processed_session)
         # Get the destination and response generator
-        print("here")
-        print(key)
-        print(self.routes[key](processed_session))
         destination, response_generator = self.routes[key](processed_session)
         # Handle routing based on the destination
         if destination == "user":

@@ -7,3 +7,5 @@ werkzeug
 flask
 google-cloud-storage
 firebase-admin
+fpdf
+gcloud
