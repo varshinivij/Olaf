@@ -97,6 +97,16 @@ To test and use the deployed functions, follow these steps:
 
     Set up Firebase events (such as Firestore triggers) to invoke the functions automatically based on database changes.
 
+### Mac Security issues
+
+Some users may need to run:
+
+    ```sh
+    export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+    ```
+
+For their macs to allow them to serve functions locally over the emulator.
+
 ### Example Function
 
 Here is a basic example of a Firebase Cloud Function written in Python:
