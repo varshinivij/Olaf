@@ -537,8 +537,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
         await this.connectToSandbox();
       }
       let code = this.extractCode(latestCodeMessage.content);
-      this.executeCode(code);
-      latestCodeMessage.type = 'executedCode';
+      this.executeCode(code, latestCodeMessage);
     }
   }
 
@@ -551,7 +550,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     }
   }
 
-  executeCode(code: string) {
+  executeCode(code: string, message: ChatMessage) {
     this.sandboxService.executeCode(code).subscribe(
       (result: any) => {
         console.log('code result: ', result);
@@ -610,6 +609,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
           }
         }
         this.executingCode = false;
+        message.type = 'executedCode';
         this.sessionsService.syncLocalSession(this.currentSession)
       },
       (error) => {
