@@ -84,7 +84,6 @@ def master_agent_interaction(req: Request) -> Response:
             return Response(json.dumps({"error": "'user_id' is required"}), status=400)
         if not project_id:
             return Response(json.dumps({"error": "'project_id' is required"}), status=400)
-
         if session_id: 
             # Append the new user message to the existing session
             print("adding message to session")
@@ -93,6 +92,8 @@ def master_agent_interaction(req: Request) -> Response:
         else:
             session_id, session_data = sessions_functions.create_new_session(user_id, project_id, message)
         
+        # Filter session so that history is only made of text, code, and errors (no images)
+        session_data["history"] = [message for message in session_data["history"] if message["type"] in ["text", "code", "error", "result"]]
         # Route the session history for response generation
         router = Router()
         print("created router")
