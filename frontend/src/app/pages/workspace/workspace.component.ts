@@ -538,6 +538,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       }
       let code = this.extractCode(latestCodeMessage.content);
       this.executeCode(code);
+      latestCodeMessage.type = 'executedCode';
     }
   }
 
@@ -609,7 +610,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
           }
         }
         this.executingCode = false;
-        this.sessionsService.syncLocalSession
+        this.sessionsService.syncLocalSession(this.currentSession)
       },
       (error) => {
         console.error('Error:', error);
