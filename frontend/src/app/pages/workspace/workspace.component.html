@@ -180,7 +180,7 @@
                 }
                 @if (message.type === 'text' && message.content !== '') {
                   <div
-                    [innerHTML]="message.content.trim()"
+                    [innerHTML]="extractTextWithoutCode(message.content).trim()"
                   ></div>
                 }
               </div>
