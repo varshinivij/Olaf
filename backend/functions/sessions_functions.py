@@ -6,6 +6,7 @@ from agent_utils import chat_completion_summary, create_pdf
 from functions_framework import http
 import json
 import flask
+from google.cloud.firestore_v1 import ArrayUnion
 
 # Initialize Firebase app if not already initialized
 if not firebase_admin._apps:
@@ -138,9 +139,12 @@ def add_message_to_session(session_id, message, role="user"):
     Add a new message to the session history
     @return: session_data
     """
-    db.collection("sessions").document(session_id).update({
-        "history": firestore.ArrayUnion([{"type": "text", "role": role, "content": message}])
-    })
+    try:
+        db.collection("sessions").document(session_id).update({
+            "history": ArrayUnion([{"type": "text", "role": role, "content": message}])
+        })
+    except Exception as e:
+        print(f"Error adding message to session: {str(e)}")
     session_ref = db.collection("sessions").document(session_id)
     session_data = session_ref.get().to_dict()
     return session_data

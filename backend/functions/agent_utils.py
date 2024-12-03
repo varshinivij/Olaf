@@ -3,7 +3,6 @@ import requests
 import re
 import json
 from fpdf import FPDF
-import io
 
 api_key = "REMOVED"
 url = "https://api.openai.com/v1/chat/completions"
@@ -182,6 +181,13 @@ def extract_python_code(text):
         return match.group(1).strip()
     else:
         return "No Python code found in the input text."
+    
+def extract_code_and_text(content: str) -> tuple[str, str]:
+    code_blocks = re.findall(r'```(.*?)```', content, re.DOTALL)
+    text_parts = re.split(r'```.*?```', content, flags=re.DOTALL)
+    text = ' '.join([part.strip() for part in text_parts if part.strip()])
+    code = '\n'.join([block.strip() for block in code_blocks if block.strip()])
+    return text, code
     
 
 def stream(agent):

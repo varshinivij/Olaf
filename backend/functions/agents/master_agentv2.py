@@ -208,38 +208,30 @@ class MasterAgent:
             # {
             #     "type": "function",
             #     "function": {
-            #         "name": "Ask coder agent to write basic code",
-            #         "description": "This tool will ask our coder agent to write a basic code for you. You can ask for any code related query or task. It is an expert bioinformatician",
+            #         "name": "route_message",
+            #         "description": "Routes the message to the specified destination.",
             #         "parameters": {
             #             "type": "object",
             #             "properties": {
-                            
+            #                 "destination": {
+            #                     "type": "string",
+            #                     "description": "The destination where the message should be routed. The only option right now is 'user'."
+            #                 },
+            #                 "content": {
+            #                     "type": "string",
+            #                     "description": "The message content to be sent to the destination."
+            #                 }
             #             },
-            #             "required": ["history"],
+            #             "required": ["destination", "content"],
             #             "additionalProperties": False
             #         }
             #     }
             # },
-            # {
-            #     "type": "function",
-            #     "function": {
-            #         "name": "create_sequential_plan",
-            #         "description": "Creates a detailed, step-by-step plan for a complex task or larger code-related query. Use this function for planning out intricate workflows or comprehensive code architectures. This function should also be used if asked for regenrate or modify the plan okay. ",
-            #         "parameters": {
-            #             "type": "object",
-            #             "properties": {
-            #             },
-            #             "required": ["history"],
-            #             "additionalProperties": False
-            #         }
-            #     }
-            # },
+
         ]
         
         self.function_map = {
-            "handle_simple_interaction": self.handle_simple_interaction,
-            "write_basic_code": self.write_basic_code,
-            "create_sequential_plan": self.create_sequential_plan,
+            # "base_interaction": self.base_interaction,
         }
 
 
@@ -267,26 +259,26 @@ class MasterAgent:
                         destination, response_generator = self.function_map[function_name](**args_dict)
                         return destination, response_generator
                     else:
-                        return "user", self.handle_simple_interaction(**args_dict) #type: ignore
+                        return "user", self.base_interaction(**args_dict) #type: ignore
                 else:
-                    return "user", self.handle_simple_interaction(**args_dict) #type: ignore
+                    return "user", self.base_interaction(**args_dict) #type: ignore
             else:
-                return "user", self.handle_simple_interaction(**args_dict) #type: ignore
+                return "user", self.base_interaction(**args_dict) #type: ignore
         except Exception as e:
             return "error",str(e) #type: ignore
         
-    def route_message(self, destination: str, content: str) -> tuple[str, "Generator"]:
-        # Separate code from text
-        text, code = extract_code_and_text(content)
-        # Prepare the response generator
-        def response_generator():
-            if text:
-                yield {"type": "text", "content": text}
-            if code:
-                yield {"type": "code", "content": code}
-        return destination, response_generator()
+    # def route_message(self, destination: str, content: str) -> tuple[str, "Generator"]:
+    #     # Separate code from text
+    #     text, code = extract_code_and_text(content)
+    #     # Prepare the response generator
+    #     def response_generator():
+    #         if text:
+    #             yield {"type": "text", "content": text}
+    #         if code:
+    #             yield {"type": "code", "content": code}
+    #     return destination, response_generator()
 
-    def handle_simple_interaction(self, text, destination='user'):
+    def base_interaction(self, text, destination='user'):
         """
         Handles simple user interactions, separating text and code.
         
@@ -297,88 +289,23 @@ class MasterAgent:
         result = ""
         content_accumulated = ""
 
-        def extract_code_and_text(content: str) -> dict[str, str]:
-            """Helper function to split code and text."""
-            code_blocks = re.findall(r'```(.*?)```', content, re.DOTALL)
-            text_parts = re.split(r'```.*?```', content, flags=re.DOTALL)
-            text = ' '.join([part.strip() for part in text_parts if part.strip()])
-            code = '\n'.join([block.strip() for block in code_blocks if block.strip()])
-            return {"text": text, "code": code}
-
+        current_chunk_type = "text"
         for chunk in interaction_response:
             try:
                 # Accumulate content
                 content = chunk['choices'][0]['delta']['content']
                 if content:
+                    if content.startswith("```"):
+                        current_chunk_type = "code"
+                    elif content.endswith("```"):
+                        current_chunk_type = "text"
+
                     content_accumulated += content
+                    yield {"type": current_chunk_type, "content": content}
             except KeyError:
                 continue
-        
-        # Once the response is fully accumulated, process it
-        split_content = extract_code_and_text(content_accumulated)
-        print("Split Content: ", split_content)
-        # Yield text part
-        if split_content['text']:
-            print("Yielding Text: ", split_content['text'])
-            yield {"type": "text", "content": split_content['text']}
-            print("Yielded Text: ", split_content['text'])
-        
-        # Yield code part
-        if split_content['code']:
-            yield {"type": "code", "content": split_content['code']}
-        
-        # Log the full accumulated response
         self.history.log("assistant", content_accumulated)
 
-    def write_basic_code(self):
-        yield "Response: code" 
-        result = ""
-        for chunk in chat_completion_api(self.history, system_prompt):
-            try:
-                print(chunk)
-                content = chunk['choices'][0]['delta']['content']
-                if content:
-                    result += content
-                yield chunk
-            except:
-                continue  
-        self.history.log("assistant", result)
-
-    def decompose_complicated_task(self):
-        decomposition_prompt = (
-            f"You are an expert in task decomposition, particularly in bioinformatics and machine learning. "
-            f"The user has provided a complex query that needs to be broken down into smaller, manageable subtasks. "
-            f"Here is the query:\n\n"
-            f"Query: '{self.history.most_recent_entry()}'\n\n"
-            "Please identify the key components of this task and provide a step-by-step breakdown into smaller subtasks."
-        )
-        self.history.remove_system_messages()
-        self.history.log("user", decomposition_prompt)
-        yield "Response: task"
-        result = ""
-        for chunk in chat_completion_api(self.history, system_prompt):
-            try:
-                content = chunk['choices'][0]['delta']['content']
-                if content:
-                    result += content
-                yield chunk
-            except:
-                continue
-        self.history.log("assistant", result)
-
-    def create_sequential_plan(self):
-        self.history.remove_system_messages()
-        yield "Response: plan"
-        result = ""
-        for chunk in chat_completion_plan(self.history, system_prompt):
-            try:
-                content = chunk['choices'][0]['delta']['content']
-                if content:
-                    result += content
-                yield chunk
-            except:
-                continue    
-        self.history.log("assistant", result)
     
         
 
