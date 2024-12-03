@@ -93,7 +93,7 @@ def master_agent_interaction(req: Request) -> Response:
             session_id, session_data = sessions_functions.create_new_session(user_id, project_id, message)
         
         # Filter session so that history is only made of text, code, and errors (no images)
-        session_data["history"] = [message for message in session_data["history"] if message["type"] in ["text", "code", "error", "result"]]
+        session_data["history"] = [message for message in session_data["history"] if message["type"] in ["text", "code", "error", "result", "executedCode"]]
         # Route the session history for response generation
         router = Router()
         print("created router")
