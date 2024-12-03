@@ -11,6 +11,7 @@ export class CodeMessagePipe implements PipeTransform {
     return messages.filter(
       (message) =>
         message.type === 'code' ||
+        message.type === 'executedCode' ||
         message.type === 'result' ||
         message.type === 'image' ||
         message.type === 'error',

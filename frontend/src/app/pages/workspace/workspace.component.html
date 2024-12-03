@@ -252,7 +252,7 @@
           track $index
         ) {
           <!-- code block -->
-          @if (message.type === 'code') {
+          @if (message.type === 'code' || message.type === 'executedCode') {
             <pre><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
           }
           <!-- result block -->

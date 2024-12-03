@@ -439,6 +439,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
  * Send a message to the generalist chat service
  */
   async sendMessage(hidden=false, messageOveride=""): Promise<void> {
+    console.log(this.currentSession)
     console.log("sending message")
     if ((this.newMessage.trim() && !this.responseLoading) || messageOveride) {
       let message = this.newMessage;
