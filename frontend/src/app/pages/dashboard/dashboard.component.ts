@@ -1,6 +1,5 @@
 import {
   AfterViewInit,
-  ChangeDetectionStrategy,
   Component,
 } from '@angular/core';
 
@@ -17,7 +16,6 @@ import { HlmH2Directive, HlmH3Directive, HlmLargeDirective } from '@spartan-ng/u
 
 @Component({
   selector: 'app-dashboard',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     FileStorageComponent,
