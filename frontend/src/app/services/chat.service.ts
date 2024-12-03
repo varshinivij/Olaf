@@ -19,26 +19,30 @@ export class ChatService {
     userId: string,
     projectId: string
   ): Observable<any> {
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-    });
+    // Build the URL with query parameters
+    const url = new URL(this.chatAPIEndpoint);
+    url.searchParams.append('user_id', userId);
+    url.searchParams.append('project_id', projectId);
+    if (sessionId) {
+      url.searchParams.append('session_id', sessionId);
+    }
+    url.searchParams.append('message', message);
 
-    // Set up query parameters
-    const params = new HttpParams()
-      .set('session_id', sessionId)
-      .set('user_id', userId)
-      .set('project_id', projectId);
+    return new Observable((subscriber) => {
+      const eventSource = new EventSource(url.toString());
 
-    const body = {
-      message,
-    };
+      eventSource.onmessage = (event) => {
+        subscriber.next(event.data);
+      };
 
-    return this.http.post(this.chatAPIEndpoint, body, {
-      headers,
-      params,
-      observe: 'events',
-      reportProgress: true,
-      responseType: 'text',
+      eventSource.onerror = (error) => {
+        subscriber.error(error);
+        eventSource.close();
+      };
+
+      return () => {
+        eventSource.close();
+      };
     });
   }
 

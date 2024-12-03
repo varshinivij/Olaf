@@ -73,7 +73,9 @@
                     <button
                       hlmMenuItem
                       brnDialogTrigger
-                      (click)="newSessionName = session.name || '<untitled session>'"
+                      (click)="
+                        newSessionName = session.name || '<untitled session>'
+                      "
                     >
                       <hlm-icon name="lucidePencil" hlmMenuIcon />
                       Rename
@@ -146,7 +148,7 @@
     <div #messageScreen class="flex h-full flex-col gap-y-3 overflow-y-auto">
       @for (message of this.currentSession.history.slice(1); track $index) {
         <!-- display user messages -->
-        @if (message.role === 'user') {
+        @if (message.role === 'user' && message.type === 'text') {
           <div
             hlmSmall
             class="max-w-[calc(100%-40px)] self-end break-words rounded-lg bg-accent px-2 py-1"
@@ -158,6 +160,7 @@
         @else if (
           message.type === 'text' ||
           message.type === 'code' ||
+          message.type === 'executedCode' ||
           message.type === 'plan'
         ) {
           <div class="flex gap-x-2.5">
@@ -170,14 +173,12 @@
             <div class="flex flex-col gap-y-0.5">
               <div hlmLarge hlmSmall>Twocube</div>
               <div hlmSmall class="self-start break-words rounded-lg">
-                {{
-                  message.type === 'code'
-                    ? "I've put our code in the code editor! Let me know what you think."
-                    : message.type === 'plan'
-                      ? "I've put our plan in the planner! Let me know what you think."
-                      : message.content
-                }}
-                @if (message.type === 'code') {
+                @if ((message.type === 'code'|| message.type === 'executedCode') && message.content !== '' ) {
+                  <div
+                    [innerHTML]="extractTextWithoutCode(message.content).trim()"
+                  ></div>
+                }
+                @if (message.type === 'text' && message.content !== '') {
                   <div
                     [innerHTML]="extractTextWithoutCode(message.content).trim()"
                   ></div>
@@ -236,12 +237,10 @@
   <hlm-tabs
     id="den-sidebar"
     tab="code"
-    class="flex flex-col p-3 bg-foreground rounded-md"
+    class="flex flex-col rounded-md bg-foreground p-3"
   >
     <!-- header tab buttons -->
-    <hlm-tabs-list class="w-full grid grid-cols-2">
-      <!-- <button hlmTabsTrigger="planner">Planner</button> -->
-      <!-- <button hlmTabsTrigger="terminal">Terminal</button> -->
+    <hlm-tabs-list class="grid w-full grid-cols-2">
       <button hlmTabsTrigger="code">Code</button>
       <button hlmTabsTrigger="files">Files</button>
     </hlm-tabs-list>
@@ -316,7 +315,7 @@
           track $index
         ) {
           <!-- code block -->
-          @if (message.type === 'code') {
+          @if (message.type === 'code' || message.type === 'executedCode') {
             <pre><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
           }
           <!-- result block -->
