@@ -18,7 +18,12 @@
 */
 
 import { Injectable } from '@angular/core';
-import { Firestore, collection, collectionData } from '@angular/fire/firestore';
+import {
+  Firestore,
+  OrderByDirection,
+  collection,
+  collectionData,
+} from '@angular/fire/firestore';
 import { Functions, httpsCallable } from '@angular/fire/functions';
 import {
   Storage,
@@ -27,14 +32,23 @@ import {
   listAll,
   ref,
 } from '@angular/fire/storage';
-import { Observable, map, of, switchMap } from 'rxjs';
+import {
+  BehaviorSubject,
+  Observable,
+  combineLatest,
+  map,
+  of,
+  shareReplay,
+  switchMap,
+} from 'rxjs';
 
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
+import { posix } from 'path-browserify';
 
 import { UserService } from '../services/user.service';
 
-import { ExtensionTypeMap } from '../models/extension-type';
+import { ExtensionType, ExtensionTypeMap } from '../models/extension-type';
 import { User } from '../models/user';
 import { UserFile } from '../models/user-file';
 
@@ -43,6 +57,16 @@ import { UserFile } from '../models/user-file';
 })
 export class FileStorageService {
   private files$: Observable<UserFile[]>;
+
+  private searchFilter$ = new BehaviorSubject<string>('');
+  private pathFilter$ = new BehaviorSubject<string[]>(['/']);
+  private typeFilter$ = new BehaviorSubject<ExtensionType[]>([]);
+  private sortFilter$ = new BehaviorSubject<keyof UserFile>('uploadedOn');
+  private sortDirectionFilter$ = new BehaviorSubject<OrderByDirection>('desc');
+
+  private pageSize$ = new BehaviorSubject<number>(10);
+  private pageNumber$ = new BehaviorSubject<number>(1);
+  private totalPages$ = new BehaviorSubject<number>(1);
 
   constructor(
     private firestore: Firestore,
@@ -62,7 +86,10 @@ export class FileStorageService {
               files.map((file: any) => {
                 return {
                   ...file,
-                  type: ExtensionTypeMap[file.extension as keyof typeof ExtensionTypeMap] || 'unknown',
+                  type:
+                    ExtensionTypeMap[
+                      file.extension as keyof typeof ExtensionTypeMap
+                    ] || 'unknown',
                   uploadedOn: file.uploadedOn.toDate(),
                 } as UserFile;
               })
@@ -73,31 +100,299 @@ export class FileStorageService {
         }
       })
     );
+
+    this.files$ = combineLatest([
+      this.files$,
+      this.searchFilter$,
+      this.pathFilter$,
+      this.typeFilter$,
+      this.sortFilter$,
+      this.sortDirectionFilter$,
+      this.pageSize$,
+      this.pageNumber$,
+    ]).pipe(
+      map(
+        ([
+          files,
+          search,
+          path,
+          type,
+          sort,
+          sortDirection,
+          pageSize,
+          pageNumber,
+        ]) => {
+          let filterFunc: (file: UserFile) => boolean;
+
+          // file name should start with the search query, non-case-sensitive
+          if (search.length > 0) {
+            filterFunc = (f) =>
+              f.name.toLowerCase().startsWith(search.toLowerCase());
+          }
+          // if no search filter, filter based on path
+          else {
+            filterFunc = (f) => f.path === posix.join(...path);
+          }
+          // finally, apply type filter
+          if (type.length !== 0) {
+            const previousFilterFunc = filterFunc;
+            filterFunc = (f) => previousFilterFunc(f) && type.includes(f.type);
+          }
+
+          let sortFunc: (a: UserFile, b: UserFile) => number;
+
+          if (sortDirection === 'asc') {
+            sortFunc = (a, b) => {
+              const valueA: any = a[sort];
+              const valueB: any = b[sort];
+              return typeof valueA === 'string'
+                ? valueA.localeCompare(valueB)
+                : valueA - valueB;
+            };
+          }
+          // sort by desc instead
+          else {
+            sortFunc = (a, b) => {
+              const valueA: any = a[sort];
+              const valueB: any = b[sort];
+              return typeof valueA === 'string'
+                ? valueB.localeCompare(valueA)
+                : valueB - valueA;
+            };
+          }
+
+          const filter = files.filter(filterFunc).sort(sortFunc);
+
+          this.totalPages$.next(
+            Math.max(1, Math.ceil(filter.length / pageSize))
+          );
+
+          const pageIndexStart = pageSize * (pageNumber - 1);
+          const pageIndexLast = pageIndexStart + pageSize;
+          return filter.slice(pageIndexStart, pageIndexLast);
+        }
+      ),
+      shareReplay(1)
+    );
   }
 
+  /**
+   * Retrieves the user files as an Observable array. The search, path, type,
+   * page, and sort filters are automatically applied.
+   *
+   * @returns An Observable array of the user's files with filters applied.
+   */
   getFiles(): Observable<UserFile[]> {
     return this.files$;
   }
 
-  async deletePath(path: string) {
+  /**
+   * Retrieves the current search filter as an Observable.
+   *
+   * @returns An Observable of the search filter.
+   */
+  getSearchFilter(): Observable<string> {
+    return this.searchFilter$.asObservable();
+  }
+
+  /**
+   * Sets the search filter.
+   *
+   * @param search The search filter to apply.
+   */
+  setSearchFilter(search: string): void {
+    this.searchFilter$.next(search);
+    this.pageNumber$.next(1);
+  }
+
+  /**
+   * Retrieves the current path filter as on Observable.
+   * Initializes to`['/']`
+   *
+   * @returns An Observable of the path filter.
+   */
+  getPathFilter(): Observable<string[]> {
+    return this.pathFilter$.asObservable();
+  }
+
+  /**
+   * Sets the path filter. Set to`'/'`at minimum.
+   *
+   * @param path The path filter to apply.
+   */
+  setPathFilter(path: string): void {
+    this.pathFilter$.next(['/', ...path.split(posix.sep).filter(Boolean)]);
+    this.searchFilter$.next('');
+    this.pageNumber$.next(1);
+  }
+
+  /**
+   * Appends to the path filter. Starts at`['/']`.
+   *
+   * @param path The path filter to append.
+   */
+  setPathFilterAppend(path: string): void {
+    this.pathFilter$.next(this.pathFilter$.value.concat(path));
+    this.searchFilter$.next('');
+    this.pageNumber$.next(1);
+  }
+
+  /**
+   * Pops the path filter to a specified index. Set to`0`at minimum.
+   * If no value is provided, pops the latest path from the array.
+   *
+   * @param pathIndex The path index to pop to.
+   */
+  setPathFilterPop(
+    pathIndex: number = this.pathFilter$.value.length - 2
+  ): void {
+    if (pathIndex < 0) {
+      return;
+    }
+
+    this.pathFilter$.next(this.pathFilter$.value.slice(0, pathIndex + 1));
+    this.searchFilter$.next('');
+    this.pageNumber$.next(1);
+  }
+
+  /**
+   * Retrieves the current type filter as on Observable.
+   *
+   * @returns An Observable of the type filter.
+   */
+  getTypeFilter(): Observable<ExtensionType[]> {
+    return this.typeFilter$.asObservable();
+  }
+
+  /**
+   * Sets the type filters as an array of types.
+   *
+   * @param types The type filters to apply.
+   */
+  setTypeFilter(types: ExtensionType[]): void {
+    this.typeFilter$.next(types);
+    this.pageNumber$.next(1);
+  }
+
+  /**
+   * Retrieves the current sort filter as on Observable.
+   *
+   * @returns An Observable of the sort filter.
+   */
+  getSortFilter(): Observable<keyof UserFile> {
+    return this.sortFilter$.asObservable();
+  }
+
+  /**
+   * Retrieves the current sort direction filter as on Observable.
+   *
+   * @returns An Observable of the sort direction filter.
+   */
+  getSortDirectionFilter(): Observable<OrderByDirection> {
+    return this.sortDirectionFilter$.asObservable();
+  }
+
+  /**
+   * Sets the sort filter. Setting to the same value will reverse
+   * the sort filter's direction.
+   *
+   * @param sort The sort filter to apply.
+   */
+  setSortFilter(sort: keyof UserFile): void {
+    sort == this.sortFilter$.value
+      ? this.sortDirectionFilter$.value === 'asc'
+        ? this.sortDirectionFilter$.next('desc')
+        : this.sortDirectionFilter$.next('asc')
+      : (this.sortFilter$.next(sort), this.sortDirectionFilter$.next('asc'));
+
+    this.pageNumber$.next(1);
+  }
+
+  /**
+   * Retrieves the current size of each page as an Observable.
+   *
+   * @returns An Observable of the current page size.
+   */
+  getPageSize(): Observable<number> {
+    return this.pageSize$.asObservable();
+  }
+
+  /**
+   * Sets the size of each page. Set to 1 at minimum.
+   *
+   * @param size The page size to apply.
+   */
+  setPageSize(size: number): void {
+    if (size < 1) {
+      return;
+    }
+
+    this.pageSize$.next(size);
+  }
+
+  /**
+   * Retrieves the current page number as an Observable.
+   *
+   * @returns An Observable of the current page number.
+   */
+  getPageNumber(): Observable<number> {
+    return this.pageNumber$.asObservable();
+  }
+
+  /**
+   * Sets the page number. Set between`[1, totalPages]`
+   *
+   * @param page The page number to apply.
+   */
+  setPageNumber(page: number): void {
+    if (page <= 0 || page > this.totalPages$.value) {
+      return;
+    }
+
+    this.pageNumber$.next(page);
+  }
+
+  /**
+   * Retrieves the total pages available as an Observable.
+   *
+   * @returns An Observable of the total pages.
+   */
+  getTotalPages(): Observable<number> {
+    return this.totalPages$.asObservable();
+  }
+
+  /**
+   * Deletes all user files under a specified path. Can be used
+   * to delete entire folders. Set`['/']` at minimum.
+   *
+   * @param path The path to delete.
+   */
+  async deletePath(path: string[]) {
     const cloudFunctionCallable = httpsCallable(
       this.functions,
       'request_user_delete_path'
     );
-    await cloudFunctionCallable({ path });
+    await cloudFunctionCallable({ path: posix.join(...path) });
   }
 
-  getDownloadUrl(file: UserFile): string {
+  /**
+   * Retrieves the download URL of a user file from Cloud Storage.
+   *
+   * @param file The file to retrieve.
+   */
+  async downloadUrl(file: UserFile): Promise<string> {
     const storageRef = ref(this.storage, file.storageLink);
-    getDownloadURL(storageRef).then((url) => {
-      return url;
-    });
-    return '';
+    return await getDownloadURL(storageRef);
   }
 
-  getFileBlob(file: UserFile): Promise<Blob> {
+  /**
+   * Retrieves the blob of a user file from Cloud Storage.
+   *
+   * @param file The file to retrieve.
+   */
+  async downloadBlob(file: UserFile): Promise<Blob> {
     const storageRef = ref(this.storage, file.storageLink);
-    return getBlob(storageRef);
+    return await getBlob(storageRef);
   }
 
   // TODO: these functions don't work. downloadFile() seems
@@ -110,13 +405,13 @@ export class FileStorageService {
   // on this at the moment. should we download directly from cloud storage?
   // or move this out to backend?
 
-  async downloadFile(file: UserFile) {
+  private async downloadFile(file: UserFile) {
     // const storageRef = ref(this.storage, file.storageLink);
     // const downloadUrl = await getDownloadURL(storageRef);
     // saveAs(downloadUrl, file.name);
   }
 
-  async downloadFolder(folder: UserFile) {
+  private async downloadFolder(folder: UserFile) {
     // const zip = new JSZip();
     // await this.addFilesFromDirectoryToZip(folder.storageLink, zip);
     // return await zip.generateAsync({ type: 'blob' });

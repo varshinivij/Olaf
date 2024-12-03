@@ -8,18 +8,15 @@ import { OnboardingComponent } from './pages/onboarding/onboarding.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { WorkspaceComponent } from './pages/workspace/workspace.component';
 
-
-
-
 const redirectUnauthorizedToLogin = () => redirectUnauthorizedTo(['/login']);
 
 export const routes: Routes = [
   {
-    path: '', // Default route
-    component: LoginComponent,
+    path: '',  // Default route
+    redirectTo: 'login',
     pathMatch: 'full',
   },
-  { path: 'login', component: LoginComponent, pathMatch: 'full' },
+  { path: 'login', component: LoginComponent },
   { path: 'signup', component: SignupComponent },
   {
     path: 'onboarding',
@@ -39,5 +36,5 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     data: { authGuardPipe: redirectUnauthorizedToLogin },
   },
-  { path: '**', redirectTo: 'dashboard' }, // wildcard route (page not found)
+  { path: '**', redirectTo: 'login' },  // wildcard route (page not found)
 ];

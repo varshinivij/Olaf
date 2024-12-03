@@ -1,10 +1,14 @@
 /**
- * Returns a string with all words in title case.
+ * Returns a string with all words in title case (for Angular templates,
+ * use the titlecase pipe).
  *
- * Reference: https://stackoverflow.com/questions/196972/convert-string-to-title-case-with-javascript/64910248#64910248
+ * Reference: https://stackoverflow.com/a/64910248
+ *
+ * @param string The string to convert.
+ * @returns The string in title case.
  */
-export function titleCase(str: string) {
-  return str.replace(/(^|\s)\S/g, function (t) {
-    return t.toUpperCase();
+export function titleCase(string: string) {
+  return string.replace(/(^|\s)\S/g, function (c) {
+    return c.toUpperCase();
   });
 }

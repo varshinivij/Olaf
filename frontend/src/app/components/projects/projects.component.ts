@@ -15,9 +15,6 @@ import { UserService } from '../../services/user.service';
 
 import { Project, ProjectLanguage, ProjectModel } from '../../models/project';
 
-import { provideIcons } from '@ng-icons/core';
-import { lucidePlus } from '@ng-icons/lucide';
-
 import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
 import {
   BrnDialogCloseDirective,
@@ -31,10 +28,12 @@ import {
   HlmDialogHeaderComponent,
   HlmDialogTitleDirective,
 } from '@spartan-ng/ui-dialog-helm';
-import { HlmIconComponent } from '@spartan-ng/ui-icon-helm';
+import { HlmIconComponent, provideIcons } from '@spartan-ng/ui-icon-helm';
 import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
 import { BrnSelectImports } from '@spartan-ng/ui-select-brain';
 import { HlmSelectImports } from '@spartan-ng/ui-select-helm';
+
+import { lucidePlus } from '@ng-icons/lucide';
 
 @Component({
   selector: 'app-projects',

@@ -1,15 +1,31 @@
-import { AfterViewInit, Component } from '@angular/core';
-
-import { FileStorageComponent } from '../../components/file-storage/file-storage.component';
-import { ProjectsComponent } from '../../components/projects/projects.component'
-import { SidebarComponent, PageName } from '../../components/sidebar/sidebar.component';
+import {
+  AfterViewInit,
+  Component,
+} from '@angular/core';
 
 import Split from 'split.js';
+
+import { FileStorageComponent } from '../../components/file-storage/file-storage.component';
+import { ProjectsComponent } from '../../components/projects/projects.component';
+import {
+  SidebarComponent,
+  PageName,
+} from '../../components/sidebar/sidebar.component';
+
+import { HlmH2Directive, HlmH3Directive, HlmLargeDirective } from '@spartan-ng/ui-typography-helm';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [FileStorageComponent, SidebarComponent, ProjectsComponent],
+  imports: [
+    FileStorageComponent,
+    SidebarComponent,
+    ProjectsComponent,
+
+    HlmH2Directive,
+    HlmH3Directive,
+    HlmLargeDirective,
+  ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })

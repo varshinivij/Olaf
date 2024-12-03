@@ -244,6 +244,69 @@
       <button hlmTabsTrigger="code">Code</button>
       <button hlmTabsTrigger="files">Files</button>
     </hlm-tabs-list>
+    <!-- planner tab content -->
+    <div #plannerScreen hlmTabsContent="planner" class="h-full overflow-y-auto">
+      @for (
+        message of this.currentSession.history | planmessage;
+        track $index
+      ) {
+        @if (parseJson(message.content); as plan) {
+          <div
+            class="flex flex-col break-words rounded-md border p-3"
+            [ngClass]="{
+              'mt-3': !$first,
+            }"
+          >
+            <!-- plan overview -->
+            <div hlmH3>Plan Overview</div>
+            <div hlmP>
+              {{ plan.overview }}
+            </div>
+            <!-- plan steps -->
+            <div hlmH3>Required Steps</div>
+            @for (step of plan.steps; track $index) {
+              <div hlmH4>Step {{ step.step_number }}: {{ step.title }}</div>
+              <ul hlmUl>
+                <li><strong>Description: </strong>{{ step.description }}</li>
+                <li>
+                  <strong>Dependencies: </strong>
+                  {{
+                    step.dependencies ? step.dependencies.join(', ') : 'None'
+                  }}
+                </li>
+                <li>
+                  <strong>Expected Output: </strong>{{ step.expected_output }}
+                </li>
+              </ul>
+            }
+            <!-- final check -->
+            <div hlmH3>Final Check</div>
+            <div hlmP>
+              {{ plan.final_check }}
+            </div>
+          </div>
+        }
+      }
+      <!-- empty state -->
+      @empty {
+        <div
+          class="flex h-full flex-col items-center justify-center gap-y-4 rounded-md border p-3"
+        >
+          <div class="h-20 w-20 rounded-full bg-background"></div>
+          <div hlmSmall hlmMuted>Nothing to plan yet.</div>
+        </div>
+      }
+    </div>
+    <!-- terminal tab content -->
+    <div hlmTabsContent="terminal" class="h-full overflow-y-auto">
+      <!-- empty state -->
+      <div
+        class="flex h-full flex-col items-center justify-center gap-y-4 rounded-md border p-3"
+      >
+        <div class="h-20 w-20 rounded-full bg-background"></div>
+        <div hlmSmall hlmMuted>Terminal coming soon!</div>
+      </div>
+    </div>
     <!-- code tab content -->
     <div #codeScreen hlmTabsContent="code" class="h-full overflow-y-auto">
       <div class="flex h-full flex-col gap-y-3">

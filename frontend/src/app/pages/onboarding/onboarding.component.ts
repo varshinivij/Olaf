@@ -11,11 +11,10 @@ import { Subscription } from 'rxjs';
 import { UserService } from '../../services/user.service';
 
 import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
+import { HlmIconComponent, provideIcons } from '@spartan-ng/ui-icon-helm';
 import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
 import { HlmH1Directive } from '@spartan-ng/ui-typography-helm';
-import { HlmIconComponent } from '@spartan-ng/ui-icon-helm';
 
-import { provideIcons } from '@ng-icons/core';
 import { lucideLoaderCircle } from '@ng-icons/lucide';
 
 @Component({

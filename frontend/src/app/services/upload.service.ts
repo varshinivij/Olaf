@@ -69,7 +69,7 @@ export class UploadService {
    */
   uploadFile(
     file: File,
-    path: string,
+    path: string[],
     onCompleted?: (uploadRef: UserUploadTask) => void,
     onError?: (uploadRef: UserUploadTask) => void
   ): void {
@@ -103,7 +103,7 @@ export class UploadService {
    */
   createNewFolder(
     name: string,
-    path: string,
+    path: string[],
     onCompleted?: (uploadRef: UserUploadTask) => void,
     onError?: (uploadRef: UserUploadTask) => void
   ): void {
@@ -131,7 +131,7 @@ export class UploadService {
       'request_user_create_folder'
     );
 
-    cloudFunctionCallable({ name, path })
+    cloudFunctionCallable({ name, path: posix.join(...path) })
       .then(() => {
         this.updateUpload(folderUpload, { status: 'completed' });
       })
@@ -159,7 +159,7 @@ export class UploadService {
       // for the first few secs when loading, but making a subscription inside
       // a service seems to be discouraged. for now, i will do this.
       this.auth.currentUser!.uid,
-      upload.uploadPath,
+      posix.join(...upload.uploadPath),
       upload.file.name // add name check here
     );
 

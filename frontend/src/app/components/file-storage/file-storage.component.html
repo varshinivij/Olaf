@@ -1,342 +1,463 @@
-<div class="flex h-screen w-full flex-col rounded-lg bg-foreground p-6">
-  <!-- header -->
-  <p class="text-2xl font-bold">Data</p>
-  <p class="text-lg">Upload and manage different types of data.</p>
-
-  <!-- search bar -->
-  <div class="relative my-5 h-9 w-1/2 flex-none">
-    <input
-      class="h-full w-full rounded-xl border border-[#4F4F4F]/40 pl-10 text-sm focus:outline-none"
-      placeholder="Search files..."
-      [(ngModel)]="searchFilter"
-      (input)="applySearchFilter()"
-    />
-    <i
-      class="material-icons absolute left-2 top-[50%] translate-y-[-50%] text-[#9E9E9E]"
-      >search</i
-    >
-  </div>
-
-  <!-- directory labels -->
-  <div class="flex items-center overflow-x-auto text-xl font-bold">
-    @for (path of currentPathArray; track $index) {
-      <button
-        class="whitespace-nowrap rounded-lg bg-white p-1 hover:brightness-90"
-        type="button"
-        (click)="toPreviousDirectory($index)"
-      >
-        {{ $first ? 'My Files' : path }}
-      </button>
-      @if (!$last) {
-        <i class="material-icons-outlined text-[#5f6368]">chevron_right</i>
-      }
-    }
-  </div>
-
-  <!-- filter/upload buttons row -->
-  <div class="flex flex-none gap-x-4 py-3">
-    @for (filter of filterButtons; track $index) {
-      <button
-        class="h-10 rounded-3xl border border-black px-4 text-sm font-semibold hover:bg-[#032D38] hover:text-white"
-        type="button"
-        [ngClass]="{
-          'bg-[#032D38] text-white': filter.type == this.typeFilter,
-        }"
-        (click)="applyTypeFilter(filter.type)"
-      >
-        {{ filter.name }}
-      </button>
-    }
-    <div
-      class="relative ml-auto flex items-center gap-x-2 rounded-lg bg-[#038C7F] pl-3 pr-4 text-sm font-semibold text-white hover:brightness-90"
-      type="button"
-    >
-      <i class="material-icons-outlined">file_upload</i>
-      Upload data
-      <input
-        class="absolute left-0 top-0 h-full w-full opacity-0"
-        type="file"
-        (change)="onUploadFilesSelected($event)"
-        multiple
-      />
-    </div>
-    <button
-      class="material-icons-outlined rounded-lg bg-[#038C7F] px-2 text-white hover:brightness-90"
-      type="button"
-      (click)="createFolderDialog.show()"
-    >
-      create_new_folder
-    </button>
-  </div>
-
-  <!-- file directory table -->
-  <div class="w-full overflow-y-auto">
-    <table class="w-full table-fixed text-left text-sm">
-      <!-- table header + sorting buttons -->
-      <thead>
-        <tr>
-          <!-- weird CSS workaround to make the body scrollable. reference:
-          https://www.geeksforgeeks.org/how-to-create-a-table-with-fixed-header-and-scrollable-body/#. maybe i should've just used flex columns... -->
-          <!-- file name header -->
-          <th class="sticky top-0 w-[30%] rounded-ss-lg bg-[#F1F1F1] px-4 py-3">
-            <div class="flex items-center justify-between">
-              File Name
-              <button
-                class="material-icons-outlined text-[#9E9E9E]"
-                type="button"
-                (click)="applySortFilter('name')"
-              >
-                {{ getSortDirectionMatIcon('name') }}
-              </button>
-            </div>
-          </th>
-          <!-- file type header -->
-          <th class="sticky top-0 w-[15%] bg-[#F1F1F1] pr-4">
-            <div class="flex items-center justify-between">
-              File Type
-              <button
-                class="material-icons-outlined text-[#9E9E9E]"
-                type="button"
-                (click)="applySortFilter('type')"
-              >
-                {{ getSortDirectionMatIcon('type') }}
-              </button>
-            </div>
-          </th>
-          <!-- size header -->
-          <th class="sticky top-0 w-[10%] bg-[#F1F1F1]">Size</th>
-          <!-- last modified header -->
-          <th class="sticky top-0 bg-[#F1F1F1] pr-4">
-            <div class="flex items-center justify-between">
-              Last Modified
-              <button
-                class="material-icons-outlined text-[#9E9E9E]"
-                type="button"
-                (click)="applySortFilter('uploadedOn')"
-              >
-                {{ getSortDirectionMatIcon('uploadedOn') }}
-              </button>
-            </div>
-          </th>
-          <!-- path header (only appears if searching) -->
-          @if (this.searchFilter !== '') {
-            <th class="sticky top-0 bg-[#F1F1F1]">Path</th>
-          }
-          <th
-            class="sticky top-0 w-[15%] rounded-se-lg bg-[#F1F1F1] px-4 text-center"
-          >
-            Actions
-          </th>
-        </tr>
-      </thead>
-      <!-- file rows -->
-      <tbody>
-        <!-- display uploading files -->
-        @for (
-          upload of uploadService.getUploadProgress() | async;
-          track upload.id
-        ) {
-          @if (
-            searchFilter === '' &&
-            pageNumber === 1 &&
-            upload.uploadPath === currentPathString
-          ) {
-            <tr class="bg-white hover:brightness-90">
-              <td class="truncate px-4 italic">
-                <img
-                  class="inline w-8 py-1 pr-3"
-                  [src]="
-                    upload.type === 'file'
-                      ? getImageUrlFromType('unknown')
-                      : getImageUrlFromType('folder')
-                  "
-                />
-                {{ upload.name }}
-              </td>
-              <td class="truncate pr-4 italic">
-                {{
-                  upload.type === 'file' ? 'Uploading...' : 'Creating folder...'
-                }}
-              </td>
-              <td></td>
-              <td class="pb-1 pr-6">
-                <brn-progress hlmProgress [value]="upload.progress" class="h-2">
-                  <brn-progress-indicator hlmProgressIndicator />
-                </brn-progress>
-              </td>
-              <td></td>
-            </tr>
-          }
-        }
-        <!-- display already stored files -->
-        @for (file of displayedFiles; track file.id) {
-          <tr
-            class="bg-white hover:brightness-90"
-            (dblclick)="file.isFolder ? toNextDirectory(file.name) : null"
-          >
-            <td class="truncate px-4">
-              <img
-                class="inline w-8 py-1 pr-3"
-                [src]="getImageUrlFromType(file.type)"
-              />
-              {{ file.name }}
-            </td>
-            <td class="truncate pr-4">
-              {{ file.type | titlecase }}
-            </td>
-            <td class="truncate pr-4">
-              {{ !file.isFolder ? formatBytes(file.size) : '' }}
-            </td>
-            <td class="truncate pr-4">
-              {{ file.uploadedOn.toLocaleDateString('en-US') }}
-            </td>
-            @if (this.searchFilter !== '') {
-              <td class="truncate pr-4">
-                {{ file.path }}
-              </td>
-            }
-            <td class="overflow-hidden text-center text-[#4F4F4F]">
-              <!-- downloading currently doesn't work (see FileStorageService) -->
-              <!-- <button
-              class="material-symbols-outlined p-0"
-              type="button"
-              (click)="downloadFileOrFolder(file)"
-            >
-              file_download
-            </button> -->
-              <button
-                class="material-symbols-outlined align-middle"
-                type="button"
-                (click)="deleteFileOrFolder($event, file)"
-              >
-                delete
-              </button>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-
-  <!-- No files uploaded state -->
-  @if (userFiles?.length === 0 && userUploads?.length === 0) {
-    <div class="mt-auto flex flex-col items-center gap-y-1">
-      <img class="h-12 w-12" src="assets/twocube-logo-black-bg.png" />
-      <p class="font-bold">No Files Yet</p>
-      <p>Use the "Upload data" button to get started.</p>
-    </div>
-  }
-  <!-- File search/filter empty state -->
-  @else if (displayedFiles?.length === 0 && (searchFilter || typeFilter)) {
-    <div class="mt-auto flex flex-col items-center gap-y-1">
-      <img class="h-12 w-12" src="assets/twocube-logo-black-bg.png" />
-      <p class="font-bold">File not found</p>
-      <p class="text-center">
-        {{
-          searchFilter !== ''
-            ? 'Your search "' + searchFilter + '" did not match any file.'
-            : 'There are no "' + (typeFilter! | titlecase) + '" found.'
-        }}
-        <br />
-        Please try again.
-      </p>
-    </div>
-  }
-
-  <!-- bottom page navigator -->
-  <div class="mt-auto flex items-center justify-center gap-x-4 pr-6">
-    <button
-      class="text-sm text-[#9E9E9E]"
-      type="button"
-      (click)="previousPage()"
-      [disabled]="pageNumber === 1"
-    >
-      Previous
-    </button>
-
-    <!-- 2 pages back number -->
-    @if (pageNumber === totalPages && pageNumber > 2) {
-      <button
-        class="h-10 w-10 rounded-xl bg-[#E0E0E0] hover:brightness-90"
-        type="button"
-        (click)="setPage(pageNumber - 2)"
-      >
-        {{ pageNumber - 2 }}
-      </button>
-    }
-    <!-- previous page number -->
-    @if (pageNumber !== 1) {
-      <button
-        class="h-10 w-10 rounded-xl bg-[#E0E0E0] hover:brightness-90"
-        type="button"
-        (click)="setPage(pageNumber - 1)"
-      >
-        {{ pageNumber - 1 }}
-      </button>
-    }
-    <!-- current page -->
-    <button class="h-10 w-10 rounded-xl bg-[#024050] text-white">
-      {{ pageNumber }}
-    </button>
-    <!-- next page -->
-    @if (pageNumber !== totalPages) {
-      <button
-        class="h-10 w-10 rounded-xl bg-[#E0E0E0] hover:brightness-90"
-        type="button"
-        (click)="setPage(pageNumber + 1)"
-      >
-        {{ pageNumber + 1 }}
-      </button>
-    }
-    <!-- 2 pages forward -->
-    @if (pageNumber === 1 && totalPages > 2) {
-      <button
-        class="h-10 w-10 rounded-xl bg-[#E0E0E0] hover:brightness-90"
-        type="button"
-        (click)="setPage(pageNumber + 2)"
-      >
-        {{ pageNumber + 2 }}
-      </button>
-    }
-
-    <button
-      class="text-sm text-[#9E9E9E]"
-      type="button"
-      (click)="nextPage()"
-      [disabled]="pageNumber === totalPages"
-    >
-      Next
-    </button>
-  </div>
-
-  <!-- create folder dialog -->
-  <dialog
-    #createFolderDialog
-    class="top-[50%] z-[100] w-80 translate-y-[-50%] rounded-xl border border-[#4F4F4F]/20 bg-white p-4 outline-none"
-  >
-    <div class="flex flex-col gap-y-3">
-      <p class="text-xl font-semibold">Create new folder</p>
-      <input
-        class="w-full rounded-md border border-[#4F4F4F]/40 p-1 pl-2 text-sm focus:outline-none"
-        placeholder="Enter folder name..."
-        [(ngModel)]="createFolderName"
-      />
-      <div class="flex gap-x-2">
-        <button
-          class="rounded-lg bg-[#038C7F] px-3 py-1 text-sm font-semibold text-white hover:brightness-90"
-          type="button"
-          (click)="createFolder(); createFolderDialog.close()"
-        >
-          Submit
-        </button>
-        <button
-          class="rounded-lg border border-[#4F4F4F]/40 px-3 py-1 text-sm font-semibold hover:brightness-90"
-          type="button"
-          (click)="createFolderDialog.close()"
-        >
-          Cancel
-        </button>
+<div class="flex max-h-full min-w-96 flex-col gap-y-2">
+  @if (
+    {
+      searchFilter: fileStorageService.getSearchFilter() | async,
+      pathFilter: fileStorageService.getPathFilter() | async,
+      typeFilter: fileStorageService.getTypeFilter() | async,
+      sortFilter: fileStorageService.getSortFilter() | async,
+      sortDirectionFilter: fileStorageService.getSortDirectionFilter() | async,
+      pageNumber: fileStorageService.getPageNumber() | async,
+      pageSize: fileStorageService.getPageSize() | async,
+      totalPages: fileStorageService.getTotalPages() | async,
+      files: fileStorageService.getFiles() | async,
+      uploads: uploadService.getUploadProgress() | async,
+    };
+    as data
+  ) {
+    <!-- search bar + upload button row -->
+    <div class="flex gap-x-3 px-3">
+      <!-- search bar -->
+      <div class="relative h-10 flex-1">
+        <input
+          hlmInput
+          class="absolute w-full pl-9"
+          placeholder="Search files"
+          [ngModel]="data.searchFilter"
+          (ngModelChange)="fileStorageService.setSearchFilter($event)"
+        />
+        <hlm-icon
+          hlmMuted
+          size="sm"
+          name="lucideSearch"
+          class="absolute left-2.5 translate-y-[50%]"
+        />
       </div>
+      <!-- file upload button -->
+      <div
+        hlmBtn
+        variant="secondary"
+        class="relative hidden gap-x-2 truncate md:flex"
+      >
+        <hlm-icon size="sm" name="lucideFileUp" class="-ml-0.5" />
+        File upload
+        <input
+          class="absolute left-0 top-0 h-full w-full cursor-pointer opacity-0"
+          type="file"
+          title=" "
+          multiple
+          (change)="onFileUploadSelected($event)"
+        />
+      </div>
+      <!-- folder upload button -->
+      <!-- <div
+        hlmBtn
+        variant="secondary"
+        class="relative hidden gap-x-2 truncate md:flex"
+      >
+        <hlm-icon size="sm" name="lucideFolderUp" class="-ml-0.5" />
+        Folder upload
+        <input
+          class="absolute left-0 top-0 h-full w-full cursor-pointer opacity-0"
+          type="file"
+          title=" "
+          multiple
+          (change)="onFileUploadSelected($event)"
+        />
+      </div> -->
+      <!-- new folder button + dialog -->
+      <hlm-dialog>
+        <button
+          hlmBtn
+          brnDialogTrigger
+          variant="secondary"
+          class="relative hidden gap-x-2 truncate md:flex"
+          type="button"
+        >
+          <hlm-icon size="sm" name="lucideFolderPlus" class="-ml-0.5" />
+          New folder
+        </button>
+        <hlm-dialog-content *brnDialogContent="let ctx">
+          <hlm-dialog-header>
+            <div hlmDialogTitle>New Folder</div>
+          </hlm-dialog-header>
+          <form
+            id="newFolderForm"
+            class="flex flex-col gap-y-2"
+            [formGroup]="createFolderForm"
+          >
+            <!-- folder name input -->
+            <input
+              hlmInput
+              class="w-96"
+              placeholder="Enter folder name"
+              formControlName="name"
+            />
+          </form>
+          <hlm-dialog-footer>
+            <button
+              hlmBtn
+              brnDialogClose
+              variant="outline"
+              size="sm"
+              (click)="createFolderForm.reset()"
+            >
+              Cancel
+            </button>
+            <button
+              hlmBtn
+              brnDialogClose
+              variant="secondary"
+              size="sm"
+              [disabled]="!createFolderForm.valid"
+              (click)="createFolder()"
+            >
+              Create
+            </button>
+          </hlm-dialog-footer>
+        </hlm-dialog-content>
+      </hlm-dialog>
     </div>
-  </dialog>
+    <!-- directory/type filter row -->
+    <div
+      class="flex w-full flex-none items-center truncate text-nowrap pl-0.5 pr-3"
+    >
+      <!-- my files/home label -->
+      <button
+        hlmBtn
+        hlmH2
+        variant="ghost"
+        size="sm"
+        type="button"
+        (click)="fileStorageService.setPathFilterPop(0)"
+      >
+        My Files
+      </button>
+      <!-- display last 2 folder labels -->
+      @for (filter of data.pathFilter?.slice(1)?.slice(-2); track $index) {
+        <!-- display ellipsis if too many labels, else chevron -->
+        @if ($first) {
+          <button
+            hlmBtn
+            variant="ghost"
+            size="icon"
+            type="button"
+            [disabled]="!((data.pathFilter?.length ?? 0) > 3)"
+            (click)="
+              fileStorageService.setPathFilterPop(
+                (data.pathFilter?.length ?? 0) - 3
+              )
+            "
+          >
+            <hlm-icon
+              size="sm"
+              [name]="
+                (data.pathFilter?.length ?? 0) > 3
+                  ? 'lucideEllipsis'
+                  : 'lucideChevronRight'
+              "
+            />
+          </button>
+        }
+        <!-- display folder label -->
+        <button
+          hlmBtn
+          hlmH2
+          variant="ghost"
+          size="sm"
+          type="button"
+          (click)="
+            $last
+              ? fileStorageService.setPathFilterPop(
+                  (data.pathFilter?.length ?? 1) - 1
+                )
+              : fileStorageService.setPathFilterPop()
+          "
+        >
+          <div class="max-w-60 truncate">{{ filter }}</div>
+        </button>
+        <!-- display chevron separator -->
+        @if (!$last) {
+          <button hlmBtn variant="ghost" size="icon" type="button" disabled>
+            <hlm-icon size="sm" name="lucideChevronRight" />
+          </button>
+        }
+      }
+      <!-- type filter selector -->
+      <brn-select
+        placeholder="Filter by type"
+        class="ml-auto hidden md:flex"
+        [multiple]="true"
+        [ngModel]="data.typeFilter"
+        (ngModelChange)="fileStorageService.setTypeFilter($event)"
+      >
+        <hlm-select-trigger class="w-40">
+          <hlm-select-value />
+        </hlm-select-trigger>
+        <hlm-select-content class="w-40">
+          @for (button of filterOptions; track $index) {
+            <hlm-option [value]="button.type"
+              >{{ button.name }}
+              <hlm-icon
+                size="sm"
+                [name]="getLucideIconFromType(button.type)"
+                class="ml-2"
+              />
+            </hlm-option>
+          }
+        </hlm-select-content>
+      </brn-select>
+    </div>
+    <!-- file data table -->
+    <hlm-table class="min-h-10 flex-grow cursor-default overflow-auto">
+      <!-- table header/sort buttons -->
+      <hlm-trow class="sticky top-0 z-10 rounded-t-lg bg-foreground">
+        <hlm-th class="h-10 min-w-40 flex-1">
+          <button
+            hlmBtn
+            variant="ghost"
+            size="sm"
+            class="-ml-3"
+            type="button"
+            (click)="fileStorageService.setSortFilter('name')"
+          >
+            Name
+            <hlm-icon
+              size="xs"
+              [name]="
+                data.sortFilter === 'name'
+                  ? data.sortDirectionFilter === 'asc'
+                    ? 'lucideArrowUpNarrowWide'
+                    : 'lucideArrowDownWideNarrow'
+                  : 'lucideArrowDownUp'
+              "
+              class="ml-2"
+            />
+          </button>
+        </hlm-th>
+        <hlm-th class="h-10 w-40">
+          <button
+            hlmBtn
+            variant="ghost"
+            size="sm"
+            class="-ml-3"
+            type="button"
+            (click)="fileStorageService.setSortFilter('type')"
+          >
+            Type
+            <hlm-icon
+              size="xs"
+              [name]="
+                data.sortFilter === 'type'
+                  ? data.sortDirectionFilter === 'asc'
+                    ? 'lucideArrowUpNarrowWide'
+                    : 'lucideArrowDownWideNarrow'
+                  : 'lucideArrowDownUp'
+              "
+              class="ml-2"
+            />
+          </button>
+        </hlm-th>
+        <hlm-th class="h-10 w-40">
+          <button
+            hlmBtn
+            variant="ghost"
+            size="sm"
+            class="-ml-3"
+            type="button"
+            (click)="fileStorageService.setSortFilter('size')"
+          >
+            File size
+            <hlm-icon
+              size="xs"
+              name="lucideArrowDownUp"
+              [name]="
+                data.sortFilter === 'size'
+                  ? data.sortDirectionFilter === 'asc'
+                    ? 'lucideArrowUpNarrowWide'
+                    : 'lucideArrowDownWideNarrow'
+                  : 'lucideArrowDownUp'
+              "
+              class="ml-2"
+            />
+          </button>
+        </hlm-th>
+        <hlm-th class="h-10 min-w-40 flex-1">
+          <button
+            hlmBtn
+            variant="ghost"
+            size="sm"
+            class="-ml-3"
+            type="button"
+            (click)="fileStorageService.setSortFilter('uploadedOn')"
+          >
+            Last modified
+            <hlm-icon
+              size="xs"
+              [name]="
+                data.sortFilter === 'uploadedOn'
+                  ? data.sortDirectionFilter === 'asc'
+                    ? 'lucideArrowUpNarrowWide'
+                    : 'lucideArrowDownWideNarrow'
+                  : 'lucideArrowDownUp'
+              "
+              class="ml-2"
+            />
+          </button>
+        </hlm-th>
+        @if (data.searchFilter?.length) {
+          <hlm-th class="h-10 w-40">Location</hlm-th>
+        }
+        <hlm-th class="h-10 w-40 justify-center">Actions</hlm-th>
+      </hlm-trow>
+      <!-- prev dir row -->
+      @if ((data.pathFilter?.length ?? 0) > 1 && !data.searchFilter?.length) {
+        <hlm-trow class="h-10">
+          <hlm-td
+            class="min-w-40 flex-1 cursor-pointer hover:underline"
+            (click)="fileStorageService.setPathFilterPop()"
+          >
+            <hlm-icon
+              size="sm"
+              [name]="getLucideIconFromType('folder')"
+              class="mr-2 inline-block flex-none align-middle"
+            />
+            <span class="truncate"> ../ </span>
+          </hlm-td>
+        </hlm-trow>
+      }
+      <!-- uploads row -->
+      @for (upload of data.uploads; track upload.id) {
+        @if (
+          !data.searchFilter?.length &&
+          data.pageNumber === 1 &&
+          arraysEqual(data.pathFilter, upload.uploadPath)
+        ) {
+          <hlm-trow hlmMuted class="h-10">
+            <hlm-td class="min-w-40 flex-1">
+              <hlm-icon
+                size="sm"
+                [name]="
+                  upload.type === 'file' ? 'lucideFile' : 'lucideFolderOpen'
+                "
+                class="mr-2 inline-block flex-none align-middle"
+              />
+              <span class="truncate">
+                {{ upload.name }}
+              </span>
+            </hlm-td>
+            <hlm-td class="w-80 pl-3.5">
+              <brn-progress hlmProgress [value]="upload.progress" class="h-1.5">
+                <brn-progress-indicator hlmProgressIndicator />
+              </brn-progress>
+            </hlm-td>
+            <hlm-td class="loading min-w-40 flex-1"> Uploading </hlm-td>
+            <hlm-td class="w-40"> </hlm-td>
+          </hlm-trow>
+        }
+      }
+      <!-- normal file rows -->
+      @for (file of data.files; track file.id) {
+        <hlm-trow #fileRow class="h-10">
+          <hlm-td
+            class="min-w-40 flex-1"
+            [ngClass]="{
+              'cursor-pointer hover:underline': file.type === 'folder',
+            }"
+            (click)="
+              file.type === 'folder' &&
+                fileStorageService.setPathFilter(file.path + '/' + file.name)
+            "
+          >
+            <hlm-icon
+              size="sm"
+              [name]="getLucideIconFromType(file.type)"
+              class="mr-2 flex-none"
+            />
+            <span class="truncate">
+              {{ file.name }}
+            </span>
+          </hlm-td>
+          <hlm-td truncate class="w-40">{{ file.type | titlecase }}</hlm-td>
+          <hlm-td truncate class="w-40">
+            {{ file.type !== 'folder' ? formatBytes(file.size) : null }}
+          </hlm-td>
+          <hlm-td #fileData truncate class="min-w-40 flex-1">
+            {{ file.uploadedOn.toLocaleString() }}
+          </hlm-td>
+          @if (data.searchFilter?.length) {
+            <hlm-td
+              class="w-40 cursor-pointer hover:underline"
+              (click)="fileStorageService.setPathFilter(file.path)"
+            >
+              <hlm-icon
+                size="sm"
+                [name]="getLucideIconFromType('folder')"
+                class="mr-2 flex-none"
+              />
+              <span class="truncate"> Open location </span>
+            </hlm-td>
+          }
+          <hlm-td class="w-40 justify-center">
+            <button
+              hlmBtn
+              variant="float"
+              size="icon"
+              [brnMenuTriggerFor]="menu"
+            >
+              <hlm-icon size="sm" name="lucideCircleEllipsis" />
+            </button>
+          </hlm-td>
+          <!-- actions menu -->
+          <ng-template #menu>
+            <hlm-menu>
+              <button
+                hlmMenuItem
+                class="text-destructive hover:text-destructive"
+                (click)="deleteItem(file, fileRow, fileData)"
+              >
+                <hlm-icon name="lucideTrash2" hlmMenuIcon />
+                Delete
+              </button>
+            </hlm-menu>
+          </ng-template>
+        </hlm-trow>
+      }
+    </hlm-table>
+    <!-- empty state (search failed) -->
+    @if (
+      data.files?.length === 0 &&
+      (data.searchFilter?.length || data.typeFilter?.length)
+    ) {
+      <div class="mr-[7.8rem] flex h-full flex-col items-center justify-center">
+        <img
+          class="mb-1 h-12 w-12 rounded-lg"
+          src="assets/twocube-logo-black-bg.png"
+        />
+        <div hlmLarge>No matching results</div>
+        <div hlmSmall>try another search, or use filters to find by type.</div>
+      </div>
+    }
+    <!-- empty state (no files uploaded) -->
+    @else if (data.files?.length === 0 && data.uploads?.length === 0) {
+      <div class="mr-[7.8rem] flex h-full flex-col items-center justify-center">
+        <img
+          class="mb-1 h-12 w-12 rounded-lg"
+          src="assets/twocube-logo-black-bg.png"
+        />
+        <div hlmLarge>No files found</div>
+        <div hlmSmall>use the "File upload" button to get started.</div>
+      </div>
+    }
+    <!-- page navigator -->
+    <hlm-numbered-pagination
+      [currentPage]="data.pageNumber ?? 1"
+      (currentPageChange)="fileStorageService.setPageNumber($event)"
+      [itemsPerPage]="data.pageSize ?? 10"
+      (itemsPerPageChange)="fileStorageService.setPageSize($event)"
+      [totalItems]="(data.pageSize ?? 10) * (data.totalPages ?? 1)"
+    />
+    <hlm-toaster closeButton richColors />
+  }
 </div>
+<!-- TODO -->
+<!-- support entire folder upload -->

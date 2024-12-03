@@ -13,7 +13,7 @@
     "declaration": false,
     "experimentalDecorators": true,
     "moduleResolution": "bundler",
-    "preserveSymlinks":true,
+    "preserveSymlinks": true,
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
@@ -32,6 +32,9 @@
       "@spartan-ng/ui-button-helm": [
         "./src/app/components/ui/ui-button-helm/src/index.ts"
       ],
+      "@spartan-ng/ui-checkbox-helm": [
+        "./src/app/components/ui/ui-checkbox-helm/src/index.ts"
+      ],
       "@spartan-ng/ui-dialog-helm": [
         "./src/app/components/ui/ui-dialog-helm/src/index.ts"
       ],
@@ -46,6 +49,9 @@
       ],
       "@spartan-ng/ui-menu-helm": [
         "./src/app/components/ui/ui-menu-helm/src/index.ts"
+      ],
+      "@spartan-ng/ui-pagination-helm": [
+        "./src/app/components/ui/ui-pagination-helm/src/index.ts"
       ],
       "@spartan-ng/ui-popover-helm": [
         "./src/app/components/ui/ui-popover-helm/src/index.ts"
@@ -62,11 +68,17 @@
       "@spartan-ng/ui-select-helm": [
         "./src/app/components/ui/ui-select-helm/src/index.ts"
       ],
+      "@spartan-ng/ui-sonner-helm": [
+        "./src/app/components/ui/ui-sonner-helm/src/index.ts"
+      ],
       "@spartan-ng/ui-spinner-helm": [
         "./src/app/components/ui/ui-spinner-helm/src/index.ts"
       ],
       "@spartan-ng/ui-tabs-helm": [
         "./src/app/components/ui/ui-tabs-helm/src/index.ts"
+      ],
+      "@spartan-ng/ui-table-helm": [
+        "./src/app/components/ui/ui-table-helm/src/index.ts"
       ],
       "@spartan-ng/ui-toggle-helm": [
         "./src/app/components/ui/ui-toggle-helm/src/index.ts"

@@ -1,34 +1,50 @@
-/* TODO:
-1) maybe some sort of toast message on upload success/not
-2) progress indicators on folder creation/file deletion
-  (tricky since folder creation is currently a cloud function.
-  maybe finish loading based on when the request returns,
-  but this would be different from the uploadService entirely.
-  tricky to design this well.
-3) a lot of logic for filtering data on the client side is here.
-   perhaps moving it out to a separate utility class just like
-   firestore-paginator is ideal.
-*/
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { OrderByDirection } from '@angular/fire/firestore';
-import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import {
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 
-import { posix } from 'path-browserify';
-
-import { formatBytes } from '../../utils/format-bytes';
+import { toast } from 'ngx-sonner';
 
 import { FileStorageService } from '../../services/file-storage.service';
 import { UploadService } from '../../services/upload.service';
 
 import {
   ExtensionType,
-  getImageUrlFromType,
+  getLucideIconFromType,
 } from '../../models/extension-type';
 import { UserFile } from '../../models/user-file';
-import { UserUploadTask } from '../../models/user-upload-task';
 
+import { arraysEqual } from '../../utils/arrays-equal';
+import { formatBytes } from '../../utils/format-bytes';
+
+import { HlmButtonModule } from '@spartan-ng/ui-button-helm';
+import {
+  BrnDialogCloseDirective,
+  BrnDialogContentDirective,
+  BrnDialogTriggerDirective,
+} from '@spartan-ng/ui-dialog-brain';
+import {
+  HlmDialogComponent,
+  HlmDialogContentComponent,
+  HlmDialogFooterComponent,
+  HlmDialogHeaderComponent,
+  HlmDialogTitleDirective,
+} from '@spartan-ng/ui-dialog-helm';
+import { HlmIconComponent, provideIcons } from '@spartan-ng/ui-icon-helm';
+import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
+import { BrnMenuTriggerDirective } from '@spartan-ng/ui-menu-brain';
+import {
+  HlmMenuComponent,
+  HlmMenuItemDirective,
+  HlmMenuItemIconDirective,
+} from '@spartan-ng/ui-menu-helm';
+import { HlmNumberedPaginationComponent } from '@spartan-ng/ui-pagination-helm';
 import {
   BrnProgressComponent,
   BrnProgressIndicatorComponent,
@@ -37,307 +53,210 @@ import {
   HlmProgressDirective,
   HlmProgressIndicatorDirective,
 } from '@spartan-ng/ui-progress-helm';
+import { BrnSelectImports } from '@spartan-ng/ui-select-brain';
+import { HlmSelectImports } from '@spartan-ng/ui-select-helm';
+import { HlmToasterComponent } from '@spartan-ng/ui-sonner-helm';
+import {
+  HlmTableModule,
+  HlmTdComponent,
+  HlmTrowComponent,
+} from '@spartan-ng/ui-table-helm';
+import {
+  HlmH2Directive,
+  HlmLargeDirective,
+  HlmMutedDirective,
+  HlmSmallDirective,
+} from '@spartan-ng/ui-typography-helm';
 
-interface FilterButton {
+import {
+  lucideArrowDownUp,
+  lucideArrowDownWideNarrow,
+  lucideArrowUpNarrowWide,
+  lucideChevronRight,
+  lucideCircleEllipsis,
+  lucideEllipsis,
+  lucideFile,
+  lucideFileArchive,
+  lucideFileChartColumn,
+  lucideFileCode,
+  lucideFileQuestion,
+  lucideFileText,
+  lucideFileUp,
+  lucideFolderOpen,
+  lucideFolderPlus,
+  lucideFolderUp,
+  lucideSearch,
+  lucideTrash2,
+  lucideUpload,
+} from '@ng-icons/lucide';
+
+interface FilterOption {
   name: string;
   type: ExtensionType;
 }
 
 @Component({
   selector: 'app-file-storage',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
+
+    HlmButtonModule,
+
+    BrnDialogContentDirective,
+    BrnDialogCloseDirective,
+    BrnDialogTriggerDirective,
+    HlmDialogComponent,
+    HlmDialogContentComponent,
+    HlmDialogFooterComponent,
+    HlmDialogHeaderComponent,
+    HlmDialogTitleDirective,
+
+    HlmIconComponent,
+    HlmInputDirective,
+
+    BrnMenuTriggerDirective,
+    HlmMenuComponent,
+    HlmMenuItemDirective,
+    HlmMenuItemIconDirective,
+
+    HlmNumberedPaginationComponent,
 
     BrnProgressComponent,
     BrnProgressIndicatorComponent,
     HlmProgressDirective,
     HlmProgressIndicatorDirective,
+
+    BrnSelectImports,
+    HlmSelectImports,
+
+    HlmToasterComponent,
+    HlmTableModule,
+
+    HlmH2Directive,
+    HlmLargeDirective,
+    HlmMutedDirective,
+    HlmSmallDirective,
+  ],
+  providers: [
+    provideIcons({
+      lucideArrowDownUp,
+      lucideArrowDownWideNarrow,
+      lucideArrowUpNarrowWide,
+      lucideChevronRight,
+      lucideCircleEllipsis,
+      lucideEllipsis,
+      lucideFile,
+      lucideFileArchive,
+      lucideFileChartColumn,
+      lucideFileCode,
+      lucideFileQuestion,
+      lucideFileText,
+      lucideFileUp,
+      lucideFolderOpen,
+      lucideFolderPlus,
+      lucideFolderUp,
+      lucideSearch,
+      lucideTrash2,
+      lucideUpload,
+    }),
   ],
   templateUrl: './file-storage.component.html',
   styleUrl: './file-storage.component.scss',
 })
-export class FileStorageComponent implements OnInit, OnDestroy {
-  private fileStorageSubscription?: Subscription;
-  private uploadSubscription?: Subscription;
+export class FileStorageComponent {
+  createFolderForm: FormGroup;
 
-  // Settings/default values, can be modified
-  pageSize = 10; // setting
-  typeFilter = null as ExtensionType | null;
-  sortFilter = 'uploadedOn' as keyof UserFile;
-  sortDirectionFilter = 'desc' as OrderByDirection;
-  filterButtons: FilterButton[] = [
-    { name: 'Folder', type: 'folder' } as const,
-    { name: 'Dataset', type: 'dataset' } as const,
+  filterOptions: FilterOption[] = [
     { name: 'Code', type: 'code' } as const,
+    { name: 'Dataset', type: 'dataset' } as const,
+    { name: 'Document', type: 'document' } as const,
+    { name: 'Folder', type: 'folder' } as const,
     { name: 'Model', type: 'model' } as const,
+    { name: 'Unknown', type: 'unknown' } as const,
   ];
 
-  // Do not modify
-  pageNumber = 1;
-  totalPages = 1; // updated automatically
-  currentPathArray = ['/'];
-  currentPathString = '/';
-  createFolderName = ''; // ngModel variable
-  searchFilter = ''; // ngModel variable
-  userUploads?: UserUploadTask[];
-  userFiles?: UserFile[];
-  displayedFiles?: UserFile[]; // will store userFiles after sort/filtering
-
   // make imported util functions available to template
+  arraysEqual = arraysEqual;
   formatBytes = formatBytes;
-  getImageUrlFromType = getImageUrlFromType;
+  getLucideIconFromType = getLucideIconFromType;
 
   constructor(
+    private formBuilder: FormBuilder,
     public fileStorageService: FileStorageService,
     public uploadService: UploadService
-  ) {}
-
-  ngOnInit() {
-    this.fileStorageSubscription = this.fileStorageService
-      .getFiles()
-      .subscribe((files: UserFile[] | null) => {
-        if (files) {
-          this.userFiles = files;
-        } else {
-          this.userFiles = [];
-        }
-        this.sortAndFilterFiles();
-      });
+  ) {
+    this.createFolderForm = this.formBuilder.group({
+      name: ['', [Validators.required]],
+    });
   }
 
-  ngOnDestroy(): void {
-    this.fileStorageSubscription?.unsubscribe();
-    this.uploadSubscription?.unsubscribe();
-  }
-
-  /*
-    UPLOAD/DOWNLOAD FILE/FOLDER UTILITY METHODS
-  */
-
-  onUploadFilesSelected(event: Event) {
+  async onFileUploadSelected(event: Event) {
     const target = event.target as HTMLInputElement;
     const files = target.files as FileList;
+    const path = await firstValueFrom(this.fileStorageService.getPathFilter());
 
     Array.from(files).forEach((file: File) => {
       this.uploadService.uploadFile(
         file,
-        this.currentPathString,
+        path,
         (completedUpload) => {
-          console.log('Upload succeeded:', completedUpload);
           this.uploadService.removeUpload(completedUpload);
         },
         (errorUpload) => {
-          console.error('Upload failed:', errorUpload);
           this.uploadService.removeUpload(errorUpload);
+          toast.error(`File "${file.name}" upload failed, try again later.`);
         }
       );
     });
 
-    // reset selected files, else you can't select the same files again
+    // reset selected files, else files remain selected
     target.value = '';
   }
 
-  createFolder() {
-    // this.createFolderName already updated through ngModel
+  async createFolder() {
+    const path = await firstValueFrom(this.fileStorageService.getPathFilter());
+
     this.uploadService.createNewFolder(
-      this.createFolderName,
-      this.currentPathString,
+      this.createFolderForm.value.name,
+      path,
       (completedUpload) => {
-        console.log('Upload succeeded:', completedUpload);
         this.uploadService.removeUpload(completedUpload);
       },
       (errorUpload) => {
-        console.error('Upload failed:', errorUpload);
         this.uploadService.removeUpload(errorUpload);
+        toast.error(`Folder creation failed, try again later.`);
       }
     );
-    this.createFolderName = '';
+
+    this.createFolderForm.reset();
   }
 
-  deleteFileOrFolder(event: Event, file: UserFile) {
-    /*
-      Currently uses direct DOM manipulation. Another way would be
-      to store the "deleted/error" state in the actual data model,
-      but that doesn't make too much sense. Maybe an entirely separate
-      layer that represents each table row, but this is good enough for now.
-
-      If we did an entirely separate layer, then maybe separate all the
-      filtering/pagination to a utility class. But since we're loading
-      every file into memory at the moment this simple is enough.
-    */
-    const buttonElement = event.target as HTMLButtonElement;
-    const fileFullPath = posix.join(file.path, file.name);
-
-    buttonElement.textContent = 'progress_activity';
-    buttonElement.classList.toggle('animate-spin');
-
-    this.fileStorageService
-      .deletePath(fileFullPath)
-      .then(() => {
-        buttonElement.classList.toggle('animate-spin');
-        buttonElement.textContent = 'delete';
-      })
-      .catch((error) => {
-        buttonElement.classList.toggle('animate-spin');
-        buttonElement.textContent = 'error';
-      });
+  async deleteItem(
+    file: UserFile,
+    fileRow: HlmTrowComponent,
+    fileData: HlmTdComponent
+  ) {
+    try {
+      fileRow.muted.set(true);
+      fileData.fileStorageComponentDeleting.set(true);
+      await this.fileStorageService.deletePath([file.path, file.name]);
+    } catch (error) {
+      fileRow.muted.set(false);
+      fileData.fileStorageComponentDeleting.set(false);
+      toast.error(`File "${file.name}" failed to delete, try again later.`);
+    }
   }
 
-  async downloadFileOrFolder(file: UserFile) {
+  async downloadItem(file: UserFile) {
     // TODO: doesn't work right now. see FileStorageService
     if (file.isFolder) {
-      this.fileStorageService.downloadFolder(file);
+      // this.fileStorageService.downloadFolder(file);
     } else {
-      this.fileStorageService.downloadFile(file);
+      // this.fileStorageService.downloadFile(file);
     }
-  }
-
-  /*
-    PAGE NAVIGATOR METHODS
-  */
-
-  previousPage() {
-    if (this.pageNumber > 1) {
-      this.pageNumber--;
-      this.sortAndFilterFiles();
-    }
-  }
-
-  nextPage() {
-    if (this.pageNumber < this.totalPages) {
-      this.pageNumber++;
-      this.sortAndFilterFiles();
-    }
-  }
-
-  setPage(page: number) {
-    if (page >= 1 && page <= this.totalPages) {
-      this.pageNumber = page;
-      this.sortAndFilterFiles();
-    }
-  }
-
-  /*
-    SORT/FILTER UTILITY METHODS
-  */
-
-  /*
-   * Updates displayedFiles and totalPages to match current
-   * page number/sort/filter settings.
-   * */
-  private sortAndFilterFiles() {
-    this.userFiles?.sort((a, b) => {
-      const valueA: any = a[this.sortFilter];
-      const valueB: any = b[this.sortFilter];
-
-      const cmp =
-        typeof valueA === 'string'
-          ? valueA.localeCompare(valueB)
-          : valueA - valueB;
-
-      if (this.sortDirectionFilter === 'desc') {
-        return -cmp;
-      }
-      return cmp;
-    });
-
-    const pageIndexStart = this.pageSize * (this.pageNumber - 1);
-    const pageIndexLast = pageIndexStart + this.pageSize - 1;
-    let totalFilteredFiles = 0;
-
-    this.displayedFiles = this.userFiles
-      ?.filter((file: UserFile) => {
-        if (this.searchFilter !== '') {
-          if (
-            // file name should start with the search query, non-case-sensitive
-            !file.name.toLowerCase().startsWith(this.searchFilter.toLowerCase())
-          ) {
-            return false;
-          }
-        } else {
-          // if no search filter, filter based on path
-          if (file.path !== this.currentPathString) {
-            return false;
-          }
-        }
-
-        // finally, filter based on type
-        if (this.typeFilter !== null && file.type !== this.typeFilter) {
-          return false;
-        }
-
-        totalFilteredFiles++;
-        return true;
-      })
-      .filter((file: UserFile, index: number) => {
-        // after filtering, display only the pagesize amount of results
-        return index >= pageIndexStart && index <= pageIndexLast;
-      });
-
-    this.totalPages = Math.max(
-      1,
-      Math.ceil(totalFilteredFiles / this.pageSize)
-    );
-  }
-
-  toPreviousDirectory(pathIndex: number) {
-    if (pathIndex < 0) {
-      return;
-    }
-    this.currentPathArray.splice(pathIndex + 1);
-    this.currentPathString = posix.join(...this.currentPathArray);
-    this.pageNumber = 1;
-    this.sortAndFilterFiles();
-  }
-
-  toNextDirectory(directory: string) {
-    this.currentPathArray.push(directory);
-    this.currentPathString = posix.join(...this.currentPathArray);
-    this.pageNumber = 1;
-    this.sortAndFilterFiles();
-  }
-
-  applySearchFilter() {
-    // this.searchFilter is already updated through ngModel
-    // maybe restructure to be more readable? unfamiliar w/ angular design patterns.
-    this.pageNumber = 1;
-    this.toPreviousDirectory(0);
-    this.sortAndFilterFiles();
-  }
-
-  applyTypeFilter(type: ExtensionType) {
-    if (type == this.typeFilter) {
-      this.typeFilter = null;
-    } else {
-      this.typeFilter = type;
-    }
-    this.pageNumber = 1;
-    this.sortAndFilterFiles();
-  }
-
-  applySortFilter(sort: keyof UserFile) {
-    if (sort == this.sortFilter) {
-      this.sortDirectionFilter == 'asc'
-        ? (this.sortDirectionFilter = 'desc')
-        : (this.sortDirectionFilter = 'asc');
-    } else {
-      this.sortFilter = sort;
-      this.sortDirectionFilter = 'asc';
-    }
-    this.pageNumber = 1;
-    this.sortAndFilterFiles();
-  }
-
-  getSortDirectionMatIcon(sort: keyof UserFile) {
-    if (sort == this.sortFilter) {
-      if (this.sortDirectionFilter == 'asc') {
-        return 'expand_less';
-      } else {
-        return 'expand_more';
-      }
-    }
-    return 'unfold_more';
   }
 }
