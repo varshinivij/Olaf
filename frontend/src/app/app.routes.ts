@@ -12,9 +12,7 @@ const redirectUnauthorizedToLogin = () => redirectUnauthorizedTo(['/login']);
 
 export const routes: Routes = [
   {
-    path: '',  // Default route
-    redirectTo: 'login',
-    pathMatch: 'full',
+    path: '', component: LoginComponent
   },
   { path: 'login', component: LoginComponent },
   { path: 'signup', component: SignupComponent },
