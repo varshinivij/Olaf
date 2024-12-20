@@ -4,8 +4,8 @@ Task: Implement a class to process and split genomic data.
     Code:
     ```python
     import pandas as pd
-    import numpy as np
 
+    import numpy as np
     class DataProcessor:
         def __init__(self, path_to_data):
             self.path = path_to_data

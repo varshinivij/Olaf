@@ -1,10 +1,12 @@
-from history import History
-from agent_utils import chat_completion_function,chat_completion, extract_python_code
+from utils.history import History
+from utils.agent_utils import chat_completion_function,chat_completion, extract_python_code
 import json
 import openai
 from executor import Executor
-from agent_utils import chat_completion_api
-from agent_utils import chat_completion_plan
+from utils.agent_utils import chat_completion_api
+from utils.agent_utils import chat_completion_plan
+from typing import List, Dict, Any, Tuple, Callable
+from agents.abstract_agent import AbstractAgent
 
 system_prompt = """
 You are a highly skilled bioinformatics agent specializing in single-cell RNA-seq data analysis using Python. Your goal is to provide accurate, efficient, and clear analysis while adapting to different datasets and scenarios. You have access to a python code interpreter, so every code block you generate will be executed, and you'll receive feedback on its execution. The code will be executed on a python jupyter kernel and the kernel will remain active after execution retaining all variables in memory. Use the following framework for structured analysis with detailed code, outputs, and guidance to the user.
@@ -172,31 +174,67 @@ Your objective is to guide the user through single-cell RNA-seq analysis, ensuri
 
 system = {"role": "system", "content": system_prompt}
 
-class CodeMasterAgent:
-    def __init__(self,language, history):
+class CodeMasterAgent(AbstractAgent):
+    """
+    Agent for bioinformatics tasks that require code generation and execution
+    """
+
+    def __init__(self, language: str, history: List[Dict[str, str]]):
+        # We assume system_prompt is defined somewhere globally or can be passed in
+        super().__init__(system_prompt=system_prompt, history=history, functions=[])
         self.language = language
-        self.history = history
-        self.system_prompt = system_prompt
 
-    def generate(self):
-        return "user", self.base_interaction()
+    def _build_function_map(self) -> Dict[str, Callable]:
+        # Empty function map since we don't need to call any external functions
+        return {}
 
-    def base_interaction(self):
-        yield "Response: code"
+    def generate_response(self) -> Tuple[str, Any]:
+        """
+        Overriding the base implementation to provide a streaming response generator,
+        similar to the original CodeMasterAgent.
+        """
+        # Here we return a tuple: the first element indicates the destination ("user"),
+        # and the second is a generator that yields the streamed content.
+        return "user", self._base_interaction()
+
+    def handle_functions(self, function_name: str, arguments: Dict[str, Any]) -> Any:
+        """
+        Overriding the base implementation to handle function calls.
+        Since we don't have any functions to call, we return None.
+        """
+        return None
+
+    def store_interaction(self, role: str, content: str) -> None:
+        """
+        Overriding the base implementation to store the interaction in the history.
+        """
+        self.history.append({"role": role, "content": content})
+
+    def _base_interaction(self):
+        """
+        This method yields streamed responses from chat_completion_api.
+        Instead of logging at the end, we store the assistant response once fully accumulated.
+        """
         content_accumulated = ""
         current_chunk_type = "text"
+
+        # The following call streams the response tokens from the LLM
         for chunk in chat_completion_api(self.history, self.system_prompt):
             try:
-                # Accumulate content
-                content = chunk['choices'][0]['delta']['content']
+                delta = chunk['choices'][0].get('delta', {})
+                content = delta.get('content', "")
                 if content:
+                    # Determine if this chunk is code or text
                     if content.startswith("```"):
                         current_chunk_type = "code"
                     elif content.endswith("```"):
+                        # end of code block
                         current_chunk_type = "text"
 
                     content_accumulated += content
                     yield {"type": current_chunk_type, "content": content}
             except KeyError:
                 continue
-        self.history.log("assistant", content_accumulated)
+
+        # Once done, store the fully accumulated assistant response
+        self.store_interaction("assistant", content_accumulated)
