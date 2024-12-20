@@ -1,5 +1,5 @@
 import logging
-from typing import List, Callable, Awaitable, Dict, Any
+from typing import List, Callable, Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class Pipe:
         2. Call `await pipe.process(session_data)` to apply all operations in order.
     """
 
-    def __init__(self, name: str, operations: List[Callable[[Dict[str, Any]], Awaitable[Dict[str, Any]]]] = None):
+    def __init__(self, name: str, operations: List[Callable[[Dict[str, Any]], Any]]):
         """
         Initialize the Pipe.
 
@@ -27,7 +27,7 @@ class Pipe:
         self.name = name
         self.operations = operations if operations is not None else []
 
-    async def process(self, session: Dict[str, Any]) -> Dict[str, Any]:
+    def process(self, session: Dict[str, Any]) -> Dict[str, Any]:
         """
         Asynchronously process the session data through each operation in sequence.
 
@@ -45,7 +45,7 @@ class Pipe:
         processed_session = session.copy()
         for idx, operation in enumerate(self.operations):
             try:
-                processed_session = await operation(processed_session)
+                processed_session = operation(processed_session)
             except Exception as e:
                 logger.exception(f"Error in pipe '{self.name}' at operation index {idx}: {str(e)}")
                 raise

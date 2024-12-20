@@ -119,7 +119,7 @@ class Router:
             return response_generator
         elif destination in self.routes:
             # Recursively handle routing
-            return self.route(destination, processed_data)
+            return self.route(destination, processed_data) # type: ignore
         else:
             logger.error(f"Unknown destination: {destination}")
             raise ValueError(f"Unknown destination: {destination}")
@@ -156,7 +156,7 @@ class Router:
             logger.error(f"Unknown destination: {destination}")
             raise ValueError(f"Unknown destination: {destination}")
 
-    async def _apply_pipes(self, key: str, session_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _apply_pipes(self, key: str, session_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Apply global pipes and then the route-specific pipe (if any) to the session data asynchronously.
 
@@ -169,10 +169,10 @@ class Router:
         """
         # Apply global pipes
         for pipe in self.global_pipes:
-            session_data = await pipe.process(session_data)
+            session_data = pipe.process(session_data)
 
         # Apply route-specific pipe if it exists
         if key in self.pipes:
-            session_data = await self.pipes[key].process(session_data)
+            session_data = self.pipes[key].process(session_data)
 
         return session_data

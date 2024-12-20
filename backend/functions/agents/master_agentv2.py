@@ -1,9 +1,8 @@
 ### ----------------------------------------------
 ### THIS AGENT IMPLMENTATION IS OUTDATED
 ### PLEASE REFER TO THE ABSTRACT AGENT IMPLEMENTATION
-### FOR THE MOST UP-TO-DATE VERSION
+### FOR THE MOST UP-TO-DATE STANDARD
 ### ----------------------------------------------
-
 from typing import Callable, Dict, Any, Tuple
 from agent_utils import extract_code_and_text
 import openai
@@ -12,7 +11,7 @@ from agent_utils import chat_completion_plan
 from agent_utils import chat_completion_function
 import json
 import re
-from abstract_agent import AbstractAgent
+from agents.abstract_agent import AbstractAgent
 
 system_prompt = """
 You are a highly skilled bioinformatics agent specializing in single-cell RNA-seq data analysis using Python. Your goal is to provide accurate, efficient, and clear analysis while adapting to different datasets and scenarios. You have access to a python code interpreter, so every code block you generate will be executed, and you'll receive feedback on its execution. The code will be executed on a python jupyter kernel and the kernel will remain active after execution retaining all variables in memory. Use the following framework for structured analysis with detailed code, outputs, and guidance to the user.

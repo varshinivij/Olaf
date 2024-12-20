@@ -6,7 +6,7 @@ from executor import Executor
 from agent_utils import chat_completion_api
 from agent_utils import chat_completion_plan
 from typing import List, Dict, Any, Tuple, Callable
-from abstract_agent import AbstractAgent
+from agents.abstract_agent import AbstractAgent
 
 system_prompt = """
 You are a highly skilled bioinformatics agent specializing in single-cell RNA-seq data analysis using Python. Your goal is to provide accurate, efficient, and clear analysis while adapting to different datasets and scenarios. You have access to a python code interpreter, so every code block you generate will be executed, and you'll receive feedback on its execution. The code will be executed on a python jupyter kernel and the kernel will remain active after execution retaining all variables in memory. Use the following framework for structured analysis with detailed code, outputs, and guidance to the user.
@@ -215,9 +215,6 @@ class CodeMasterAgent(AbstractAgent):
         This method yields streamed responses from chat_completion_api.
         Instead of logging at the end, we store the assistant response once fully accumulated.
         """
-        # Optional initial response to user that code execution will follow
-        yield {"type": "text", "content": "Response: code\n"}
-
         content_accumulated = ""
         current_chunk_type = "text"
 

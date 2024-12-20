@@ -1,7 +1,7 @@
 ### ----------------------------------------------
 ### THIS AGENT IMPLMENTATION IS OUTDATED
 ### PLEASE REFER TO THE ABSTRACT AGENT IMPLEMENTATION
-### FOR THE MOST UP-TO-DATE VERSION
+### FOR THE MOST UP-TO-DATE STANDARD
 ### ----------------------------------------------
 from agent_utils import extract_code_and_text
 import openai
