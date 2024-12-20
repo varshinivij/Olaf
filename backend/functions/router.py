@@ -1,8 +1,7 @@
 import logging
 from typing import Callable, Dict, List, Any
 
-# Assuming Pipe is defined elsewhere and that route functions return (destination, response_generator).
-from pipe import Pipe
+from pipers.pipe import Pipe
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)

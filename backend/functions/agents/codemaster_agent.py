@@ -1,10 +1,10 @@
-from history import History
-from agent_utils import chat_completion_function,chat_completion, extract_python_code
+from utils.history import History
+from utils.agent_utils import chat_completion_function,chat_completion, extract_python_code
 import json
 import openai
 from executor import Executor
-from agent_utils import chat_completion_api
-from agent_utils import chat_completion_plan
+from utils.agent_utils import chat_completion_api
+from utils.agent_utils import chat_completion_plan
 from typing import List, Dict, Any, Tuple, Callable
 from agents.abstract_agent import AbstractAgent
 

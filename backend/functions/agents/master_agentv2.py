@@ -4,11 +4,8 @@
 ### FOR THE MOST UP-TO-DATE STANDARD
 ### ----------------------------------------------
 from typing import Callable, Dict, Any, Tuple
-from agent_utils import extract_code_and_text
+from utils.agent_utils import extract_code_and_text, chat_completion_function
 import openai
-from agent_utils import chat_completion_api
-from agent_utils import chat_completion_plan
-from agent_utils import chat_completion_function
 import json
 import re
 from agents.abstract_agent import AbstractAgent
