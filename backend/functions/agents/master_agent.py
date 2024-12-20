@@ -1,4 +1,8 @@
-from typing import Callable
+### ----------------------------------------------
+### THIS AGENT IMPLMENTATION IS OUTDATED
+### PLEASE REFER TO THE ABSTRACT AGENT IMPLEMENTATION
+### FOR THE MOST UP-TO-DATE VERSION
+### ----------------------------------------------
 from agent_utils import extract_code_and_text
 import openai
 from agent_utils import chat_completion_api
