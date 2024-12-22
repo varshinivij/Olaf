@@ -5,6 +5,7 @@ functions_framework
 openAI
 werkzeug
 flask
+google-cloud-firestore
 google-cloud-storage
 firebase-admin
 fpdf
