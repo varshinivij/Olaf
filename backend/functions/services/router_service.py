@@ -1,12 +1,17 @@
-from router import Router
+from typing import List
+
 from agents.codemaster_agent import CodeMasterAgent
+from functions.models.chat_message import ChatMessage
+from router import Router
 from utils.history import History
 
-def master_route_function(session_history):
+
+def master_route_function(session_history: List[ChatMessage]):
     # session_history is a list of dict: [{"role": "...", "content": "...", "type": "..."}]
     history = History(session_history)
     master_agent = CodeMasterAgent("python", history)  # type: ignore
     return master_agent.generate_response()
+
 
 def get_master_router():
     router = Router()

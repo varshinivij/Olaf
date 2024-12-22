@@ -1,10 +1,9 @@
-from firebase_admin import auth, firestore
+from firebase_admin import firestore
 
 from firebase_functions.https_fn import (
     CallableRequest,
     FunctionsErrorCode,
     HttpsError,
-    Request,
     on_call,
 )
 from firebase_functions.storage_fn import (
@@ -22,52 +21,6 @@ from google.cloud.firestore_v1 import Transaction
 from collections import deque
 from pathlib import Path
 import re
-
-
-def validate_firebase_id_token(req: Request) -> dict:
-    """
-    Validates the Firebase ID token passed in a request's Authorization header.
-    Returns the decoded token as a dict containing user data. Example returned
-    payload:
-    {
-        "name": str
-        "picture": str (link)
-        "iss": str (link),
-        "aud": str,
-        "auth_time": int,
-        "user_id": str,
-        "sub": str,
-        "iat": int,
-        "exp": int,
-        "email": str,
-        "email_verified": bool,
-        "firebase": {
-            "identities": {
-                "google.com": list[str],
-                "email": list[str],
-            },
-            "sign_in_provider": str,
-        },
-        "uid": str,
-    }
-
-    To send the ID token in Angular:
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${await this.auth.currentUser?.getIdToken()}`,
-    });
-    this.http.post(url, { param1: 'folder1' }, { headers });
-
-    Not necessary for HTTP Callables, only pure HTTP functions. Not currently
-    used but here for your convenience.
-    """
-    if not req.headers.get("Authorization", "").startswith("Bearer "):
-        raise PermissionError(
-            "No Firebase ID token passed as Bearer token in Authorization header."
-            " Provide the following HTTP header: Authorization: Bearer <Firebase ID Token>"
-        )
-
-    id_token = req.headers["Authorization"].split("Bearer ")[1]
-    return auth.verify_id_token(id_token, check_revoked=True)
 
 
 @transactional
@@ -271,12 +224,12 @@ def request_user_delete_path(req: CallableRequest) -> None:
 def handle_user_file_upload(event: CloudEvent[StorageObjectData]) -> None:
     """
     Handles file uploads to Cloud Storage and creates corresponding Firestore documents.
-    
+
     Triggered when a file is uploaded to the 'twocube-web.appspot.com' bucket.
     Handles two types of paths:
         - "uploads/{userID}/{uploadPath}" for user files
         - "sessionImages/{userID}/{imageName}" for session images
-    
+
     For user files, the Firestore document will be created under 'users/{userID}/files/{documentID}'.
     For session images, the Firestore document will be created in the 'sessionImage' collection.
     """
@@ -344,7 +297,7 @@ def handle_user_file_upload(event: CloudEvent[StorageObjectData]) -> None:
         user_uid, upload_name = session_image_match.groups()
         upload_path = Path(f"sessionImages/{upload_name}")
         upload_parent = upload_path.parent.as_posix()
-        upload_name = upload_name.lstrip('/')
+        upload_name = upload_name.lstrip("/")
 
         # Verify user ID exists
         user_doc = db.collection("users").document(user_uid)

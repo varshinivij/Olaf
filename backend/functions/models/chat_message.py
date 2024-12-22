@@ -1,11 +1,17 @@
-from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, TypedDict
 
 
-@dataclass
-class ChatMessage:
-    type: Literal[
-        "text", "code", "executedCode", "plan", "error", "image", "result", "hidden"
-    ]
-    role: Literal["assistant", "user"]
+type ChatMessageType = Literal[
+    "text", "code", "executedCode", "plan", "error", "image", "result", "hidden"
+]
+type ChatMessageRole = Literal["assistant", "user"]
+
+
+class ChatMessage(TypedDict):
+    """
+    ChatMessages are JSON objects stored as dictionaries.
+    """
+
+    type: ChatMessageType
+    role: ChatMessageRole
     content: str

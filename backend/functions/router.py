@@ -1,6 +1,7 @@
 import logging
 from typing import Callable, Dict, List, Any
 
+from functions.models.session import Session
 from pipers.pipe import Pipe
 
 logger = logging.getLogger(__name__)
@@ -9,10 +10,10 @@ logging.basicConfig(level=logging.DEBUG)
 
 class Router:
     """
-    The Router directs session data through a series of transformations (pipes) 
+    The Router directs session data through a series of transformations (pipes)
     and then to a specified route function.
 
-    Each route is associated with a callable that takes processed session data 
+    Each route is associated with a callable that takes processed session data
     and returns a tuple (destination, response_generator).
 
     The Router can:
@@ -38,7 +39,7 @@ class Router:
 
         Args:
             key: A unique string identifier for the route.
-            function: A callable taking processed session data (dict) and returning 
+            function: A callable taking processed session data (dict) and returning
                       (destination: str, response_generator: generator).
         """
         self.routes[key] = function
@@ -77,7 +78,7 @@ class Router:
         """
         return list(self.routes.keys())
 
-    def route(self, key: str, session_data: Dict[str, Any]) -> Any:
+    def route(self, key: str, session_data: Session) -> Any:
         """
         Route the given session data through the appropriate pipes and to the specified route.
 
@@ -123,7 +124,7 @@ class Router:
             logger.error(f"Unknown destination: {destination}")
             raise ValueError(f"Unknown destination: {destination}")
 
-    def route_without_pipe(self, key: str, session_data: Dict[str, Any]) -> Any:
+    def route_without_pipe(self, key: str, session_data: Session) -> Any:
         """
         Route a session directly to its route function without applying any pipes.
         Useful for debugging or special cases where pipe transformations are not desired.
@@ -155,7 +156,7 @@ class Router:
             logger.error(f"Unknown destination: {destination}")
             raise ValueError(f"Unknown destination: {destination}")
 
-    def _apply_pipes(self, key: str, session_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _apply_pipes(self, key: str, session_data: Session) -> Session:
         """
         Apply global pipes and then the route-specific pipe (if any) to the session data asynchronously.
 

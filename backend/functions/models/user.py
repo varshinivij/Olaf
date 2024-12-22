@@ -1,9 +1,12 @@
-from dataclasses import dataclass
 from datetime import datetime
+from typing import TypedDict
 
 
-@dataclass
-class User:
+class User(TypedDict):
+    """
+    Users are JSON objects stored as dictionaries.
+    """
+
     id: str
     email: str
     name: str | None
