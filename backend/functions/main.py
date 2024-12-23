@@ -46,8 +46,29 @@ from sessions_functions import (
 )
 
 db = firestore.client()
+"""
+TODO ASK IN MEETING:
+
+1. How should the services be structured, move session util methods there?
+2. e2b_functions or executor, which one are we using? executor should just be e2bservice?
+   + e2b_functions have syntax errors like sandbox_status
+3. Separate folder for endpoints?
+4. Main idea:
+    - endpoints folder for storing actual endpoints
+    - any util methods used to implement endpoints should be in services folder
+    - maybe rename some files (ie. executor.py) to be services
+        - agent-utils could be agent-service? including storing the api keys.
+        - later on it would be easy to put in logic to load the API keys from
+          some secret store.
+    - maybe wrap services in a class? in case we want to stick in API keys for
+      example, lets us do work upon loading a service and increasing modularity
+      basically like Angular.
+    - should a "type" value be put in the messages of the history class?
+        - new role called "system"?
+"""
 
 
+# NOTE UNUSED NOW, FREE TO REMOVE
 def master_route_function(session):
     history = session
     if not history:

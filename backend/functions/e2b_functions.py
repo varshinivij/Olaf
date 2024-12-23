@@ -44,9 +44,9 @@ def close_sandbox(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         json_error = json.dumps({"error": str(e)})
         return https_fn.Response(json_error, status=500)
-    
-    
-@https_fn.on_request(cors=options.CorsOptions(cors_origins="*", cors_methods=["post"]))    
+
+
+@https_fn.on_request(cors=options.CorsOptions(cors_origins="*", cors_methods=["post"]))
 def request_sandbox(req: https_fn.Request) -> https_fn.Response:
     try:
         sandbox = CodeInterpreter(
@@ -100,7 +100,7 @@ def upload_to_sandbox(req: https_fn.Request) -> https_fn.Response:
             # file.name will be "file" if no filename is provided
             # although i'm not sure if that's possible.
 
-            sandbox.upload_file(file)
+            sandbox.upload_file(file)  # type: ignore
 
         # this is the directory where uploads are sent
         content = sandbox.filesystem.list("/home/user")
@@ -143,11 +143,11 @@ def firebase_storage_to_sandbox(req: https_fn.Request) -> https_fn.Response:
             file_name = Path(file_name)
 
             with open(file_name, "rb") as f:
-                remote_path = sandbox.upload_file(f) 
-                print(remote_path) 
+                remote_path = sandbox.upload_file(f)
+                print(remote_path)
 
-        return jsonify({"message": "Files successfully moved to sandbox"}), 200
-    
+        return jsonify({"message": "Files successfully moved to sandbox"}), 200)
+
     except requests.exceptions.Timeout as e:
         # Handle timeout errors separately
         return jsonify({"error": "Request timed out", "details": str(e)}), 500
@@ -261,7 +261,7 @@ def execute_on_sandbox(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         json_error = json.dumps({"error": str(e)})
         return https_fn.Response(json_error, status=500)
-    
+
 
 
 def run_terminal_command(sandbox_id: str, command: str) -> dict:
@@ -278,7 +278,7 @@ def run_terminal_command(sandbox_id: str, command: str) -> dict:
     try:
         # Reconnect to the sandbox
         sandbox = CodeInterpreter.reconnect(sandbox_id, api_key=E2B_API_KEY)
-        
+
         # Execute the command as a Python subprocess call
         execution = sandbox.notebook.exec_cell(f"!{command}")
 

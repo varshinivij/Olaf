@@ -4,7 +4,7 @@ from typing import Literal, TypedDict
 type ChatMessageType = Literal[
     "text", "code", "executedCode", "plan", "error", "image", "result", "hidden"
 ]
-type ChatMessageRole = Literal["assistant", "user"]
+type ChatMessageRole = Literal["assistant", "user", "system"]
 
 
 class ChatMessage(TypedDict):
