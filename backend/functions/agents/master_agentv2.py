@@ -253,7 +253,6 @@ class MasterAgent:
                     function_name = tool_call.function.name
                     function_arguments = tool_call.function.arguments
                     args_dict = json.loads(function_arguments) if function_arguments else {}
-                    
                     if function_name in self.function_map:
                         # Get the destination and response generator
                         destination, response_generator = self.function_map[function_name](**args_dict)

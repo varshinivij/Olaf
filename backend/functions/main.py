@@ -29,7 +29,8 @@ from e2b_functions import (
     download_from_sandbox,
     sandbox_status,
     close_sandbox,
-    firebase_storage_to_sandbox
+    firebase_storage_to_sandbox,
+    run_terminal_command_endpoint
 )
 
 from file_storage_functions import (
@@ -115,6 +116,7 @@ def master_agent_interaction(req: Request) -> Response:
                     # Handle malformed chunk gracefully
                     print(f"Malformed chunk: {chunk} - Error: {str(e)}")
                     continue
+            print(full_response)
             # Update the session history with the assistant's full response
             sessions_functions.add_message_to_session(session_id, full_response, role="assistant")
         return Response(flask.stream_with_context(generate_stream()), headers={"session_id": session_id}, mimetype="text/event-stream")   

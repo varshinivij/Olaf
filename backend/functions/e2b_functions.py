@@ -264,32 +264,44 @@ def execute_on_sandbox(req: https_fn.Request) -> https_fn.Response:
     
 
 
-def run_terminal_command(sandbox_id: str, command: str) -> dict:
+@https_fn.on_request(cors=options.CorsOptions(cors_origins="*", cors_methods=["post"]))
+def run_terminal_command_endpoint(req: https_fn.Request) -> https_fn.Response:
     """
     Runs a terminal command on the E2B sandbox terminal using exec_cell.
 
-    Args:
-        sandbox_id (str): The ID of the sandbox to connect to.
-        command (str): The terminal command to execute.
+    Body data:
+        sandboxId: the string ID of the sandbox to connect to
+        command: the terminal command to execute
 
     Returns:
-        dict: A dictionary containing the command output, errors, and status.
+        stdout: The standard output of the command
+        stderr: The standard error of the command
+        error: Any traceback or error messages (if applicable)
     """
     try:
-        # Reconnect to the sandbox
+        sandbox_id = req.json.get("sandboxId")
+        command = req.json.get("command")
+
+        if not sandbox_id or not command:
+            return https_fn.Response(
+                json.dumps({"error": "Missing sandboxId or command"}), status=400
+            )
+
+        # Reconnect to the sandbox and execute the command
         sandbox = CodeInterpreter.reconnect(sandbox_id, api_key=E2B_API_KEY)
-        
-        # Execute the command as a Python subprocess call
         execution = sandbox.notebook.exec_cell(f"!{command}")
 
-        # Parse results
+        # Prepare response
         result = {
             "stdout": execution.logs.stdout,
             "stderr": execution.logs.stderr,
             "error": execution.error.traceback if execution.error else None,
         }
 
-        return result
+        return https_fn.Response(json.dumps(result), status=200)
 
     except Exception as e:
-        return {"error": str(e)}
+        return https_fn.Response(
+            json.dumps({"error": str(e)}), status=500
+        )
+
