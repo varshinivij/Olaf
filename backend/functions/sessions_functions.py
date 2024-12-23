@@ -2,7 +2,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
-from agent_utils import chat_completion_summary, create_pdf
+from utils.agent_utils import chat_completion_summary, create_pdf
 from functions_framework import http
 import json
 import flask

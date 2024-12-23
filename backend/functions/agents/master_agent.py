@@ -1,9 +1,10 @@
-from typing import Callable
-from agent_utils import extract_code_and_text
+### ----------------------------------------------
+### THIS AGENT IMPLMENTATION IS OUTDATED
+### PLEASE REFER TO THE ABSTRACT AGENT IMPLEMENTATION
+### FOR THE MOST UP-TO-DATE STANDARD
+### ----------------------------------------------
+from utils.agent_utils import extract_code_and_text, chat_completion_api, chat_completion_plan, chat_completion_function
 import openai
-from agent_utils import chat_completion_api
-from agent_utils import chat_completion_plan
-from agent_utils import chat_completion_function
 import json
 import re
 
