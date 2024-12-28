@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Any, Iterable
 
 from firebase_admin import auth
 from firebase_functions.https_fn import Request
@@ -82,13 +82,30 @@ def validate_name_maker_request(req: Request):
     return data["history"]
 
 
-def validate_args_in_request(req: Request, args: Iterable[str]):
+def expect_values_in_request_args(req: Request, values: Iterable[str]):
     """
-    Validates that all specified arguments are present in the request body.
-    Returns arguments after validating.
+    Validates that all specified values are present in query args. Returns args
+    after validating.
     """
-    for arg in args:
-        if not req.args.get(arg):
-            raise ValidationError(f"'{arg}' is required in request body")
+    for value in values:
+        if not req.args.get(value):
+            raise ValidationError(f"'{value}' is required in request args")
 
     return req.args
+
+
+def expect_values_in_request_body(req: Request, values: Iterable[str]) -> dict[str, Any]:
+    """
+    Validates that all specified values are present in request body as a JSON
+    object. Returns body after validating.
+    """
+    data = req.json
+
+    if type(data) != dict:
+        raise ValidationError("JSON object body expected")
+
+    for value in values:
+        if value not in data:
+            raise ValidationError(f"'{value}' is required in request body")
+
+    return data

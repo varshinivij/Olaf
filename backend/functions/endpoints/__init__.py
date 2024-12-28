@@ -1,2 +1,3 @@
+import e2b_endpoints
 import file_storage_endpoints
 import session_endpoints

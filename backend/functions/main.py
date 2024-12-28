@@ -10,7 +10,7 @@ from routes.master_agent_interaction import master_agent_interaction_handler
 from routes.name_maker import name_maker_handler
 
 # import other modules' Cloud Functions
-from e2b_functions import (
+from functions.endpoints.e2b_endpoints import (
     request_sandbox,
     execute_on_sandbox,
     upload_to_sandbox,

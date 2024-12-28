@@ -34,7 +34,7 @@ class SessionService:
         self, user_id: str, project_id: str, message: Optional[ChatMessage] = None
     ) -> Session:
         """
-        Creates a new session in Firestore.
+        Creates a new session in Firestore. Optionally add a message upon creation.
         """
         new_session_ref = self.db.collection("sessions").document()
 

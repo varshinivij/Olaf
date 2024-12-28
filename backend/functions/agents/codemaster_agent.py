@@ -2,7 +2,7 @@ from utils.history import History
 from utils.agent_utils import chat_completion_function,chat_completion, extract_python_code
 import json
 import openai
-from executor import Executor
+from functions.services.e2b_service import Executor
 from utils.agent_utils import chat_completion_api
 from utils.agent_utils import chat_completion_plan
 from typing import List, Dict, Any, Tuple, Callable
@@ -167,7 +167,7 @@ psutil==6.0.0
 defusedxml==0.7.1
 requests==2.32.3
 
-You can proceed with executing code that utilizes any of these packages without needing to install them. Don't install any additional packages 
+You can proceed with executing code that utilizes any of these packages without needing to install them. Don't install any additional packages
 
 Your objective is to guide the user through single-cell RNA-seq analysis, ensuring accuracy, reproducibility, and meaningful insights from the data.
 """

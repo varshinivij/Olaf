@@ -6,14 +6,14 @@ from functions_framework import http
 
 from functions.services.session_service import SessionService
 from functions.utils.agent_utils import chat_completion_summary, create_pdf
-from functions.utils.validation import ValidationError, validate_args_in_request
+from functions.utils.validation import ValidationError, expect_values_in_request_body
 
 
 @http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["get"]))
 def get_sessions(req: Request) -> Response:
     try:
-        args = validate_args_in_request(req, ["userId"])
+        args = expect_values_in_request_body(req, ["userId"])
         user_id = args["userId"]
 
         session_service = SessionService()
@@ -38,7 +38,7 @@ def get_sessions(req: Request) -> Response:
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["get"]))
 def get_session_summary(req: Request) -> Response:
     try:
-        args = validate_args_in_request(req, ["sessionId"])
+        args = expect_values_in_request_body(req, ["sessionId"])
         session_id = args["sessionId"]
 
         session_service = SessionService()
@@ -82,7 +82,7 @@ def get_session_summary(req: Request) -> Response:
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def rename_session(req: Request) -> Response:
     try:
-        args = validate_args_in_request(req, ["sessionId", "newName"])
+        args = expect_values_in_request_body(req, ["sessionId", "newName"])
         session_id = args["sessionId"]
         new_name = args["newName"]
 
@@ -106,7 +106,7 @@ def rename_session(req: Request) -> Response:
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["delete"]))
 def delete_session(req: Request) -> Response:
     try:
-        args = validate_args_in_request(req, ["sessionId"])
+        args = expect_values_in_request_body(req, ["sessionId"])
         session_id = args["sessionId"]
 
         session_service = SessionService()
@@ -129,7 +129,7 @@ def delete_session(req: Request) -> Response:
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["delete"]))
 def delete_all_sessions(req: Request) -> Response:
     try:
-        args = validate_args_in_request(req, ["userId"])
+        args = expect_values_in_request_body(req, ["userId"])
         user_id = args["userId"]
 
         session_service = SessionService()
