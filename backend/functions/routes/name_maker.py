@@ -13,7 +13,7 @@ def name_maker_handler(req: Request) -> Response:
         Please construct a super short title for the conversation.
         """
         hist = History(history)
-        hist.log("system", system)
+        hist.log("system", system, "text")
 
         response = chat_completion(hist)
         response_str = ""

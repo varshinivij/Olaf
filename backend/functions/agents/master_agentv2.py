@@ -169,7 +169,7 @@ psutil==6.0.0
 defusedxml==0.7.1
 requests==2.32.3
 
-You can proceed with executing code that utilizes any of these packages without needing to install them. Don't install any additional packages 
+You can proceed with executing code that utilizes any of these packages without needing to install them. Don't install any additional packages
 
 Your objective is to guide the user through single-cell RNA-seq analysis, ensuring accuracy, reproducibility, and meaningful insights from the data.
 """
@@ -203,7 +203,7 @@ class MasterAgent(AbstractAgent):
 
     def generate_response(self) -> Tuple[str, Any]:
         """
-        Generate a response using the system prompt, conversation history, 
+        Generate a response using the system prompt, conversation history,
         and optionally available functions.
 
         Returns:
@@ -212,7 +212,7 @@ class MasterAgent(AbstractAgent):
         try:
             # Clean up system messages if needed, ensure system_prompt at the start
             # This is a simplistic approach; you might manage the prompt more intricately.
-            
+
             # Prepare the OpenAI API payload:
             messages = [{"role": "system", "content": self.system_prompt}]
             messages.extend(self.history)  # user/assistant messages
@@ -257,9 +257,9 @@ class MasterAgent(AbstractAgent):
 
     def route_message(self, destination: str, content: str) -> None:
         """
-        Routes the given content to a specified destination. 
+        Routes the given content to a specified destination.
         For now, we'll just print if destination is 'user'.
-        
+
         In a more complex system, this could:
           - Send a message to a UI
           - Append to a database
@@ -280,7 +280,3 @@ class MasterAgent(AbstractAgent):
         The history is a list of dicts with keys: role, content.
         """
         self.history.append({"role": role, "content": content})
-
-    
-        
-

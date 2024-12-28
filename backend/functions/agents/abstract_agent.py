@@ -19,7 +19,7 @@ class AbstractAgent(ABC):
         self,
         system_prompt: str,
         history: Any,
-        functions: Optional[List[Dict[str, Any]]] = [],
+        functions: List[Dict[str, Any]] = [],
     ):
         """
         Initialize the multi-agent system.

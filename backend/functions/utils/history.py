@@ -1,7 +1,7 @@
 import json
 from typing import List
 
-from functions.models.chat_message import ChatMessage, ChatMessageRole
+from functions.models.chat_message import ChatMessage, ChatMessageRole, ChatMessageType
 
 
 class History:
@@ -11,8 +11,8 @@ class History:
         else:
             self.history = system
 
-    def log(self, role: ChatMessageRole, content: str):
-        entry: ChatMessage = {"role": role, "content": content, "type": "hidden"}
+    def log(self, role: ChatMessageRole, content: str, type: ChatMessageType):
+        entry: ChatMessage = {"role": role, "content": content, "type": type}
         self.history.append(entry)
 
     def get_history(self):
@@ -24,5 +24,5 @@ class History:
     def remove_system_messages(self):
         self.history = [entry for entry in self.history if entry["role"] != "system"]
 
-    def upsert(self, prompt: str):
-        self.history.insert(0, {"role": "system", "content": prompt, "type": "hidden"})
+    def upsert(self, prompt: str, type: ChatMessageType):
+        self.history.insert(0, {"role": "system", "content": prompt, "type": type})

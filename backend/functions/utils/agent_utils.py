@@ -4,6 +4,7 @@ import re
 import json
 from fpdf import FPDF
 
+
 api_key = "REMOVED"
 url = "https://api.openai.com/v1/chat/completions"
 client = OpenAI(api_key=api_key)
@@ -27,7 +28,7 @@ def chat_completion(history, tools=None):
     if response.status_code == 200:
         for chunk in response.iter_lines(decode_unicode=True):
             if chunk:
-                try: 
+                try:
                     chunk = chunk.replace("data: ", "").strip()
                     json_chunk = json.loads(chunk)
                     yield json_chunk
@@ -38,7 +39,7 @@ def chat_completion(history, tools=None):
         print(f"Error: {response.status_code}, {response.text}")
         return None
 
-    
+
 def chat_completion_function(history, tools=None):
     stream = client.chat.completions.create(
         model="gpt-4o",
@@ -76,7 +77,7 @@ def chat_completion_api(history, system_prompt, tools=None):
     if response.status_code == 200:
         for chunk in response.iter_lines(decode_unicode=True):
             if chunk:
-                try: 
+                try:
                     chunk = chunk.replace("data: ", "").strip()
                     json_chunk = json.loads(chunk)
                     yield json_chunk
@@ -86,7 +87,7 @@ def chat_completion_api(history, system_prompt, tools=None):
     else:
         print(f"Error: {response.status_code}, {response.text}")
         return None
-    
+
 
 def chat_completion_plan(history, system_prompt, tools=None):
 
@@ -152,7 +153,7 @@ def chat_completion_plan(history, system_prompt, tools=None):
     if response.status_code == 200:
         for chunk in response.iter_lines(decode_unicode=True):
             if chunk:
-                try: 
+                try:
                     chunk = chunk.replace("data: ", "").strip()
                     json_chunk = json.loads(chunk)
                     yield json_chunk
@@ -181,14 +182,14 @@ def extract_python_code(text):
         return match.group(1).strip()
     else:
         return "No Python code found in the input text."
-    
+
 def extract_code_and_text(content: str) -> tuple[str, str]:
     code_blocks = re.findall(r'```(.*?)```', content, re.DOTALL)
     text_parts = re.split(r'```.*?```', content, flags=re.DOTALL)
     text = ' '.join([part.strip() for part in text_parts if part.strip()])
     code = '\n'.join([block.strip() for block in code_blocks if block.strip()])
     return text, code
-    
+
 
 def stream(agent):
     for chunk in agent.generate():
@@ -207,7 +208,7 @@ def chat_completion_summary(history):
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
-    
+
     history.append({"role": "user", "content": "Please provide a clear and structured summary of the entire conversation in a user-assistant format, detailing exactly who asked what and who responded with what. Focus solely on the main points discussed without any introductory or concluding remarks. Ensure the summary is easily understandable to non-technical individuals.", "type": "text"})
 
     payload = {

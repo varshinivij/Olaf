@@ -1,5 +1,16 @@
+from typing import Iterable
+
 from firebase_admin import auth
 from firebase_functions.https_fn import Request
+
+
+class ValidationError(Exception):
+    """
+    Validation error raised when a request fails validation.
+    """
+
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 def validate_request_id_token(req: Request) -> dict:
@@ -38,7 +49,7 @@ def validate_request_id_token(req: Request) -> dict:
     Not necessary for HTTP Callables, only pure HTTP functions.
     """
     if not req.headers.get("Authorization", "").startswith("Bearer "):
-        raise PermissionError(
+        raise ValidationError(
             "No Firebase ID token passed as Bearer token in Authorization header."
             " Provide the following HTTP header: Authorization: Bearer <Firebase ID Token>"
         )
@@ -54,11 +65,11 @@ def validate_master_agent_request(req: Request):
     project_id = req.args.get("project_id")
 
     if not message:
-        raise ValueError("'message' is required")
+        raise ValidationError("'message' is required")
     if not user_id:
-        raise ValueError("'user_id' is required")
+        raise ValidationError("'user_id' is required")
     if not project_id:
-        raise ValueError("'project_id' is required")
+        raise ValidationError("'project_id' is required")
 
     return session_id, user_id, project_id, message
 
@@ -67,5 +78,17 @@ def validate_name_maker_request(req: Request):
     # Expect JSON body with "history"
     data = req.json
     if not data or "history" not in data:
-        raise ValueError("'history' field is required in request body")
+        raise ValidationError("'history' field is required in request body")
     return data["history"]
+
+
+def validate_args_in_request(req: Request, args: Iterable[str]):
+    """
+    Validates that all specified arguments are present in the request body.
+    Returns arguments after validating.
+    """
+    for arg in args:
+        if not req.args.get(arg):
+            raise ValidationError(f"'{arg}' is required in request body")
+
+    return req.args

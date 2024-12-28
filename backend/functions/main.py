@@ -1,18 +1,8 @@
-import json
-import time
-from typing import Callable
-
-from executor import Executor
-from agents.codemaster_agent import CodeMasterAgent
-import flask
 
 from firebase_admin import initialize_app
 from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
-from utils.history import History
 from functions_framework import http
-from utils.agent_utils import chat_completion, stream
-from firebase_admin import firestore
 
 initialize_app()
 
@@ -30,14 +20,13 @@ from e2b_functions import (
     firebase_storage_to_sandbox,
 )
 
-from file_storage_functions import (
+from functions.endpoints.file_storage_endpoints import (
     handle_user_file_upload,
     request_user_create_folder,
     request_user_delete_path,
 )
 
-from sessions_functions import (
-    add_message_to_session,
+from functions.endpoints.session_endpoints import (
     delete_session,
     get_sessions,
     delete_all_sessions,
@@ -45,7 +34,6 @@ from sessions_functions import (
     get_session_summary,
 )
 
-db = firestore.client()
 """
 TODO ASK IN MEETING:
 
@@ -66,17 +54,6 @@ TODO ASK IN MEETING:
     - should a "type" value be put in the messages of the history class?
         - new role called "system"?
 """
-
-
-# NOTE UNUSED NOW, FREE TO REMOVE
-def master_route_function(session):
-    history = session
-    if not history:
-        return None
-    history = History(history)
-    master_agent = CodeMasterAgent("python", history)  # type: ignore #using CodeMasterAgent
-    return master_agent.generate_response()
-
 
 @http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
