@@ -1,5 +1,8 @@
-from firebase_admin import firestore
+from collections import deque
+from pathlib import Path
+import re
 
+from firebase_admin import firestore
 from firebase_functions.https_fn import (
     CallableRequest,
     FunctionsErrorCode,
@@ -11,16 +14,11 @@ from firebase_functions.storage_fn import (
     StorageObjectData,
     on_object_finalized,
 )
-
 from google.cloud import storage
 from google.cloud.exceptions import NotFound
 from google.cloud.firestore import Client, transactional
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud.firestore_v1 import Transaction
-
-from collections import deque
-from pathlib import Path
-import re
 
 
 @transactional

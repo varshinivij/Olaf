@@ -4,7 +4,7 @@
 ### FOR THE MOST UP-TO-DATE STANDARD
 ### ----------------------------------------------
 from typing import Callable, Dict, Any, Tuple
-from utils.agent_utils import extract_code_and_text, chat_completion_function
+from functions.services.agent_service import extract_code_and_text, chat_completion_function
 import openai
 import json
 import re

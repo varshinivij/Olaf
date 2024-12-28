@@ -1,8 +1,8 @@
 import json
 from firebase_functions.https_fn import Request, Response
 from utils.validation import validate_name_maker_request
-from utils.agent_utils import chat_completion
-from utils.history import History
+from functions.services.agent_service import chat_completion
+from functions.models.history import History
 
 def name_maker_handler(req: Request) -> Response:
     try:

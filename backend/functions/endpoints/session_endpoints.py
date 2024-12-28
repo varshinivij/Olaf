@@ -5,7 +5,7 @@ from firebase_functions.options import CorsOptions
 from functions_framework import http
 
 from functions.services.session_service import SessionService
-from functions.utils.agent_utils import chat_completion_summary, create_pdf
+from functions.services.agent_service import chat_completion_summary, create_pdf
 from functions.utils.validation import ValidationError, expect_values_in_request_body
 
 

@@ -1,5 +1,5 @@
-import json
 from typing import List
+import json
 
 from functions.models.chat_message import ChatMessage, ChatMessageRole, ChatMessageType
 

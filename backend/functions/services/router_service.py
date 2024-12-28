@@ -3,7 +3,7 @@ from typing import List
 from agents.codemaster_agent import CodeMasterAgent
 from functions.models.chat_message import ChatMessage
 from functions.routes.router import Router
-from utils.history import History
+from functions.models.history import History
 
 
 def master_route_function(session_history: List[ChatMessage]):
