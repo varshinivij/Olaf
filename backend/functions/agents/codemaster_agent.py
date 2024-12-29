@@ -1,10 +1,5 @@
 from functions.datastructures.history import History
-from functions.services.agent_service import chat_completion_function,chat_completion, extract_python_code
-import json
-import openai
-from functions.services.e2b_service import Executor
 from functions.services.agent_service import chat_completion_api
-from functions.services.agent_service import chat_completion_plan
 from typing import List, Dict, Any, Tuple, Callable
 from agents.abstract_agent import AbstractAgent
 

@@ -1,29 +1,33 @@
+from typing import List
 from openai import OpenAI
 import requests
 import re
 import json
 from fpdf import FPDF
 
+from functions.datastructures.history import History
+from functions.models.chat_message import ChatMessage
 
-api_key = "REMOVED"
-url = "https://api.openai.com/v1/chat/completions"
-client = OpenAI(api_key=api_key)
 
-def chat_completion(history, tools=None):
+openai_api_key = "REMOVED"
+openai_api_url = "https://api.openai.com/v1/chat/completions"
+openai_client = OpenAI(api_key=openai_api_key)
 
+
+def chat_completion(history: History, tools=None):
     headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
+        "Authorization": f"Bearer {openai_api_key}",
+        "Content-Type": "application/json",
+    }
 
     payload = {
         "model": "gpt-4o",
         "messages": history.get_history(),
         "temperature": 0.1,
-        "stream": True
+        "stream": True,
     }
 
-    response = requests.post(url, headers=headers, json=payload, stream=True)
+    response = requests.post(openai_api_url, headers=headers, json=payload, stream=True)
 
     if response.status_code == 200:
         for chunk in response.iter_lines(decode_unicode=True):
@@ -40,39 +44,41 @@ def chat_completion(history, tools=None):
         return None
 
 
-def chat_completion_function(history, tools=None):
-    stream = client.chat.completions.create(
+def chat_completion_function(history: History, tools):
+    stream = openai_client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": "Call the function best suited to find the response"},
-            *history.get_history(),
-        ],
+            {
+                "role": "system",
+                "content": "Call the function best suited to find the response",
+            },
+        ]
+        + history.get_history(),  # type: ignore
         temperature=0.1,
-        tools= tools,
+        tools=tools,
     )
 
     return stream
 
 
-def chat_completion_api(history, system_prompt, tools=None):
-
+def chat_completion_api(history: History, system_prompt: str, tools=None):
     headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
+        "Authorization": f"Bearer {openai_api_key}",
+        "Content-Type": "application/json",
+    }
 
     payload = {
         "model": "gpt-4o",
         "messages": [
             {"role": "system", "content": system_prompt},
-            *history.get_history(),
-        ],
+        ]
+        + history.get_history(),
         "temperature": 0.1,
         "tools": tools,
-        "stream": True
+        "stream": True,
     }
 
-    response = requests.post(url, headers=headers, json=payload, stream=True)
+    response = requests.post(openai_api_url, headers=headers, json=payload, stream=True)
 
     if response.status_code == 200:
         for chunk in response.iter_lines(decode_unicode=True):
@@ -89,19 +95,18 @@ def chat_completion_api(history, system_prompt, tools=None):
         return None
 
 
-def chat_completion_plan(history, system_prompt, tools=None):
-
+def chat_completion_plan(history: History, system_prompt: str, tools=None):
     headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
+        "Authorization": f"Bearer {openai_api_key}",
+        "Content-Type": "application/json",
+    }
 
     payload = {
         "model": "gpt-4o-2024-08-06",
         "messages": [
             {"role": "system", "content": system_prompt},
-            *history.get_history(),
-        ],
+        ]
+        + history.get_history(),
         "temperature": 0.1,
         "tools": tools,
         "response_format": {
@@ -113,7 +118,7 @@ def chat_completion_plan(history, system_prompt, tools=None):
                     "properties": {
                         "overview": {
                             "type": "string",
-                            "description": "A brief overview of the entire plan."
+                            "description": "A brief overview of the entire plan.",
                         },
                         "steps": {
                             "type": "array",
@@ -121,34 +126,49 @@ def chat_completion_plan(history, system_prompt, tools=None):
                                 "type": "object",
                                 "properties": {
                                     "step_number": {"type": "integer"},
-                                    "title": {"type": "string", "description": "A short title or name for the step."},
-                                    "description": {"type": "string", "description": "A detailed explanation of what this step involves."},
+                                    "title": {
+                                        "type": "string",
+                                        "description": "A short title or name for the step.",
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "A detailed explanation of what this step involves.",
+                                    },
                                     "dependencies": {
                                         "type": "array",
                                         "items": {"type": "string"},
-                                        "description": "Any prerequisites or dependencies required for this step."
+                                        "description": "Any prerequisites or dependencies required for this step.",
                                     },
-                                    "expected_output": {"type": "string", "description": "The expected result or output of this step."}
+                                    "expected_output": {
+                                        "type": "string",
+                                        "description": "The expected result or output of this step.",
+                                    },
                                 },
-                                "required": ["step_number", "title", "description", "dependencies", "expected_output"],
-                                "additionalProperties": False
-                            }
+                                "required": [
+                                    "step_number",
+                                    "title",
+                                    "description",
+                                    "dependencies",
+                                    "expected_output",
+                                ],
+                                "additionalProperties": False,
+                            },
                         },
                         "final_check": {
                             "type": "string",
-                            "description": "A final review or checklist after all steps are completed."
-                        }
+                            "description": "A final review or checklist after all steps are completed.",
+                        },
                     },
                     "required": ["overview", "steps", "final_check"],
-                    "additionalProperties": False
+                    "additionalProperties": False,
                 },
-                "strict": True
-            }
+                "strict": True,
+            },
         },
-        "stream": True
+        "stream": True,
     }
 
-    response = requests.post(url, headers=headers, json=payload, stream=True)
+    response = requests.post(openai_api_url, headers=headers, json=payload, stream=True)
 
     if response.status_code == 200:
         for chunk in response.iter_lines(decode_unicode=True):
@@ -165,7 +185,7 @@ def chat_completion_plan(history, system_prompt, tools=None):
         return None
 
 
-def extract_python_code(text):
+def extract_python_code(text: str) -> str:
     """
     Extract the Python code from the provided text string.
 
@@ -175,7 +195,7 @@ def extract_python_code(text):
     Returns:
     str: The extracted Python code
     """
-    code_pattern = re.compile(r'```python(.*?)```', re.DOTALL)
+    code_pattern = re.compile(r"```python(.*?)```", re.DOTALL)
     match = code_pattern.search(text)
 
     if match:
@@ -183,11 +203,12 @@ def extract_python_code(text):
     else:
         return "No Python code found in the input text."
 
+
 def extract_code_and_text(content: str) -> tuple[str, str]:
-    code_blocks = re.findall(r'```(.*?)```', content, re.DOTALL)
-    text_parts = re.split(r'```.*?```', content, flags=re.DOTALL)
-    text = ' '.join([part.strip() for part in text_parts if part.strip()])
-    code = '\n'.join([block.strip() for block in code_blocks if block.strip()])
+    code_blocks = re.findall(r"```(.*?)```", content, re.DOTALL)
+    text_parts = re.split(r"```.*?```", content, flags=re.DOTALL)
+    text = " ".join([part.strip() for part in text_parts if part.strip()])
+    code = "\n".join([block.strip() for block in code_blocks if block.strip()])
     return text, code
 
 
@@ -195,38 +216,53 @@ def stream(agent):
     for chunk in agent.generate():
         print(chunk)
         try:
-            content = chunk['choices'][0]['delta']['content']
-            yield content.encode('utf-8')
+            content = chunk["choices"][0]["delta"]["content"]
+            yield content.encode("utf-8")
         except:
-            if (chunk.startswith("Response: ")):
-                yield chunk.replace("Response: ", "").encode('utf-8')
+            if chunk.startswith("Response: "):
+                yield chunk.replace("Response: ", "").encode("utf-8")
             continue
 
-def chat_completion_summary(history):
 
+class AgentService:
+    """
+    Service class containing utility methods for agents.
+    """
+
+    def __init__(self):
+        pass
+
+
+def chat_completion_summary(history: History) -> str | None:
+    """
+    Returns a summary of a chat history as a string. Returns None if response
+    fails.
+    """
     headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-
-    history.append({"role": "user", "content": "Please provide a clear and structured summary of the entire conversation in a user-assistant format, detailing exactly who asked what and who responded with what. Focus solely on the main points discussed without any introductory or concluding remarks. Ensure the summary is easily understandable to non-technical individuals.", "type": "text"})
-
-    payload = {
-        "model": "gpt-4o",
-        "messages": history,
-        "temperature": 0.1
+        "Authorization": f"Bearer {openai_api_key}",
+        "Content-Type": "application/json",
     }
 
-    response = requests.post(url, headers=headers, json=payload, stream=True)
+    history.log(
+        role="user",
+        content="Please provide a clear and structured summary of the entire conversation in a user-assistant format, detailing exactly who asked what and who responded with what. Focus solely on the main points discussed without any introductory or concluding remarks. Ensure the summary is easily understandable to non-technical individuals.",
+        type="text",
+    )
 
-    if response.status_code == 200:
-        return response.json()
+    payload = {"model": "gpt-4o", "messages": history, "temperature": 0.1}
+
+    response = requests.post(openai_api_url, headers=headers, json=payload, stream=True)
+    response_data = response.json()
+
+    if response.status_code == 200 and "choices" in response_data:
+        return response_data["choices"][0]["message"]["content"]
 
     else:
         print(f"Error: {response.status_code}, {response.text}")
         return None
 
-def create_pdf(conversation_summary, session_id):
+
+def create_pdf(conversation_summary: str, session_id: str) -> bytes:
     """
     Generates a structured PDF with a clear heading and formatted content.
     """
@@ -236,12 +272,12 @@ def create_pdf(conversation_summary, session_id):
 
     # Set title font for the heading
     pdf.set_font("Helvetica", style="B", size=16)
-    pdf.cell(0, 10, "Session Summary", ln=True, align='C')
+    pdf.cell(0, 10, "Session Summary", ln=True, align="C")
     pdf.ln(10)
 
     # Add session ID as a subtitle
     pdf.set_font("Helvetica", style="B", size=12)
-    pdf.cell(0, 10, f"Session ID: {session_id}", ln=True, align='L')
+    pdf.cell(0, 10, f"Session ID: {session_id}", ln=True, align="L")
     pdf.ln(5)
 
     # Add conversation summary content
@@ -249,5 +285,6 @@ def create_pdf(conversation_summary, session_id):
     pdf.multi_cell(0, 8, conversation_summary)
 
     # Output PDF as a string (bytes)
-    pdf_output = pdf.output(dest='S').encode('latin1')
-    return pdf_output
+    pdf_output: str = pdf.output(dest="S")  # type: ignore
+    pdf_bytes = pdf_output.encode("latin1")
+    return pdf_bytes

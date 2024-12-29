@@ -9,11 +9,11 @@ class History:
     Utility class for handling chat history. Wraps a list of ChatMessages.
     """
 
-    def __init__(self, system: str | List[ChatMessage]):
-        if isinstance(system, str):
-            self.history: List[ChatMessage] = json.loads(system)[0]
+    def __init__(self, messages: str | List[ChatMessage]):
+        if isinstance(messages, str):
+            self.history: List[ChatMessage] = json.loads(messages)[0]
         else:
-            self.history: List[ChatMessage] = system
+            self.history: List[ChatMessage] = messages
 
     def log(self, role: ChatMessageRole, content: str, type: ChatMessageType) -> None:
         entry: ChatMessage = {"role": role, "content": content, "type": type}

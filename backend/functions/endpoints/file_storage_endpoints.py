@@ -101,7 +101,7 @@ def handle_user_file_upload(event: CloudEvent[StorageObjectData]) -> None:
     user_service = UserService()
 
     # Handle user file upload
-    if user_file_match:
+    if user_file_match is not None:
         user_id, upload_path = user_file_match.groups()
 
         if not user_service.get_user_exists(user_id):
@@ -112,7 +112,7 @@ def handle_user_file_upload(event: CloudEvent[StorageObjectData]) -> None:
         )
 
     # Handle session image upload
-    elif session_image_match:
+    elif session_image_match is not None:
         user_id, upload_path = session_image_match.groups()
 
         if not user_service.get_user_exists(user_id):

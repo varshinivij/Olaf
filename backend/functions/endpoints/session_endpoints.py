@@ -3,6 +3,7 @@ import json
 from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
 
+from functions.datastructures.history import History
 from functions.services.agent_service import chat_completion_summary, create_pdf
 from functions.services.session_service import SessionService
 from functions.utils.validation import ValidationError, expect_values_in_request_body
@@ -41,22 +42,16 @@ def get_session_summary(req: Request) -> Response:
         session_service = SessionService()
         session_data = session_service.get_session(session_id)
 
-        if not session_data:
+        if session_data is None:
             raise ValidationError("Session not found")
 
-        history = session_data.get("history", [])
-
-        # Generate summary from chat_completion_summary
+        history = History(session_data.get("history", []))
         summary_response = chat_completion_summary(history)
-        if not summary_response or "choices" not in summary_response:
+        if summary_response is None:
             raise ValueError("Failed to generate summary")
 
-        summary_text = summary_response["choices"][0]["message"]["content"]
+        pdf_output = create_pdf(summary_response, session_id)
 
-        # Generate PDF content as bytes
-        pdf_output = create_pdf(summary_text, session_id)
-
-        # Return the PDF content as a response
         return Response(
             pdf_output,
             content_type="application/pdf",

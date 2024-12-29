@@ -3,7 +3,7 @@ from firebase_admin import firestore
 
 class UserService:
     """
-    Service class containing utility methods for users.
+    Service class containing utility methods for user endpoints.
     """
 
     def __init__(self):
