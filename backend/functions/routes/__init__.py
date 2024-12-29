@@ -1,1 +1,1 @@
-import functions.routes.masteragent_route as masteragent_route
+import functions.routes.masteragent_route
