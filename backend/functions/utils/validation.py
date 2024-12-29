@@ -2,6 +2,7 @@ from typing import Any, Iterable
 
 from firebase_admin import auth
 from firebase_functions.https_fn import CallableRequest, Request
+from werkzeug.datastructures import MultiDict
 
 
 class ValidationError(Exception):
@@ -13,7 +14,7 @@ class ValidationError(Exception):
         super().__init__(message)
 
 
-def validate_request_id_token(req: Request) -> dict:
+def validate_request_id_token(req: Request) -> dict[str, Any]:
     """
     Validates the Firebase ID token passed in a request's Authorization header.
     Returns the decoded token as a dict containing user data. Example returned
@@ -82,7 +83,9 @@ def validate_name_maker_request(req: Request):
     return data["history"]
 
 
-def expect_values_in_request_args(req: Request, values: Iterable[str]):
+def expect_values_in_request_args(
+    req: Request, values: Iterable[str]
+) -> MultiDict[str, str]:
     """
     Validates that all specified values are present in query args. Returns args
     after validating.
@@ -103,7 +106,7 @@ def expect_values_in_request_body(
     """
     data = req.json
 
-    if type(data) != dict:
+    if not isinstance(data, dict):
         raise ValidationError("JSON object body expected")
 
     for value in values:

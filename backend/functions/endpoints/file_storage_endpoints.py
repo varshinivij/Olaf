@@ -7,6 +7,7 @@ from firebase_functions.storage_fn import (
     StorageObjectData,
     on_object_finalized,
 )
+
 from functions.services.file_storage_service import FileStorageService
 from functions.services.user_service import UserService
 from functions.utils.validation import ValidationError, expect_values_in_request_data
