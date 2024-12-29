@@ -81,6 +81,12 @@ Follow these instructions to set up and deploy the Firebase Cloud Functions for 
    firebase deploy --only functions
    ```
 
+2. **Run the Firebase emulator:**
+
+   ```sh
+   firebase emulators:start --only functions
+   ```
+
 ### Usage
 
 To test and use the deployed functions, follow these steps:
@@ -107,17 +113,14 @@ In this backend architecture, we integrate multiple components to handle user re
 ### Agents, Routers, and Pipes
 
 1. **Agent**:
-
    - Receives a prompt and conversation history.
    - Interacts with tools (e.g., language models) and returns `(destination, response_generator)` results.
    - Doesn't worry about routing or where data came from, just focuses on producing a meaningful response.
 2. **Pipe**:
-
    - Applies transformations to session data (e.g., cleaning input, adding metadata, filtering sensitive content).
    - Is asynchronous and composable, so multiple pipes can be chained.
    - Doesn’t know about routes or agents; just transforms data.
 3. **Router**:
-
    - Receives session data and a target route.
    - Applies global pipes and route-specific pipes.
    - Calls the assigned agent route function, retrieves `(destination, response_generator)`.

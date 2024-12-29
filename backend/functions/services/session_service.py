@@ -3,7 +3,7 @@ from typing import List, Optional
 from firebase_admin import firestore
 from google.cloud.firestore import ArrayUnion
 
-from functions.models.chat_message import ChatMessage, ChatMessageRole
+from functions.models.chat_message import ChatMessage
 from functions.models.session import Session
 
 
@@ -16,18 +16,14 @@ class SessionService:
         self.db = firestore.client()
 
     def add_message_to_session(
-        self, session_id: str, message: str, role: ChatMessageRole
+        self, session_id: str, message: ChatMessage
     ) -> Session | None:
         """
         Adds a message to a given session in Firestore.
         """
         return self.update_session(
             session_id,
-            {
-                "history": ArrayUnion(
-                    [{"type": "text", "role": role, "content": message}]
-                )
-            },
+            {"history": ArrayUnion([message])},
         )
 
     def create_session(
