@@ -1,8 +1,9 @@
-import logging
 from typing import Callable, Dict, Generator, List, Any
+import logging
 
-from functions.models.session import Session
-from pipers.pipe import Pipe
+from ..models.session import Session
+from ..pipers.pipe import Pipe
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -119,7 +120,7 @@ class Router:
             return response_generator
         elif destination in self.routes:
             # Recursively handle routing
-            return self.route(destination, processed_data) # type: ignore
+            return self.route(destination, processed_data)  # type: ignore
         else:
             logger.error(f"Unknown destination: {destination}")
             raise ValueError(f"Unknown destination: {destination}")
@@ -146,7 +147,9 @@ class Router:
 
         # Call the route function without any pipes
         destination, response_generator = self.routes[key](session_data)
-        logger.debug(f"Route '{key}' returned destination '{destination}' without pipes.")
+        logger.debug(
+            f"Route '{key}' returned destination '{destination}' without pipes."
+        )
 
         if destination == "user":
             return response_generator

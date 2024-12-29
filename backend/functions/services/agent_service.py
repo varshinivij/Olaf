@@ -5,7 +5,8 @@ import json
 from fpdf import FPDF
 from openai import OpenAI
 
-from functions.datastructures.history import History
+from ..datastructures.history import History
+
 
 openai_api_key = "REMOVED"
 openai_api_url = "https://api.openai.com/v1/chat/completions"

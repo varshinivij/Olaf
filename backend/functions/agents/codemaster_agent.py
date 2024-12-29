@@ -1,5 +1,5 @@
-from functions.datastructures.history import History
-from functions.services.agent_service import chat_completion_api
+from ..datastructures.history import History
+from ..services.agent_service import chat_completion_api
 from typing import List, Dict, Any, Tuple, Callable
 from agents.abstract_agent import AbstractAgent
 

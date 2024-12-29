@@ -4,12 +4,12 @@ import json
 from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
 
-from functions.datastructures.history import History
-from functions.datastructures.router import Router
-from functions.routes.masteragent_route import masteragent_route
-from functions.services.agent_service import chat_completion
-from functions.services.session_service import SessionService
-from functions.utils.validation import (
+from ..datastructures.history import History
+from ..datastructures.router import Router
+from ..routes.masteragent_route import masteragent_route
+from ..services.agent_service import chat_completion
+from ..services.session_service import SessionService
+from ..utils.validation import (
     validate_master_agent_request,
     validate_name_maker_request,
 )

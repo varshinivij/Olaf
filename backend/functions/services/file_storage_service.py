@@ -6,8 +6,8 @@ from google.cloud import storage
 from google.cloud.exceptions import NotFound
 from google.cloud.firestore_v1.base_query import FieldFilter
 
-from functions.models.session_image import SessionImage
-from functions.models.user_file import UserFile
+from ..models.session_image import SessionImage
+from ..models.user_file import UserFile
 
 
 class FileStorageService:
