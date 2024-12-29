@@ -5,13 +5,11 @@ import requests
 from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
 from flask import send_file
-from functions_framework import http
 
 from functions.services.e2b_service import E2BService
 from functions.utils.validation import ValidationError, expect_values_in_request_body
 
 
-@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["get"]))
 def sandbox_status(req: Request) -> Response:
     """
@@ -39,7 +37,6 @@ def sandbox_status(req: Request) -> Response:
         )
 
 
-@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def close_sandbox(req: Request) -> Response:
     """
@@ -68,7 +65,6 @@ def close_sandbox(req: Request) -> Response:
         )
 
 
-@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def request_sandbox(req: Request) -> Response:
     try:
@@ -86,7 +82,6 @@ def request_sandbox(req: Request) -> Response:
         )
 
 
-@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def upload_to_sandbox(req: Request) -> Response:
     """
@@ -162,7 +157,6 @@ def firebase_storage_to_sandbox(req: Request) -> Response:
         )
 
 
-@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def download_from_sandbox(req: Request) -> Response:
     """
@@ -199,7 +193,6 @@ def download_from_sandbox(req: Request) -> Response:
         )
 
 
-@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def execute_on_sandbox(req: Request) -> Response:
     """
@@ -263,7 +256,6 @@ def execute_on_sandbox(req: Request) -> Response:
         )
 
 
-@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def run_terminal_command(req: Request) -> Response:
     """

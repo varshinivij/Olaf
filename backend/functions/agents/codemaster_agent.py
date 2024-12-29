@@ -1,4 +1,4 @@
-from functions.models.history import History
+from functions.datastructures.history import History
 from functions.services.agent_service import chat_completion_function,chat_completion, extract_python_code
 import json
 import openai

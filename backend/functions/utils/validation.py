@@ -1,7 +1,7 @@
 from typing import Any, Iterable
 
 from firebase_admin import auth
-from firebase_functions.https_fn import Request
+from firebase_functions.https_fn import CallableRequest, Request
 
 
 class ValidationError(Exception):
@@ -94,7 +94,9 @@ def expect_values_in_request_args(req: Request, values: Iterable[str]):
     return req.args
 
 
-def expect_values_in_request_body(req: Request, values: Iterable[str]) -> dict[str, Any]:
+def expect_values_in_request_body(
+    req: Request, values: Iterable[str]
+) -> dict[Any, Any]:
     """
     Validates that all specified values are present in request body as a JSON
     object. Returns body after validating.
@@ -107,5 +109,21 @@ def expect_values_in_request_body(req: Request, values: Iterable[str]) -> dict[s
     for value in values:
         if value not in data:
             raise ValidationError(f"'{value}' is required in request body")
+
+    return data
+
+
+def expect_values_in_request_data(
+    req: CallableRequest, values: Iterable[str]
+) -> dict[Any, Any]:
+    """
+    Validates that all specified values are present in request data.
+    Returns body after validating. Only applicable to HTTP Callable functions.
+    """
+    data = dict(req.data)
+
+    for value in values:
+        if value not in data:
+            raise ValidationError(f"'{value}' is required in request data")
 
     return data

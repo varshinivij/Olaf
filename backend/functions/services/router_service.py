@@ -2,8 +2,8 @@ from typing import List
 
 from agents.codemaster_agent import CodeMasterAgent
 from functions.models.chat_message import ChatMessage
-from functions.routes.router import Router
-from functions.models.history import History
+from functions.datastructures.router import Router
+from functions.datastructures.history import History
 
 
 def master_route_function(session_history: List[ChatMessage]):

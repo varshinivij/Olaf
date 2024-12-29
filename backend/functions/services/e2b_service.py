@@ -93,13 +93,12 @@ class E2BService:
         Uploads files from Firebase Storage to the sandbox with the given
         sandbox_id.
         """
-        storage_client = storage.Client()
-        bucket = storage_client.bucket("twocube-web.appspot.com")
+        bucket_ref = storage.Client().bucket("twocube-web.appspot.com")
 
         sandbox = CodeInterpreter.reconnect(sandbox_id, api_key=self.e2b_api_key)
 
         for file_path in firebase_storage_file_paths:
-            blob = bucket.blob(file_path)
+            blob = bucket_ref.blob(file_path)
             file_size = blob.size
             print(f"Downloading file: {file_path}, size: {file_size} bytes")
             file_name = file_path.split("/")[-1]

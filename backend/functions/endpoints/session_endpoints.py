@@ -2,14 +2,12 @@ import json
 
 from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
-from functions_framework import http
 
-from functions.services.session_service import SessionService
 from functions.services.agent_service import chat_completion_summary, create_pdf
+from functions.services.session_service import SessionService
 from functions.utils.validation import ValidationError, expect_values_in_request_body
 
 
-@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["get"]))
 def get_sessions(req: Request) -> Response:
     try:
@@ -34,7 +32,6 @@ def get_sessions(req: Request) -> Response:
         )
 
 
-@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["get"]))
 def get_session_summary(req: Request) -> Response:
     try:
@@ -78,7 +75,6 @@ def get_session_summary(req: Request) -> Response:
         )
 
 
-@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["post"]))
 def rename_session(req: Request) -> Response:
     try:
@@ -102,7 +98,6 @@ def rename_session(req: Request) -> Response:
         return Response(json.dumps({"error": str(e)}), status=500)
 
 
-@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["delete"]))
 def delete_session(req: Request) -> Response:
     try:
@@ -125,7 +120,6 @@ def delete_session(req: Request) -> Response:
         return Response(json.dumps({"error": str(e)}), status=500)
 
 
-@http
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["delete"]))
 def delete_all_sessions(req: Request) -> Response:
     try:
