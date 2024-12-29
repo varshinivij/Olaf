@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Dict, List, Any
+from typing import Callable, Dict, Generator, List, Any
 
 from functions.models.session import Session
 from pipers.pipe import Pipe
@@ -78,7 +78,7 @@ class Router:
         """
         return list(self.routes.keys())
 
-    def route(self, key: str, session_data: Session) -> Any:
+    def route(self, key: str, session_data: Session) -> Generator:
         """
         Route the given session data through the appropriate pipes and to the specified route.
 
