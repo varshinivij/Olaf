@@ -12,11 +12,11 @@ def master_agent_interaction_handler(req: Request) -> Response:
         if not session_id:
             session_id = None
         # Retrieve or create session with the new user message
-        session_id, session_data = get_or_create_session(user_id, project_id, message, session_id) # type: ignore
+        session_id, session_data = get_or_create_session(user_id, project_id, message, session_id)
 
         # Filter out non-text/code/error messages
         session_data["history"] = [
-            m for m in session_data["history"] 
+            m for m in session_data["history"]
             if m.get("type") in ["text", "code", "error", "result", "executedCode"]
         ]
 

@@ -4,7 +4,7 @@ from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
 
 from functions.datastructures.history import History
-from functions.services.agent_service import chat_completion_summary, create_pdf
+from functions.services.agent_service import AgentService
 from functions.services.session_service import SessionService
 from functions.utils.validation import ValidationError, expect_values_in_request_body
 
@@ -45,12 +45,14 @@ def get_session_summary(req: Request) -> Response:
         if session_data is None:
             raise ValidationError("Session not found")
 
+        agent_service = AgentService()
         history = History(session_data.get("history", []))
-        summary_response = chat_completion_summary(history)
+
+        summary_response = agent_service.chat_completion_summary(history)
         if summary_response is None:
             raise ValueError("Failed to generate summary")
 
-        pdf_output = create_pdf(summary_response, session_id)
+        pdf_output = agent_service.create_pdf_from_summary(summary_response, session_id)
 
         return Response(
             pdf_output,

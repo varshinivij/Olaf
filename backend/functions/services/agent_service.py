@@ -1,13 +1,11 @@
-from typing import List
-from openai import OpenAI
 import requests
 import re
 import json
+
 from fpdf import FPDF
+from openai import OpenAI
 
 from functions.datastructures.history import History
-from functions.models.chat_message import ChatMessage
-
 
 openai_api_key = "REMOVED"
 openai_api_url = "https://api.openai.com/v1/chat/completions"
@@ -185,25 +183,6 @@ def chat_completion_plan(history: History, system_prompt: str, tools=None):
         return None
 
 
-def extract_python_code(text: str) -> str:
-    """
-    Extract the Python code from the provided text string.
-
-    Args:
-    text (str): The input text containing the Python code
-
-    Returns:
-    str: The extracted Python code
-    """
-    code_pattern = re.compile(r"```python(.*?)```", re.DOTALL)
-    match = code_pattern.search(text)
-
-    if match:
-        return match.group(1).strip()
-    else:
-        return "No Python code found in the input text."
-
-
 def extract_code_and_text(content: str) -> tuple[str, str]:
     code_blocks = re.findall(r"```(.*?)```", content, re.DOTALL)
     text_parts = re.split(r"```.*?```", content, flags=re.DOTALL)
@@ -212,79 +191,120 @@ def extract_code_and_text(content: str) -> tuple[str, str]:
     return text, code
 
 
-def stream(agent):
-    for chunk in agent.generate():
-        print(chunk)
-        try:
-            content = chunk["choices"][0]["delta"]["content"]
-            yield content.encode("utf-8")
-        except:
-            if chunk.startswith("Response: "):
-                yield chunk.replace("Response: ", "").encode("utf-8")
-            continue
-
-
 class AgentService:
     """
     Service class containing utility methods for agents.
+
+    NOTE: These functions are are very messy and need refactoring. But since I
+    haven't worked on this part, I'm leaving it to the relevant people.
+
+    NOTE: The above methods haven't been moved into the AgentService class
+    because they are used by the agents, which I will also leave to be worked on
+    by the relevant people. Please move them into this class during refactoring.
+
+    Some notes on what to fix:
+    1. Many methods do the same thing or are unused. Please keep consistent.
+    2. Please put type annotations on parameters and returns.
+    3. Some generator functions mix yield and return statements. Please keep
+       consistent, returns are unnecessary for generators.
+    4. Our GPT calls seem to be a mix of HTTP requests and the OpenAI Python SDK.
+       Please keep consistent. I'd recommend using the SDK for type annotating +
+       convenience + no gigantic string payloads.
+    5. Basic docstrings on functions would be nice. No need to be complicated,
+       but a short description would be helpful. (ie. Previously a function was
+       accepting @param: history as List[ChatMessage] instead of a History object.)
     """
 
     def __init__(self):
-        pass
+        # we should move this to a secret store and load from there eventually
+        self.openai_api_key = "REMOVED"
+        self.openai_api_url = "https://api.openai.com/v1/chat/completions"
+        self.openai_client = OpenAI(api_key=openai_api_key)
 
+    def chat_completion_summary(self, history: History) -> str | None:
+        """
+        Returns a summary of a chat history as a string. Returns None if response
+        fails.
+        """
+        headers = {
+            "Authorization": f"Bearer {openai_api_key}",
+            "Content-Type": "application/json",
+        }
 
-def chat_completion_summary(history: History) -> str | None:
-    """
-    Returns a summary of a chat history as a string. Returns None if response
-    fails.
-    """
-    headers = {
-        "Authorization": f"Bearer {openai_api_key}",
-        "Content-Type": "application/json",
-    }
+        history.log(
+            role="user",
+            content="Please provide a clear and structured summary of the entire conversation in a user-assistant format, detailing exactly who asked what and who responded with what. Focus solely on the main points discussed without any introductory or concluding remarks. Ensure the summary is easily understandable to non-technical individuals.",
+            type="text",
+        )
 
-    history.log(
-        role="user",
-        content="Please provide a clear and structured summary of the entire conversation in a user-assistant format, detailing exactly who asked what and who responded with what. Focus solely on the main points discussed without any introductory or concluding remarks. Ensure the summary is easily understandable to non-technical individuals.",
-        type="text",
-    )
+        payload = {"model": "gpt-4o", "messages": history, "temperature": 0.1}
 
-    payload = {"model": "gpt-4o", "messages": history, "temperature": 0.1}
+        response = requests.post(
+            openai_api_url, headers=headers, json=payload, stream=True
+        )
+        response_data = response.json()
 
-    response = requests.post(openai_api_url, headers=headers, json=payload, stream=True)
-    response_data = response.json()
+        if response.status_code == 200 and "choices" in response_data:
+            return response_data["choices"][0]["message"]["content"]
 
-    if response.status_code == 200 and "choices" in response_data:
-        return response_data["choices"][0]["message"]["content"]
+        else:
+            print(f"Error: {response.status_code}, {response.text}")
+            return None
 
-    else:
-        print(f"Error: {response.status_code}, {response.text}")
-        return None
+    def stream(self, agent):
+        for chunk in agent.generate():
+            print(chunk)
+            try:
+                content = chunk["choices"][0]["delta"]["content"]
+                yield content.encode("utf-8")
+            except:
+                if chunk.startswith("Response: "):
+                    yield chunk.replace("Response: ", "").encode("utf-8")
+                continue
 
+    def extract_python_code(self, text: str) -> str:
+        """
+        Extract the Python code from the provided text string.
 
-def create_pdf(conversation_summary: str, session_id: str) -> bytes:
-    """
-    Generates a structured PDF with a clear heading and formatted content.
-    """
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
+        Args:
+        text (str): The input text containing the Python code
 
-    # Set title font for the heading
-    pdf.set_font("Helvetica", style="B", size=16)
-    pdf.cell(0, 10, "Session Summary", ln=True, align="C")
-    pdf.ln(10)
+        Returns:
+        str: The extracted Python code
+        """
+        code_pattern = re.compile(r"```python(.*?)```", re.DOTALL)
+        match = code_pattern.search(text)
 
-    # Add session ID as a subtitle
-    pdf.set_font("Helvetica", style="B", size=12)
-    pdf.cell(0, 10, f"Session ID: {session_id}", ln=True, align="L")
-    pdf.ln(5)
+        if match:
+            return match.group(1).strip()
+        else:
+            return "No Python code found in the input text."
 
-    # Add conversation summary content
-    pdf.set_font("Helvetica", size=11)
-    pdf.multi_cell(0, 8, conversation_summary)
+    def create_pdf_from_summary(
+        self, conversation_summary: str, session_id: str
+    ) -> bytes:
+        """
+        Generates a structured PDF with a clear heading and formatted content.
+        """
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
 
-    # Output PDF as a string (bytes)
-    pdf_output: str = pdf.output(dest="S")  # type: ignore
-    pdf_bytes = pdf_output.encode("latin1")
-    return pdf_bytes
+        # Set title font for the heading
+        pdf.set_font("Helvetica", style="B", size=16)
+        pdf.cell(0, 10, "Session Summary", ln=True, align="C")
+        pdf.ln(10)
+
+        # Add session ID as a subtitle
+        pdf.set_font("Helvetica", style="B", size=12)
+        pdf.cell(0, 10, f"Session ID: {session_id}", ln=True, align="L")
+        pdf.ln(5)
+
+        # Add conversation summary content
+        pdf.set_font("Helvetica", size=11)
+        pdf.multi_cell(0, 8, conversation_summary)
+
+        # Output PDF as a string (bytes)
+        pdf_output: str = pdf.output(dest="S")  # type: ignore
+        pdf_bytes = pdf_output.encode("latin1")
+        return pdf_bytes
