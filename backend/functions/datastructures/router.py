@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Generator, List, Any
+from typing import Any, Callable, Dict, Generator, List, Tuple
 import logging
 
 from models.session import Session
@@ -7,6 +7,9 @@ from pipers.pipe import Pipe
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
+
+
+type Route = Callable[[Session], Tuple[str, Generator]]
 
 
 class Router:
