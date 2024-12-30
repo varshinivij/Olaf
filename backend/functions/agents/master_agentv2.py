@@ -6,8 +6,8 @@
 from typing import Callable, Dict, Any, Tuple
 import json
 
-from abstract_agent import AbstractAgent
-from ..services.agent_service import chat_completion_function
+from .abstract_agent import AbstractAgent
+from services.agent_service import chat_completion_function
 
 system_prompt = """
 You are a highly skilled bioinformatics agent specializing in single-cell RNA-seq data analysis using Python. Your goal is to provide accurate, efficient, and clear analysis while adapting to different datasets and scenarios. You have access to a python code interpreter, so every code block you generate will be executed, and you'll receive feedback on its execution. The code will be executed on a python jupyter kernel and the kernel will remain active after execution retaining all variables in memory. Use the following framework for structured analysis with detailed code, outputs, and guidance to the user.
@@ -174,10 +174,7 @@ Your objective is to guide the user through single-cell RNA-seq analysis, ensuri
 """
 
 
-system = {
-    "role": "system",
-    "content": system_prompt
-}
+system = {"role": "system", "content": system_prompt}
 
 
 class MasterAgent(AbstractAgent):
@@ -188,9 +185,7 @@ class MasterAgent(AbstractAgent):
     def _build_function_map(self) -> Dict[str, Callable]:
         # Map function names (as defined in function specs) to callables
         # Example: A simple function that just echoes the user's text
-        return {
-            "handle_simple_interaction": self._handle_simple_interaction
-        }
+        return {"handle_simple_interaction": self._handle_simple_interaction}
 
     def _handle_simple_interaction(self, text: str, destination: str) -> Any:
         """

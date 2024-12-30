@@ -1,2 +1,2 @@
-import prompts
-import validation
+from . import prompts
+from . import validation

@@ -1,4 +1,4 @@
-import agent_endpoints
-import e2b_endpoints
-import file_storage_endpoints
-import session_endpoints
+from . import agent_endpoints
+from . import e2b_endpoints
+from . import file_storage_endpoints
+from . import session_endpoints

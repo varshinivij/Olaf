@@ -3,10 +3,10 @@ import json
 from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
 
-from ..datastructures.history import History
-from ..services.agent_service import AgentService
-from ..services.session_service import SessionService
-from ..utils.validation import ValidationError, expect_values_in_request_body
+from datastructures.history import History
+from services.agent_service import AgentService
+from services.session_service import SessionService
+from utils.validation import ValidationError, expect_values_in_request_body
 
 
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["get"]))

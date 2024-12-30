@@ -8,9 +8,9 @@ from firebase_functions.storage_fn import (
     on_object_finalized,
 )
 
-from ..services.file_storage_service import FileStorageService
-from ..services.user_service import UserService
-from ..utils.validation import ValidationError, expect_values_in_request_data
+from services.file_storage_service import FileStorageService
+from services.user_service import UserService
+from utils.validation import ValidationError, expect_values_in_request_data
 
 
 @on_call(region="us-central1")

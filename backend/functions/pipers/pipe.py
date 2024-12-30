@@ -1,7 +1,7 @@
 from typing import List, Callable
 import logging
 
-from ..models.session import Session
+from models.session import Session
 
 
 logger = logging.getLogger(__name__)

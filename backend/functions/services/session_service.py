@@ -3,8 +3,8 @@ from typing import List, Optional
 from firebase_admin import firestore
 from google.cloud.firestore import ArrayUnion
 
-from ..models.chat_message import ChatMessage
-from ..models.session import Session
+from models.chat_message import ChatMessage
+from models.session import Session
 
 
 class SessionService:

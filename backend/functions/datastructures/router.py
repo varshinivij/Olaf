@@ -1,8 +1,8 @@
 from typing import Callable, Dict, Generator, List, Any
 import logging
 
-from ..models.session import Session
-from ..pipers.pipe import Pipe
+from models.session import Session
+from pipers.pipe import Pipe
 
 
 logger = logging.getLogger(__name__)

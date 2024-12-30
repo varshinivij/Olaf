@@ -1,2 +1,2 @@
-import history
-import router
+from . import history
+from . import router

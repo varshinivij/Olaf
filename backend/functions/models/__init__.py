@@ -1,6 +1,6 @@
-import chat_message
-import project
-import session_image
-import session
-import user_file
-import user
+from . import chat_message
+from . import project
+from . import session_image
+from . import session
+from . import user_file
+from . import user

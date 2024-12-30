@@ -1,1 +1,1 @@
-import masteragent_route
+from . import masteragent_route

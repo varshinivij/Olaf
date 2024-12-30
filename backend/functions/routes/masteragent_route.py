@@ -1,8 +1,8 @@
 from typing import List
 
-from ..agents.codemaster_agent import CodeMasterAgent
-from ..datastructures.history import History
-from ..models.chat_message import ChatMessage
+from agents.codemaster_agent import CodeMasterAgent
+from datastructures.history import History
+from models.chat_message import ChatMessage
 
 
 def masteragent_route(session_history: List[ChatMessage]):

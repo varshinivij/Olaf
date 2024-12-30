@@ -1,1 +1,1 @@
-import pipe
+from . import pipe

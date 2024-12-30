@@ -6,8 +6,8 @@ from firebase_functions.https_fn import Request, Response, on_request
 from firebase_functions.options import CorsOptions
 from flask import send_file
 
-from ..services.e2b_service import E2BService
-from ..utils.validation import ValidationError, expect_values_in_request_body
+from services.e2b_service import E2BService
+from utils.validation import ValidationError, expect_values_in_request_body
 
 
 @on_request(cors=CorsOptions(cors_origins="*", cors_methods=["get"]))

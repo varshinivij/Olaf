@@ -5,7 +5,7 @@ import json
 from fpdf import FPDF
 from openai import OpenAI
 
-from ..datastructures.history import History
+from datastructures.history import History
 
 
 openai_api_key = "REMOVED"

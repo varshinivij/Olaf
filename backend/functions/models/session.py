@@ -1,5 +1,5 @@
 from typing import List, TypedDict
-from chat_message import ChatMessage
+from .chat_message import ChatMessage
 
 
 class Session(TypedDict):

@@ -3,7 +3,7 @@
 ### PLEASE REFER TO THE ABSTRACT AGENT IMPLEMENTATION
 ### FOR THE MOST UP-TO-DATE STANDARD
 ### ----------------------------------------------
-from ..services.agent_service import extract_code_and_text, chat_completion_api, chat_completion_plan, chat_completion_function
+from services.agent_service import extract_code_and_text, chat_completion_api, chat_completion_plan, chat_completion_function
 import openai
 import json
 import re

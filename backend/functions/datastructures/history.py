@@ -1,7 +1,7 @@
 from typing import List
 import json
 
-from ..models.chat_message import ChatMessage, ChatMessageRole, ChatMessageType
+from models.chat_message import ChatMessage, ChatMessageRole, ChatMessageType
 
 
 class History:
