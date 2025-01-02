@@ -73,7 +73,7 @@ Follow these instructions to set up and deploy the Firebase Cloud Functions for 
 
    ```sh
    python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   source venv/bin/activate  # on Windows use `venv\Scripts\activate`
    pip install -r requirements.txt
    ```
 
@@ -179,7 +179,7 @@ Below is a brief overview describing the structure and purpose of each folder, l
 - `/datastructures`: Classes containing data structures, including the Router implementation.
 - `/endpoints`: Modules containing all public-facing endpoints exposed to Firebase Functions.
 - `/models`: Classes modeling database entities.
-- `/pipers`: Classes representating pipes, to be used in the Router. `/pipes` is reserved by Firebase.
+- `/pipers`: Classes representing pipes, to be used in the Router. `/pipes` is reserved by Firebase.
 - `/routes`: Modules containing routes as functions, each using agents, returning responses as generators, and specifying destination.
 - `/services`: Classes containing utility methods, database calls, and API calls for endpoints.
 - `/utils`: Miscellaneous utility files.
