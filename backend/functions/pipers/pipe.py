@@ -1,7 +1,11 @@
+from typing import List, Callable
 import logging
-from typing import List, Callable, Dict, Any
+
+from models.session import Session
+
 
 logger = logging.getLogger(__name__)
+
 
 class Pipe:
     """
@@ -15,19 +19,19 @@ class Pipe:
         2. Call `await pipe.process(session_data)` to apply all operations in order.
     """
 
-    def __init__(self, name: str, operations: List[Callable[[Dict[str, Any]], Any]]):
+    def __init__(self, name: str, operations: List[Callable[[Session], Session]] = []):
         """
         Initialize the Pipe.
 
         Args:
             name: A descriptive name for this pipeline of operations (e.g., "PreprocessingPipe").
-            operations: A list of async functions. Each function should accept a session dict and 
+            operations: A list of async functions. Each function should accept a session dict and
                         return a (possibly modified) session dict.
         """
         self.name = name
-        self.operations = operations if operations is not None else []
+        self.operations = operations
 
-    def process(self, session: Dict[str, Any]) -> Dict[str, Any]:
+    def process(self, session: Session) -> Session:
         """
         Asynchronously process the session data through each operation in sequence.
 
@@ -47,6 +51,8 @@ class Pipe:
             try:
                 processed_session = operation(processed_session)
             except Exception as e:
-                logger.exception(f"Error in pipe '{self.name}' at operation index {idx}: {str(e)}")
-                raise
+                logger.exception(
+                    f"Error in pipe '{self.name}' at operation index {idx}: {str(e)}"
+                )
+                raise e
         return processed_session
