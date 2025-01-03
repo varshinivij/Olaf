@@ -2,8 +2,8 @@ from datetime import datetime
 from typing import Literal, TypedDict
 
 
-type ProjectLanguage = Literal["Python"]
-type ProjectModel = Literal["GPT-4o"]
+ProjectLanguage = Literal["Python"]
+ProjectModel = Literal["GPT-4o"]
 
 
 class Project(TypedDict):

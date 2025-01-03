@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 
-type Route = Callable[[Session], Tuple[str, Generator]]
+Route = Callable[[Session], Tuple[str, Generator]]
 
 
 class Router:
