@@ -1,12 +1,7 @@
-from utils.history import History
-from utils.agent_utils import chat_completion_function,chat_completion, extract_python_code
-import json
-import openai
-from executor import Executor
-from utils.agent_utils import chat_completion_api
-from utils.agent_utils import chat_completion_plan
+from datastructures.history import History
+from services.agent_service import chat_completion_api
 from typing import List, Dict, Any, Tuple, Callable
-from agents.abstract_agent import AbstractAgent
+from .abstract_agent import AbstractAgent
 
 system_prompt = """
 You are a highly skilled bioinformatics agent specializing in single-cell RNA-seq data analysis using Python. Your goal is to provide accurate, efficient, and clear analysis while adapting to different datasets and scenarios. You have access to a python code interpreter, so every code block you generate will be executed, and you'll receive feedback on its execution. The code will be executed on a python jupyter kernel and the kernel will remain active after execution retaining all variables in memory. Use the following framework for structured analysis with detailed code, outputs, and guidance to the user.
@@ -172,12 +167,13 @@ psutil==6.0.0
 defusedxml==0.7.1
 requests==2.32.3
 
-You can proceed with executing code that utilizes any of these packages without needing to install them. Don't install any additional packages 
+You can proceed with executing code that utilizes any of these packages without needing to install them. Don't install any additional packages
 
 Your objective is to guide the user through single-cell RNA-seq analysis, ensuring accuracy, reproducibility, and meaningful insights from the data.
 """
 
 system = {"role": "system", "content": system_prompt}
+
 
 class CodeMasterAgent(AbstractAgent):
     """
@@ -226,8 +222,8 @@ class CodeMasterAgent(AbstractAgent):
         # The following call streams the response tokens from the LLM
         for chunk in chat_completion_api(self.history, self.system_prompt):
             try:
-                delta = chunk['choices'][0].get('delta', {})
-                content = delta.get('content', "")
+                delta = chunk["choices"][0].get("delta", {})
+                content = delta.get("content", "")
                 if content:
                     # Determine if this chunk is code or text
                     if content.startswith("```"):

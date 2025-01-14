@@ -1,26 +1,27 @@
-Below is an updated README that includes the engineering ideas discussed, as well as the illustrative flowchart. This added section provides clarity on how agents, routers, and pipes integrate, and how an API request flows through the system.
-
-# Two Cube Firebase Cloud Function
-
-This repository contains the code for Firebase Cloud Functions implemented in Python for the Two Cube project. Firebase Cloud Functions are used to execute backend code in response to events triggered by Firebase features and HTTPS requests.
+# Twocube Firebase Cloud Functions
 
 ## Table of Contents
 
 - [Introduction](#introduction)
 - [Features](#features)
 - [Getting Started](#getting-started)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Deployment](#deployment)
-- [Usage](#usage)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Deployment](#deployment)
+  - [Usage](#usage)
 - [Architecture Overview](#architecture-overview)
   - [Agents, Routers, and Pipes](#agents-routers-and-pipes)
   - [Data Flow Through the System](#data-flow-through-the-system)
-- [Mac Security Issues](#mac-security-issues)
+  - [Project Structure](#project-structure)
+- [MacOS Security Issues](#macos-security-issues)
 
 ## Introduction
 
-Firebase Cloud Functions allow you to run server-side code in response to events triggered by Firebase features and HTTPS requests. This repository demonstrates how to set up and deploy Python-based Firebase Cloud Functions for the Two Cube project.
+This repository contains the code for Firebase Cloud Functions implemented in Python for the Twocube project. Firebase Cloud Functions are used to execute backend code in response to events triggered by Firebase features and HTTPS requests.
+
+This README demonstrates how to set up and deploy Python-based Firebase Cloud Functions for the Twocube project.
+
+It also includes the engineering ideas behind our architecture as well as an illustrative flowchart. This section provides clarity on how agents, routers, and pipes integrate, and how an API request flows through the system, as well as clarifies our project folder structure.
 
 ## Features
 
@@ -31,7 +32,7 @@ Firebase Cloud Functions allow you to run server-side code in response to events
 
 ## Getting Started
 
-Follow these instructions to set up and deploy the Firebase Cloud Functions for your Two Cube project.
+Follow these instructions to set up and deploy the Firebase Cloud Functions for the Twocube project.
 
 ### Prerequisites
 
@@ -45,40 +46,55 @@ Follow these instructions to set up and deploy the Firebase Cloud Functions for 
 1. **Clone the repository:**
 
    ```sh
-   git clone https://github.com/yourusername/two-cube-firebase-cloud-function.git
-   cd two-cube-firebase-cloud-function
+   git clone https://github.com/TwoCube-ai/twocube-firebase-functions.git
+   cd twocube-firebase-functions
    ```
+
 2. **Install Firebase CLI:**
 
    ```sh
    npm install -g firebase-tools
    ```
+
 3. **Log in to Firebase:**
 
    ```sh
    firebase login
    ```
+
 4. **Initialize Firebase in your project directory:**
 
    ```sh
    firebase init functions
+   # during initialization, select Python as your language and follow the prompts
    ```
 
-   During initialization, select Python as your language and follow the prompts.
 5. **Set up a virtual environment and install dependencies:**
 
    ```sh
    python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   source venv/bin/activate  # on Windows use `venv\Scripts\activate`
    pip install -r requirements.txt
    ```
 
 ### Deployment
 
-1. **Deploy the functions to Firebase:**
+1. **Set the working directory:**
+
+   ```sh
+   cd functions
+   ```
+
+2. **Deploy the functions to Firebase:**
 
    ```sh
    firebase deploy --only functions
+   ```
+
+3. **OR deploy to the Firebase emulator for testing:**
+
+   ```sh
+   firebase emulators:start --only functions
    ```
 
 ### Usage
@@ -92,6 +108,7 @@ To test and use the deployed functions, follow these steps:
    ```sh
    curl -X GET https://us-central1-your-project-id.cloudfunctions.net/yourFunctionName
    ```
+
 2. **Event-driven functions:**
 
    Set up Firebase events (such as Firestore triggers) to invoke the functions automatically based on database changes.
@@ -107,17 +124,14 @@ In this backend architecture, we integrate multiple components to handle user re
 ### Agents, Routers, and Pipes
 
 1. **Agent**:
-
    - Receives a prompt and conversation history.
    - Interacts with tools (e.g., language models) and returns `(destination, response_generator)` results.
    - Doesn't worry about routing or where data came from, just focuses on producing a meaningful response.
 2. **Pipe**:
-
    - Applies transformations to session data (e.g., cleaning input, adding metadata, filtering sensitive content).
    - Is asynchronous and composable, so multiple pipes can be chained.
    - Doesn’t know about routes or agents; just transforms data.
 3. **Router**:
-
    - Receives session data and a target route.
    - Applies global pipes and route-specific pipes.
    - Calls the assigned agent route function, retrieves `(destination, response_generator)`.
@@ -157,7 +171,22 @@ This architecture ensures that:
 - Pipes focus on data transformations.
 - The Router focuses on orchestration, making it straightforward to trace the flow of data for new developers.
 
-## Mac Security Issues
+### Project Structure
+
+Below is a brief overview describing the structure and purpose of each folder, loosely based on Angular:
+
+- `/agents`: Classes representing agents, to be used by routes.
+- `/datastructures`: Classes containing data structures, including the Router implementation.
+- `/endpoints`: Modules containing all public-facing endpoints exposed to Firebase Functions.
+- `/models`: Classes modeling database entities.
+- `/pipers`: Classes representing pipes, to be used in the Router. `/pipes` is reserved by Firebase.
+- `/routes`: Modules containing routes as functions, each using agents, returning responses as generators, and specifying destination.
+- `/services`: Classes containing utility methods, database calls, and API calls for endpoints.
+- `/utils`: Miscellaneous utility files.
+
+Most endpoints use their respective services, while `agent_endpoints.py` streams responses using the Router data structure and routes imported from `/routes`.
+
+## MacOS Security Issues
 
 On macOS, you may need to run:
 

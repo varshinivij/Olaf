@@ -3,7 +3,7 @@
 ### PLEASE REFER TO THE ABSTRACT AGENT IMPLEMENTATION
 ### FOR THE MOST UP-TO-DATE STANDARD
 ### ----------------------------------------------
-from utils.agent_utils import extract_code_and_text, chat_completion_api, chat_completion_plan, chat_completion_function
+from services.agent_service import extract_code_and_text, chat_completion_api, chat_completion_plan, chat_completion_function
 import openai
 import json
 import re
@@ -167,7 +167,7 @@ psutil==6.0.0
 defusedxml==0.7.1
 requests==2.32.3
 
-You can proceed with executing code that utilizes any of these packages without needing to install them. Don't install any additional packages 
+You can proceed with executing code that utilizes any of these packages without needing to install them. Don't install any additional packages
 
 Your objective is to guide the user through single-cell RNA-seq analysis, ensuring accuracy, reproducibility, and meaningful insights from the data.
 """
@@ -214,7 +214,7 @@ class MasterAgent:
             #         "parameters": {
             #             "type": "object",
             #             "properties": {
-                            
+
             #             },
             #             "required": ["history"],
             #             "additionalProperties": False
@@ -236,7 +236,7 @@ class MasterAgent:
             #     }
             # },
         ]
-        
+
         self.function_map = {
             "handle_simple_interaction": self.handle_simple_interaction,
             "write_basic_code": self.write_basic_code,
@@ -254,7 +254,7 @@ class MasterAgent:
             self.history.upsert(self.system_prompt)
             # Call the chat completion API
             response = chat_completion_function(self.history, tools=self.functions)
-            
+
             if isinstance(response, openai.types.chat.ChatCompletion):
                 message = response.choices[0].message
                 if message.tool_calls:
@@ -274,7 +274,7 @@ class MasterAgent:
                 return "user", self.handle_simple_interaction(**args_dict) #type: ignore
         except Exception as e:
             return "error",str(e) #type: ignore
-        
+
     def route_message(self, destination: str, content: str) -> tuple[str, "Generator"]:
         # Separate code from text
         text, code = extract_code_and_text(content)
@@ -289,7 +289,7 @@ class MasterAgent:
     def handle_simple_interaction(self, text, destination='user'):
         """
         Handles simple user interactions, separating text and code.
-        
+
         Yields:
             Dict[str, str]: A dictionary with 'type' (either 'text' or 'code') and 'content'.
         """
@@ -313,7 +313,7 @@ class MasterAgent:
                     content_accumulated += content
             except KeyError:
                 continue
-        
+
         # Once the response is fully accumulated, process it
         split_content = extract_code_and_text(content_accumulated)
         print("Split Content: ", split_content)
@@ -322,16 +322,16 @@ class MasterAgent:
             print("Yielding Text: ", split_content['text'])
             yield {"type": "text", "content": split_content['text']}
             print("Yielded Text: ", split_content['text'])
-        
+
         # Yield code part
         if split_content['code']:
             yield {"type": "code", "content": split_content['code']}
-        
+
         # Log the full accumulated response
         self.history.log("assistant", content_accumulated)
 
     def write_basic_code(self):
-        yield "Response: code" 
+        yield "Response: code"
         result = ""
         for chunk in chat_completion_api(self.history, system_prompt):
             try:
@@ -341,7 +341,7 @@ class MasterAgent:
                     result += content
                 yield chunk
             except:
-                continue  
+                continue
         self.history.log("assistant", result)
 
     def decompose_complicated_task(self):
@@ -377,8 +377,5 @@ class MasterAgent:
                     result += content
                 yield chunk
             except:
-                continue    
+                continue
         self.history.log("assistant", result)
-    
-        
-
