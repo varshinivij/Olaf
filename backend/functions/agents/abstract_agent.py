@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Callable, Generator, Optional, Tuple
+from datastructures.history import History
 
 
 class AbstractAgent(ABC):
@@ -18,7 +19,7 @@ class AbstractAgent(ABC):
     def __init__(
         self,
         system_prompt: str,
-        history: Any,
+        history: History,
         functions: List[Dict[str, Any]] = [],
     ):
         """
