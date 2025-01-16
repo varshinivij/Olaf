@@ -21,7 +21,7 @@ import {
 
 import { UserService } from './user.service';
 
-import { Project, ProjectLanguage, ProjectModel } from '../models/project';
+import { Project, ProjectLanguage, ProjectModel, ProjectAgent } from '../models/project';
 import { User } from '../models/user';
 
 @Injectable({
@@ -173,7 +173,8 @@ export class ProjectService {
   async createProject(
     name: string,
     language: ProjectLanguage,
-    model: ProjectModel
+    model: ProjectModel,
+    agent: ProjectAgent,
   ): Promise<void> {
     if (!name.trim()) {
       return;
@@ -194,6 +195,7 @@ export class ProjectService {
       name: name,
       language: language,
       model: model,
+      agent: agent,
       updatedAt: new Date(),
     };
 
