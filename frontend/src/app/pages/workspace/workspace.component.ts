@@ -186,7 +186,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   newMessage: string = ''; // ngModel variable
   newSessionName: string = ''; // ngModel variable
   responseLoading: boolean = false; // only used for the "haven't typed anything" in chat window
-  executingCode: Set<Session['id']> = new Set(); // only used for the "haven't coded anything" in code wxindow
+  executingCode: Set<Session['id']> = new Set(); // only used for the "haven't coded anything" in code window
   isConnected: boolean = false;
   errorCount: number = 0;
 
@@ -315,16 +315,22 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
    * Add a file to the e2b sandbox using the firebase storage link
    * @param fileUrl storage download link url of the file
    */
-  async addFirebaseFileToSandbox(file: UserFile) {
-    const session = this.currentSession;
-
+  async addFirebaseFileToSandbox(file: UserFile, session: Session) {
     const uploadText = `Uploaded ${file.name}`;
     const uploadMessage: ChatMessage = {
       type: 'text',
       role: 'user',
       content: uploadText,
     };
-    this.sessionsService.addMessageToSession(session, uploadMessage);
+
+    this.sessionsService
+      .addMessageToSession(session, uploadMessage)
+      .then(() => {
+        if (!this.localSessionChunks.hasOwnProperty(session.id)) {
+          this.localSessionChunks[session.id] = [];
+        }
+      });
+
     this.responseLoading = true;
 
     if (!this.isConnected) {
@@ -333,10 +339,12 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
 
     const filePath = file.storageLink;
     console.log('adding file to sandbox ' + filePath);
+
     this.sandboxService.addFirebaseFilesToSandBox([filePath]).subscribe(
       (response: any) => {
         console.log('add file response: ', response);
         this.uploadedFiles.add(file.id);
+
         this.sendMessage(
           session,
           true,
@@ -454,10 +462,9 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     hidden = false,
     messageOveride = ''
   ): Promise<void> {
-    console.log(session);
-    console.log('sending message');
     if (
-      (this.newMessage.trim() && !(session.id in this.localSessionChunks)) ||
+      (this.newMessage.trim() &&
+        !this.localSessionChunks.hasOwnProperty(session.id)) ||
       messageOveride
     ) {
       let message = this.newMessage;
@@ -472,7 +479,6 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       } else {
         await this.addUserMessage(message);
       }
-      console.log('sent message');
 
       // Create an initial placeholder message in the chat
       this.localSessionChunks[session.id] = [
@@ -542,7 +548,6 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
 
   async executeLatestCode(session: Session) {
     const history = session.history;
-    console.log('running');
     const latestCodeMessage = history
       .slice()
       .reverse()
@@ -569,7 +574,6 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   executeCode(session: Session, code: string, message: ChatMessage) {
     this.sandboxService.executeCode(code).subscribe(
       (result: any) => {
-        console.log('code result: ', result);
         this.localSessionChunks[session.id] = [];
         // if result stdout is not empty, add it to the chat
         if (result.logs.stdout && result.logs.stdout.length > 0) {

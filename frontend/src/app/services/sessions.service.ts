@@ -86,7 +86,6 @@ export class SessionsService {
     const currentUser = await firstValueFrom(this.userService.getCurrentUser());
     if (currentUser) {
       this.userSessions = await this.queryUserSessions(currentUser.id);
-      console.log(this.userSessions);
     }
   }
 
