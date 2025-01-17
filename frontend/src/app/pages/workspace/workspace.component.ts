@@ -622,6 +622,10 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
         this.sessionsService
           .addMessagesToSession(session, newMessage)
           .then(() => {
+            delay(500);  // ugly delay to prevent the code output sometimes not showing
+                         // (i assume because the load below happens too fast.)
+          })
+          .then(() => {
             this.sessionsService.loadAllSessions();
           })
           .then(() => {
