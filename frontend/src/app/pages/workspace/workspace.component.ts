@@ -185,8 +185,8 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   currentSession: Session;
   newMessage: string = ''; // ngModel variable
   newSessionName: string = ''; // ngModel variable
-  responseLoading: boolean = false;
-  executingCode: boolean = false;
+  responseLoading: boolean = false; // only used for the "haven't typed anything" in chat window
+  executingCode: Set<Session['id']> = new Set(); // only used for the "haven't coded anything" in code wxindow
   isConnected: boolean = false;
   errorCount: number = 0;
 
@@ -194,6 +194,24 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   // this entire component needs serious refactoring on the chat/session side.
   // perhaps some logic should be moved to sessionservice/chatservice.
   uploadedFiles: Set<UserFile['id']> = new Set();
+
+  // stores local chunks of a session while it is being streamed
+  // if session ids are deleted after a chunk finishes.
+  localSessionChunks: { [K in Session['id']]: ChatMessage[] } = {};
+
+  /*
+    TODO IDEA on how to fix sessions
+
+    keep a variable here that stores chunks. Each time we make a request to the server, we store the chunk in a map corresponding to session id. Every time we get a partial response we store it in
+    chunk and display in Angular accordingly, and when the request finishes we clear the chunk map
+    and save it in DB properly. this will enable switching and still seeing chunks while handling DB
+    calls correctly.
+
+    for now, find all instances of changing this.currentsession and delay any writes until the
+    chunks fully finish.
+
+    rememeber, this issue only occurs on streamed messages.
+  */
 
   constructor(
     public router: Router,
@@ -284,7 +302,9 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     if (session.id === this.currentSession.id) {
       this.newSession();
     }
-    this.sessionsService.deleteSession(session);
+    this.sessionsService.deleteSession(session).then(() => {
+      this.sessionsService.loadAllSessions();
+    });
   }
 
   /*
@@ -296,16 +316,15 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
    * @param fileUrl storage download link url of the file
    */
   async addFirebaseFileToSandbox(file: UserFile) {
+    const session = this.currentSession;
+
     const uploadText = `Uploaded ${file.name}`;
     const uploadMessage: ChatMessage = {
       type: 'text',
       role: 'user',
       content: uploadText,
     };
-    this.sessionsService.addMessageToSession(
-      this.currentSession,
-      uploadMessage
-    );
+    this.sessionsService.addMessageToSession(session, uploadMessage);
     this.responseLoading = true;
 
     if (!this.isConnected) {
@@ -318,7 +337,11 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       (response: any) => {
         console.log('add file response: ', response);
         this.uploadedFiles.add(file.id);
-        this.sendMessage(true, "Please create code to analyze the uploaded file. Then ask the user a question about it. Ask immediate questions do not wait for code execution results.");
+        this.sendMessage(
+          session,
+          true,
+          'Please create code to analyze the uploaded file. Then ask the user a question about it. Ask immediate questions do not wait for code execution results.'
+        );
         this.responseLoading = false;
       },
       (error) => {
@@ -424,109 +447,113 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   }
 
   /**
- * Send a message to the generalist chat service
- */
-  async sendMessage(hidden=false, messageOveride=""): Promise<void> {
-    console.log(this.currentSession)
-    console.log("sending message")
-    if ((this.newMessage.trim() && !this.responseLoading) || messageOveride) {
+   * Send a message to the generalist chat service
+   */
+  async sendMessage(
+    session: Session,
+    hidden = false,
+    messageOveride = ''
+  ): Promise<void> {
+    console.log(session);
+    console.log('sending message');
+    if (
+      (this.newMessage.trim() && !(session.id in this.localSessionChunks)) ||
+      messageOveride
+    ) {
       let message = this.newMessage;
       this.newMessage = '';
       this.responseLoading = true;
-      
-      if(messageOveride){
-        message = messageOveride
+
+      if (messageOveride) {
+        message = messageOveride;
       }
       if (hidden) {
         await this.addHiddenMessage(message);
-      }
-      else {
+      } else {
         await this.addUserMessage(message);
       }
-      console.log("sent message")
+      console.log('sent message');
+
       // Create an initial placeholder message in the chat
-      const responseMessage: ChatMessage = {
-        type: 'text', // Default type
-        role: 'assistant',
-        content: '', // Initially empty
-      };
-  
-      // Add the placeholder message to the session
-      this.sessionsService.addMessageToLocalSession(
-        this.currentSession,
-        responseMessage
-      );
-  
+      this.localSessionChunks[session.id] = [
+        {
+          type: 'text', // Default type
+          role: 'assistant',
+          content: '', // Initially empty
+        },
+      ];
+
       // Extract necessary IDs
-      const sessionId = this.currentSession.id;
-      const userId = (await firstValueFrom(this.userService.getCurrentUser()))!.id;
+      const sessionId = session.id;
+      const userId = (await firstValueFrom(this.userService.getCurrentUser()))!
+        .id;
       const projectId = this.currentProject.id;
-  
+
       // Generate a new name for session if not yet done so
-      if (!this.currentSession.name) {
+      if (!session.name) {
         this.chatService
-          .generateChatNameFromHistory(this.currentSession.history)
+          .generateChatNameFromHistory(session.history)
           .then((name: string) => {
-            this.sessionsService.renameSession(this.currentSession, name);
+            this.sessionsService.renameSession(session, name);
           });
       }
-  
+
       // Subscribe to the SSE stream
-      this.chatService.sendMessage(message, sessionId, userId, projectId).subscribe({
-        next: (data: any) => {
-          
-          // Find the last assistant message in history
-          // This is the placeholder repsons 
-          let lastMessageIndex = this.currentSession.history.length - 1;
-          let lastMessage = this.currentSession.history[lastMessageIndex];
+      this.chatService
+        .sendMessage(message, sessionId, userId, projectId)
+        .subscribe({
+          next: (data: any) => {
+            let chunks = this.localSessionChunks[session.id];
 
-          // Each 'data' is a string sent from the server
-          // Parse and handle accordingly
-          const chunk = JSON.parse(data);
-          const { type, content } = chunk;
-  
-          // If the type changes, start a new message
-          if (lastMessage.type !== type) {
-            const newMessage: ChatMessage = {
-              type,
-              role: 'assistant',
-              content: '',
-            };
-            this.sessionsService.addMessageToLocalSession(this.currentSession, newMessage);
-            lastMessageIndex++;
-            lastMessage = this.currentSession.history[lastMessageIndex];
-          }
-          // Update the content
-          lastMessage.content += content;
-          this.cdr.detectChanges();
-          this.currentSession.history[lastMessageIndex] = lastMessage;
-        },
-        error: (error: any) => {
-          //TODO fix the fact that we rely on an end of chunk error to know when to stop loading
-          this.responseLoading = false;
-          this.sessionsService.loadAllSessions();
-          this.responseLoading = false;
-          this.executeLatestCode();
-        },
-      });
+            // Each 'data' is a string sent from the server
+            // Parse and handle accordingly
+            const chunk = JSON.parse(data);
+            const { type, content } = chunk;
 
+            // If the type changes, start a new message
+            if (chunks[chunks.length - 1].type !== type) {
+              chunks.push({
+                type,
+                role: 'assistant',
+                content: '',
+              });
+            }
+            // Update the content
+            chunks[chunks.length - 1].content += content;
+            this.cdr.detectChanges();
+          },
+          error: () => {
+            this.responseLoading = false;
+            this.cdr.detectChanges();
+
+            const newMessage = this.localSessionChunks[session.id];
+            delete this.localSessionChunks[session.id];
+
+            this.sessionsService
+              .addMessagesToSession(session, newMessage)
+              .then(() => {
+                this.sessionsService.loadAllSessions();
+                this.executeLatestCode(session);
+              });
+          },
+        });
     }
   }
 
-  async executeLatestCode() {
-    const history = this.currentSession.history;
-    console.log("running")
+  async executeLatestCode(session: Session) {
+    const history = session.history;
+    console.log('running');
     const latestCodeMessage = history
       .slice()
       .reverse()
       .find((message) => message.type === 'code');
     if (latestCodeMessage) {
-      this.executingCode = true;
+      this.executingCode.add(session.id);
       if (!this.isConnected) {
         await this.connectToSandbox();
       }
       let code = this.extractCode(latestCodeMessage.content);
-      this.executeCode(code, latestCodeMessage);
+      this.executeCode(session, code, latestCodeMessage);
     }
   }
 
@@ -539,10 +566,11 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     }
   }
 
-  executeCode(code: string, message: ChatMessage) {
+  executeCode(session: Session, code: string, message: ChatMessage) {
     this.sandboxService.executeCode(code).subscribe(
       (result: any) => {
         console.log('code result: ', result);
+        this.localSessionChunks[session.id] = [];
         // if result stdout is not empty, add it to the chat
         if (result.logs.stdout && result.logs.stdout.length > 0) {
           const stdoutContent = result.logs.stdout.join('\n');
@@ -551,10 +579,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
             role: 'assistant',
             content: stdoutContent,
           };
-          this.sessionsService.addMessageToLocalSession(
-            this.currentSession,
-            codeResultMessage
-          );
+          this.localSessionChunks[session.id].push(codeResultMessage);
         }
         if (result.results && result.results.length > 0) {
           if (result.results[0]['image/png']) {
@@ -564,21 +589,15 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
               role: 'assistant',
               content: base64Image,
             };
-            this.sessionsService.addMessageToLocalSession(
-              this.currentSession,
-              imageMessage
-            );
+            this.localSessionChunks[session.id].push(imageMessage);
           }
-          if(result.results[0]['text/plain']){
+          if (result.results[0]['text/plain']) {
             const textMessage: ChatMessage = {
               type: 'result',
               role: 'assistant',
               content: result.results[0]['text/plain'],
             };
-            this.sessionsService.addMessageToLocalSession(
-              this.currentSession,
-              textMessage
-            );
+            this.localSessionChunks[session.id].push(textMessage);
           }
         }
         if (result.error && result.error.length > 0) {
@@ -587,23 +606,30 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
             role: 'assistant',
             content: result.error,
           };
-          this.sessionsService.addMessageToLocalSession(
-            this.currentSession,
-            errorMessage
-          );
-          this.errorCount +=1;
-          if(this.errorCount < 2){
-            this.sendMessage(true, "Please explain this error.");
-            this.errorCount = 0;
-          }
+          this.localSessionChunks[session.id].push(errorMessage);
+          this.errorCount += 1;
         }
-        this.executingCode = false;
         message.type = 'executedCode';
-        this.sessionsService.syncLocalSession(this.currentSession)
+        this.executingCode.delete(session.id);
+
+        const newMessage = this.localSessionChunks[session.id];
+        delete this.localSessionChunks[session.id];
+
+        this.sessionsService
+          .addMessagesToSession(session, newMessage)
+          .then(() => {
+            this.sessionsService.loadAllSessions();
+          })
+          .then(() => {
+            if (this.errorCount) {
+              this.sendMessage(session, true, 'Please explain this error.');
+              this.errorCount = 0;
+            }
+          });
       },
       (error) => {
         console.error('Error:', error);
-        this.executingCode = false;
+        this.executingCode.delete(session.id);
       }
     );
   }
@@ -646,19 +672,19 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     const lines = response.split('\n'); // Split response by lines to process them one by one
 
     for (let line of lines) {
-        if (line.startsWith('```')) {
-            // Toggle the code block state when encountering ```
-            isInCodeBlock = !isInCodeBlock;
-            continue; // Skip the line containing ```
-        }
+      if (line.startsWith('```')) {
+        // Toggle the code block state when encountering ```
+        isInCodeBlock = !isInCodeBlock;
+        continue; // Skip the line containing ```
+      }
 
-        if (!isInCodeBlock) {
-            // Process text lines outside of code blocks
-            // Remove any starting <br> tags from the line
-            line = line.replace(/^<br\s*\/?>/, '').trim();
-            // Append the cleaned line to the result
-            result += line + '\n';
-        }
+      if (!isInCodeBlock) {
+        // Process text lines outside of code blocks
+        // Remove any starting <br> tags from the line
+        line = line.replace(/^<br\s*\/?>/, '').trim();
+        // Append the cleaned line to the result
+        result += line + '\n';
+      }
     }
 
     // Bold formatting for headers
