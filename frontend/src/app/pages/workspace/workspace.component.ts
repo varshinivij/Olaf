@@ -185,7 +185,6 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   currentSession: Session;
   newMessage: string = ''; // ngModel variable
   newSessionName: string = ''; // ngModel variable
-  responseLoading: boolean = false; // only used for the "haven't typed anything" in chat window
   executingCode: Set<Session['id']> = new Set(); // only used for the "haven't coded anything" in code window
   isConnected: boolean = false;
   errorCount: number = 0;
@@ -198,20 +197,6 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   // stores local chunks of a session while it is being streamed
   // if session ids are deleted after a chunk finishes.
   localSessionChunks: { [K in Session['id']]: ChatMessage[] } = {};
-
-  /*
-    TODO IDEA on how to fix sessions
-
-    keep a variable here that stores chunks. Each time we make a request to the server, we store the chunk in a map corresponding to session id. Every time we get a partial response we store it in
-    chunk and display in Angular accordingly, and when the request finishes we clear the chunk map
-    and save it in DB properly. this will enable switching and still seeing chunks while handling DB
-    calls correctly.
-
-    for now, find all instances of changing this.currentsession and delay any writes until the
-    chunks fully finish.
-
-    rememeber, this issue only occurs on streamed messages.
-  */
 
   constructor(
     public router: Router,
@@ -331,8 +316,6 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
         }
       });
 
-    this.responseLoading = true;
-
     if (!this.isConnected) {
       await this.connectToSandbox();
     }
@@ -350,11 +333,9 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
           true,
           'Please create code to analyze the uploaded file. Then ask the user a question about it. Ask immediate questions do not wait for code execution results.'
         );
-        this.responseLoading = false;
       },
       (error) => {
         console.error('Error:', error);
-        this.responseLoading = false;
       }
     );
   }
@@ -381,21 +362,16 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
         this.sandboxService.isSandboxConnected()
       );
       if (response.alive) {
-        this.onSandboxConnected();
+        this.isConnected = true;
+        if (this.currentSession.sandboxId) {
+          this.sandboxService.setSandboxId(this.currentSession.sandboxId);
+        }
       } else {
         this.uploadedFiles.clear();
         await this.createSandbox();
       }
     } catch (error) {
       console.error('Error:', error);
-      this.responseLoading = false;
-    }
-  }
-
-  private onSandboxConnected() {
-    this.isConnected = true;
-    if (this.currentSession.sandboxId) {
-      this.sandboxService.setSandboxId(this.currentSession.sandboxId);
     }
   }
 
@@ -405,15 +381,11 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
         this.sandboxService.createSandbox()
       );
       this.sandboxService.setSandboxId(response.sandboxId);
-      this.onSandboxCreated();
+      this.isConnected = true;
+      console.log('created sandbox id:', this.sandboxService.getSandboxId());
     } catch (error) {
       console.error('Error:', error);
     }
-  }
-
-  private onSandboxCreated() {
-    this.isConnected = true;
-    console.log('created sandbox id:', this.sandboxService.getSandboxId());
   }
 
   /*
@@ -469,7 +441,6 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     ) {
       let message = this.newMessage;
       this.newMessage = '';
-      this.responseLoading = true;
 
       if (messageOveride) {
         message = messageOveride;
@@ -529,7 +500,6 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
             this.cdr.detectChanges();
           },
           error: () => {
-            this.responseLoading = false;
             this.cdr.detectChanges();
 
             const newMessage = this.localSessionChunks[session.id];
@@ -622,8 +592,8 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
         this.sessionsService
           .addMessagesToSession(session, newMessage)
           .then(() => {
-            delay(500);  // ugly delay to prevent the code output sometimes not showing
-                         // (i assume because the load below happens too fast.)
+            delay(500); // ugly delay to prevent the code output sometimes not showing
+            // (i assume because the load below happens too fast.)
           })
           .then(() => {
             this.sessionsService.loadAllSessions();
