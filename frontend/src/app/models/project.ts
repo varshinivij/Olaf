@@ -1,5 +1,6 @@
-export type ProjectLanguage = 'Python'
-export type ProjectModel = 'GPT-4o'
+export type ProjectLanguage = 'Python';
+export type ProjectModel = 'GPT-4o';
+export type ProjectAgent = 'Master' | 'L3-Automation';
 
 export interface Project {
   id: string;
@@ -7,4 +8,5 @@ export interface Project {
   language: ProjectLanguage;
   model: ProjectModel;
   updatedAt: Date;
+  agent: ProjectAgent;
 }

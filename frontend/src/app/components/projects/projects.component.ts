@@ -13,7 +13,7 @@ import { Subscription } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
 import { UserService } from '../../services/user.service';
 
-import { Project, ProjectLanguage, ProjectModel } from '../../models/project';
+import { Project, ProjectAgent, ProjectLanguage, ProjectModel } from '../../models/project';
 
 import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
 import {
@@ -84,6 +84,7 @@ export class ProjectsComponent {
       name: ['', [Validators.required]],
       language: ['', [Validators.required]],
       model: ['', [Validators.required]],
+      agent: ['', [Validators.required]],
     });
   }
 
@@ -119,7 +120,10 @@ export class ProjectsComponent {
       this.createProjectForm.value.name,
       this.createProjectForm.value.language as ProjectLanguage,
       this.createProjectForm.value.model as ProjectModel,
+      this.createProjectForm.value.agent as ProjectAgent,
     );
+    console.log(this.createProjectForm.value.agent);
+    
     this.createProjectForm.reset();
   }
 
