@@ -190,6 +190,8 @@ class CodeMasterAgent(AbstractAgent):
         """
         content_accumulated = ""
         current_chunk_type = "text"
+        inside_code_block = False
+        code_language = ""
 
         # The following call streams the response tokens from the LLM
         for chunk in chat_completion_api(self.history, self.system_prompt):
@@ -197,13 +199,26 @@ class CodeMasterAgent(AbstractAgent):
                 delta = chunk["choices"][0].get("delta", {})
                 content = delta.get("content", "")
                 if content:
-                    # Determine if this chunk is code or text
-                    if content.startswith("```"):
-                        current_chunk_type = "code"
-                    elif content.endswith("```"):
-                        # end of code block
+                    # Handle start of a code block
+                    if content == "```" and not inside_code_block:
+                        inside_code_block = True
+                        current_chunk_type = "code"  # Temporary until language is confirmed
+                    elif inside_code_block and content in {"bash", "python"}:
+                        if content == "bash":
+                            code_language = "terminal"
+                        elif content == "python":
+                            code_language = "code"
+                        current_chunk_type = code_language
+                    elif inside_code_block and content.strip() == "`":
+                        inside_code_block = False
+                        current_chunk_type = code_language
+                        code_language = ""
+                    elif inside_code_block:
+                        current_chunk_type = code_language
+                    else:
                         current_chunk_type = "text"
 
+                    # Accumulate content for final storage
                     content_accumulated += content
                     yield {"type": current_chunk_type, "content": content}
             except KeyError:

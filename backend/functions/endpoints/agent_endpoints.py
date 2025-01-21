@@ -67,6 +67,7 @@ def master_agent_interaction(req: Request) -> Response:
                         {"type": chunk["type"], "content": chunk["content"]}
                     )
                     yield f"data: {data}\n\n".encode("utf-8")
+                    print(data)
                     full_response += chunk["content"]
                 except Exception as e:
                     # Log and skip malformed chunk
