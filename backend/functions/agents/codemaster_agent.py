@@ -192,6 +192,7 @@ class CodeMasterAgent(AbstractAgent):
         current_chunk_type = "text"
         inside_code_block = False
         code_language = ""
+        first_block_flag = True
 
         # The following call streams the response tokens from the LLM
         for chunk in chat_completion_api(self.history, self.system_prompt):
@@ -202,7 +203,11 @@ class CodeMasterAgent(AbstractAgent):
                     # Handle start of a code block
                     if content == "```" and not inside_code_block:
                         inside_code_block = True
-                        current_chunk_type = "code"  # Temporary until language is confirmed
+                        if first_block_flag:
+                            current_chunk_type = "terminal"
+                            first_block_flag = False
+                        else:
+                            current_chunk_type = "code" 
                     elif inside_code_block and content in {"bash", "python"}:
                         if content == "bash":
                             code_language = "terminal"
