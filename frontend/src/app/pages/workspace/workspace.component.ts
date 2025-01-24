@@ -185,7 +185,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   currentSession: Session;
   newMessage: string = ''; // ngModel variable
   newSessionName: string = ''; // ngModel variable
-  executingCode: Set<Session['id']> = new Set(); // only used for the "haven't coded anything" in code window
+  executingCode: Set<Session['id']> = new Set(); // used for the loading/empty state in code window
   isConnected: boolean = false;
   errorCount: number = 0;
 
