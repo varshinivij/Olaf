@@ -66,8 +66,8 @@ export class UserService {
             map((user: any) => {
               return {
                 ...user,
-                createdAt: user.createdAt?.toDate(),
-                updatedAt: user.updatedAt?.toDate(),
+                createdAt: user?.createdAt?.toDate(),
+                updatedAt: user?.updatedAt?.toDate(),
               } as User;
             }),
             shareReplay(1)

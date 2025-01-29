@@ -142,7 +142,7 @@ export class HomeComponent {
     const files = target.files as FileList;
     this.selectedUploadFiles = Array.from(files);
     this.selectedUploadFiles.forEach((file: File) => {
-      this.uploadService.uploadFile(file, '/');
+      this.uploadService.uploadFile(file, ['/']);
     });
     console.log('Files selected: ', files);
   }

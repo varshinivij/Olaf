@@ -173,7 +173,11 @@
             <div class="flex flex-col gap-y-0.5">
               <div hlmLarge hlmSmall>Twocube</div>
               <div hlmSmall class="self-start break-words rounded-lg">
-                @if ((message.type === 'code'|| message.type === 'executedCode') && message.content !== '' ) {
+                @if (
+                  (message.type === 'code' ||
+                    message.type === 'executedCode') &&
+                  message.content !== ''
+                ) {
                   <div
                     [innerHTML]="extractTextWithoutCode(message.content).trim()"
                   ></div>
@@ -190,7 +194,7 @@
       }
       <!-- empty session state -->
       @empty {
-        @if (!responseLoading) {
+        @if (!localSessionChunks.hasOwnProperty(currentSession.id)) {
           <img
             src="assets/twocube-logo-black-bg.png"
             class="mt-auto h-12 self-center rounded-lg"
@@ -200,8 +204,34 @@
           </div>
         }
       }
+      <!-- display messages in chunks  -->
+      @for (chunk of localSessionChunks[currentSession.id]; track $index) {
+        <div class="flex gap-x-2.5">
+          <!-- twocube avatar -->
+          <img src="assets/twocube-logo-black-bg.png" class="h-9 rounded-lg" />
+          <!-- twocube name/message -->
+          <div class="flex flex-col gap-y-0.5">
+            <div hlmLarge hlmSmall>Twocube</div>
+            <div hlmSmall class="self-start break-words rounded-lg">
+              @if (
+                (chunk.type === 'code' || chunk.type === 'executedCode') &&
+                chunk.content !== ''
+              ) {
+                <div
+                  [innerHTML]="extractTextWithoutCode(chunk.content).trim()"
+                ></div>
+              }
+              @if (chunk.type === 'text' && chunk.content !== '') {
+                <div
+                  [innerHTML]="extractTextWithoutCode(chunk.content).trim()"
+                ></div>
+              }
+            </div>
+          </div>
+        </div>
+      }
       <!-- loading state -->
-      @if (responseLoading) {
+      @if (localSessionChunks[currentSession.id]) {
         <div class="flex justify-center gap-x-2 pb-1">
           <div hlmSmall hlmMuted class="break-words">Waiting for agent...</div>
           <hlm-spinner size="xs" />
@@ -217,7 +247,7 @@
         placeholder="Ask Twocube... (shift + enter for new line)"
         class="max-h-40 w-full border-0 bg-background py-2.5 pr-10"
         [(ngModel)]="newMessage"
-        (keydown.enter)="$event.preventDefault(); sendMessage()"
+        (keydown.enter)="$event.preventDefault(); sendMessage(currentSession)"
         (keyup.enter)="adjustTextareaHeight(chatBar)"
         (input)="adjustTextareaHeight(chatBar)"
       ></textarea>
@@ -226,7 +256,7 @@
         variant="float"
         size="icon"
         class="absolute bottom-1 right-1"
-        (mousedown)="sendMessage()"
+        (mousedown)="sendMessage(currentSession)"
         (mouseup)="adjustTextareaHeight(chatBar)"
       >
         <hlm-icon size="sm" name="lucideSendHorizontal" />
@@ -246,10 +276,7 @@
     </hlm-tabs-list>
     <!-- planner tab content -->
     <div #plannerScreen hlmTabsContent="planner" class="h-full overflow-y-auto">
-      @for (
-        message of this.currentSession.history | planmessage;
-        track $index
-      ) {
+      @for (message of currentSession.history | planmessage; track $index) {
         @if (parseJson(message.content); as plan) {
           <div
             class="flex flex-col break-words rounded-md border p-3"
@@ -310,10 +337,7 @@
     <!-- code tab content -->
     <div #codeScreen hlmTabsContent="code" class="h-full overflow-y-auto">
       <div class="flex h-full flex-col gap-y-3">
-        @for (
-          message of this.currentSession.history | codemessage;
-          track $index
-        ) {
+        @for (message of currentSession.history | codemessage; track $index) {
           <!-- code block -->
           @if (message.type === 'code' || message.type === 'executedCode') {
             <pre><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
@@ -336,7 +360,10 @@
         }
         <!-- empty state -->
         @empty {
-          @if (!executingCode) {
+          @if (
+            (localSessionChunks[currentSession.id] || [] | codemessage)
+              .length === 0
+          ) {
             <div
               class="flex h-full flex-col items-center justify-center gap-y-4 rounded-md border p-3"
             >
@@ -345,7 +372,32 @@
             </div>
           }
         }
-        @if (executingCode) {
+        <!-- display chunked code snippets -->
+        @for (
+          message of localSessionChunks[currentSession.id] || [] | codemessage;
+          track $index
+        ) {
+          <!-- code block -->
+          @if (message.type === 'code' || message.type === 'executedCode') {
+            <pre><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
+          }
+          <!-- result block -->
+          @else if (message.type === 'result') {
+            <pre><code hlmSmall [highlight]="message.content" language="html" class="bg-transparent border rounded-md"></code></pre>
+          }
+          <!-- image block -->
+          @else if (message.type === 'image') {
+            <img
+              [src]="message.content"
+              class="max-h-72 rounded-md border object-contain"
+            />
+          }
+          <!-- error block -->
+          @else if (message.type === 'error') {
+            <pre><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
+          }
+        }
+        @if (executingCode.has(currentSession.id)) {
           <span
             hlmCode
             class="mb-1 flex items-center gap-x-3 rounded-md border bg-transparent p-2"
@@ -366,10 +418,7 @@
           persist after refresh.
         </div>
         <!-- files list -->
-        @for (
-          file of this.fileStorageService.getFiles() | async;
-          track file.id
-        ) {
+        @for (file of fileStorageService.getFiles() | async; track file.id) {
           <div class="flex items-center gap-x-2">
             <hlm-icon
               size="sm"
@@ -386,7 +435,7 @@
                 size="xs"
                 class="ml-auto flex-none gap-x-2"
                 (click)="
-                  addFirebaseFileToSandbox(file);
+                  addFirebaseFileToSandbox(file, currentSession);
                   icon.name = 'lucideLoaderCircle';
                   icon.class = 'animate-spin'
                 "
@@ -403,7 +452,7 @@
                 variant="ghost"
                 size="xs"
                 class="ml-auto flex-none gap-x-2 text-green-500"
-                (click)="addFirebaseFileToSandbox(file)"
+                (click)="addFirebaseFileToSandbox(file, currentSession)"
               >
                 File added
                 <hlm-icon size="xs" name="lucideCheck" />
