@@ -283,7 +283,8 @@ tools_for_coder = [
             "required": [
                 "code"
             ]
-        }
+        },
+        "type": "object",
     },
     {
         "name": "analysis_complete",
@@ -299,7 +300,8 @@ tools_for_coder = [
             "required": [
                 "summary_message"
             ]
-        }
+        },
+        "type": "object",
     }
 ]
 
@@ -357,7 +359,7 @@ class CoderAgent(AbstractAgent):
         Use the utility function to handle chunked streaming and function calls.
         """
         # 1. Call the LLM streaming API
-        api_response = chat_completion_api(self.history, self.system_prompt)
+        api_response = chat_completion_api(self.history, self.system_prompt, tools=tools_for_coder)
 
         # 2. Use the reusable streaming utility
         return stream_llm_response(

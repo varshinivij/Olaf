@@ -26,6 +26,7 @@ def stream_llm_response(
     current_chunk_type = "text"
 
     for chunk in api_response:
+        print(chunk)
         try:
             # In typical usage: chunk["choices"][0]["delta"]
             choice = chunk["choices"][0]

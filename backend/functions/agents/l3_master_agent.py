@@ -110,33 +110,41 @@ When creating a plan for the Twocube coder agent to execute, break your instruct
 """
 
 tools_for_master = [
-    {
-        "name": "display_plan_to_user",
-        "description": "Displays the analysis plan to the user in a readable format",
-        "parameters": {
+    {   
+        "type": "function",
+        "function": {
+            "name": "display_plan_to_user",
+            "description": "Displays the analysis plan to the user in a readable format",
             "type": "object",
-            "properties": {
-                "plan": {
-                    "type": "string",
-                    "description": "The analysis plan to show to the user to confirm"
-                }
-            },
-            "required": ["plan"]
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "plan": {
+                        "type": "string",
+                        "description": "The analysis plan to show to the user to confirm"
+                    }
+                },
+                "required": ["plan"]
+            }
         }
     },
     {
-        "name": "send_plan_coder",
-        "description": "Sends the analysis plan to the Twocube coder agent for code generation and execution",
-        "parameters": {
+        "type": "function",
+        "function": {
+            "name": "send_plan_coder",
+            "description": "Sends the analysis plan to the Twocube coder agent for code generation and execution",
             "type": "object",
-            "properties": {
-                "plan": {
-                    "type": "string",
-                    "description": "The analysis plan to pass to the coder agent"
-                }
-            },
-            "required": ["plan"]
-        }
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "plan": {
+                        "type": "string",
+                        "description": "The analysis plan to pass to the coder agent"
+                    }
+                },
+                "required": ["plan"]
+            }
+        }   
     }
 ]
 class MasterAgent(AbstractAgent):
@@ -173,7 +181,7 @@ class MasterAgent(AbstractAgent):
         plan = arguments.get("plan", "")
         # Return a custom marker that instructs our router to route to coder next.
         return {"destination": "coder_agent", "plan": plan}
-
+    
     def handle_functions(self, function_name: str, arguments: Dict[str, Any]) -> Any:
         function_map = self._build_function_map()
         if function_name in function_map:
@@ -194,14 +202,14 @@ class MasterAgent(AbstractAgent):
         """
         Store the chunked or final responses as needed.
         """
-        self.history.append({"role": role, "content": content})
-
+        self.history.log(role, content, "text")
+        
     def _base_interaction(self):
         """
         Use the utility function to handle chunked streaming and function calls.
         """
         # 1. Call the LLM streaming API
-        api_response = chat_completion_api(self.history, self.system_prompt)
+        api_response = chat_completion_api(self.history, self.system_prompt, tools=self.functions)
 
         # 2. Use the reusable streaming utility
         return stream_llm_response(
