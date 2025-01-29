@@ -254,7 +254,6 @@ class AgentService:
 
     def stream(self, agent):
         for chunk in agent.generate():
-            print(chunk)
             try:
                 content = chunk["choices"][0]["delta"]["content"]
                 yield content.encode("utf-8")
