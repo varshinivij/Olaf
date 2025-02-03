@@ -337,7 +337,7 @@ class CoderAgent(AbstractAgent):
         # Return a marker so the router or master agent knows we’re done
         return {"status": "analysis_complete", "summary": summary}
 
-    def handle_functions(self, function_name: str, arguments: Dict[str, Any]) -> Any:
+    def handle_functions(self, function_name: str, arguments: Dict[str, Any], content_accumulated) -> Any:
         function_map = self._build_function_map()
         if function_name in function_map:
             return function_map[function_name](arguments)
@@ -358,8 +358,9 @@ class CoderAgent(AbstractAgent):
         """
         Use the utility function to handle chunked streaming and function calls.
         """
+        print("beginng coder agent base interaction")
         # 1. Call the LLM streaming API
-        api_response = chat_completion_api(self.history, self.system_prompt, tools=tools_for_coder)
+        api_response = chat_completion_api(self.history, self.system_prompt)
 
         # 2. Use the reusable streaming utility
         return stream_llm_response(
@@ -369,8 +370,8 @@ class CoderAgent(AbstractAgent):
             role="assistant"
         )
 
-    def _handle_master_function_call(self, function_name: str, arguments: Dict[str, Any]):
+    def _handle_master_function_call(self, function_name: str, arguments: Dict[str, Any], content_accumulated: str) -> Any:
         """
         Wraps handle_functions or directly references it.
         """
-        return self.handle_functions(function_name, arguments)
+        return self.handle_functions(function_name, arguments, content_accumulated)

@@ -50,7 +50,7 @@ def l3_master_agent_interaction(req: Request) -> Response:
         session_data["history"] = [
             m
             for m in session_data["history"]
-            if m.get("type") in ["text", "code", "error", "result", "executedCode"]
+            if m.get("type") in ["text", "code", "error", "result", "executedCode, plan"]
         ]
 
         # Initialize router & add routes for master and coder
@@ -88,10 +88,13 @@ def l3_master_agent_interaction(req: Request) -> Response:
                             # if plan exists in content append it to the data
                             if "plan" in content:
                                 plan_data = content["plan"]
-                                route_data.log("assistant", plan_data, "text")
-
+                                route_data = session_service.add_message_to_session(
+                                    session_id, {"type": "hidden", "role": "assistant", "content": plan_data} #THIS
+                                )
                             if destination in router.routes:
-                                tasks.append((destination, route_data))
+                                print("route_data", route_data)
+                                history = History(route_data["history"]) # type: ignore
+                                tasks.append((destination, history))
                             else:
                                 # Log and skip malformed chunk
                                 print(f"Bad chunk: {chunk}")  

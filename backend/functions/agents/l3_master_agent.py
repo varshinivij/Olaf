@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple, Callable
+from typing import Generator, List, Dict, Any, Tuple, Callable
 from services.agent_service import chat_completion_api
 from .abstract_agent import AbstractAgent
 from utils.streaming import stream_llm_response
@@ -165,27 +165,33 @@ class MasterAgent(AbstractAgent):
             "send_plan_coder": self._handle_send_plan_to_coder
         }
 
-    def _handle_display_plan_to_user(self, arguments: Dict[str, Any]) -> str:
+    def _handle_display_plan_to_user(self, arguments: Dict[str, Any], content_accumulated: str) -> Generator:
         """
         Return the plan as text so we can yield it in real time to the user.
         """
-        plan = arguments.get("plan", "")
-        return f"**Plan for your review**:\n\n{plan}"
+        plan_prompt = "Display the plan simply to the user wrap your response in <plan> </plan> tags please"
+        api_response = chat_completion_api(self.history, plan_prompt, tools=None)
 
+        return stream_llm_response(
+            api_response=api_response,
+            handle_function=self._handle_master_function_call, #this could get recursive, but we don't expect it to be.
+            store_interaction=self.store_interaction,
+            role="assistant"
+        )
 
-    def _handle_send_plan_to_coder(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle_send_plan_to_coder(self, arguments: Dict[str, Any], content_accumulated) -> Dict[str, Any]:
         """
         Actually handle the function call. We'll store the plan, so the router 
         knows to forward it to the CoderAgent next.
         """
-        plan = arguments.get("plan", "")
+        plan = content_accumulated
         # Return a custom marker that instructs our router to route to coder next.
         return {"destination": "coder_agent", "plan": plan}
     
-    def handle_functions(self, function_name: str, arguments: Dict[str, Any]) -> Any:
+    def handle_functions(self, function_name: str, arguments: Dict[str, Any], content_accumulated) -> Any:
         function_map = self._build_function_map()
         if function_name in function_map:
-            return function_map[function_name](arguments)
+            return function_map[function_name](arguments, content_accumulated)
         else:
             print(f"No handler found for function: {function_name}")
             return None
@@ -219,8 +225,9 @@ class MasterAgent(AbstractAgent):
             role="assistant"
         )
 
-    def _handle_master_function_call(self, function_name: str, arguments: Dict[str, Any]):
+    def _handle_master_function_call(self, function_name: str, arguments: Dict[str, Any], content_accumulated: str) -> Any:
         """
         Wraps handle_functions or directly references it.
         """
-        return self.handle_functions(function_name, arguments)
+        return self.handle_functions(function_name, arguments, content_accumulated)
+

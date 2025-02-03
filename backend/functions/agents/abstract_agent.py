@@ -60,7 +60,7 @@ class AbstractAgent(ABC):
         pass
 
     @abstractmethod
-    def handle_functions(self, function_name: str, arguments: Dict[str, Any]) -> Any:
+    def handle_functions(self, function_name: str, arguments: Dict[str, Any], content_accumulated) -> Any:
         """
         Call the specified function/tool with the provided arguments.
 
@@ -72,6 +72,7 @@ class AbstractAgent(ABC):
         Args:
             function_name (str): The name of the function/tool to call.
             arguments (Dict[str, Any]): The arguments to pass to the function.
+            content_accumulated (str): The content accumulated so far in the LLM stream (ussually arguments in long format)
 
         Returns:
             Any: The result from the function call (could be structured data).
