@@ -106,7 +106,9 @@ When creating a plan for the Twocube coder agent to execute, break your instruct
     
     - send_plan_coder(plan)\n
         - This function will send the plan to the Twocube coder agent\n
-        - Use this function after the user has confirmed the plan\n<\planning protocol>
+        - Use this function after the user has confirmed the plan
+        - REMEBER TO SEND THE PLAN TO THE CODER AGENT AFTER THE USER HAS CONFIRMED THE PLAN, you have been forgetting this\n
+    \n<\planning protocol>
 """
 
 tools_for_master = [
@@ -169,7 +171,8 @@ class MasterAgent(AbstractAgent):
         """
         Return the plan as text so we can yield it in real time to the user.
         """
-        plan_prompt = "Display the plan simply to the user wrap your response in <plan> </plan> tags please"
+        plan_prompt = """Display the plan simply to the user wrap your response in ```plan (response) ``` please similar 
+        to the markdown format"""
         api_response = chat_completion_api(self.history, plan_prompt, tools=None)
 
         return stream_llm_response(

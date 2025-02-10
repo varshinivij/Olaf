@@ -50,6 +50,9 @@ def stream_llm_response(
                 if argument:
                     if argument.startswith("```"):
                         current_chunk_type = "code"
+                    elif current_chunk_type == "code" and argument.startswith("plan"): #this work because the marker is ```plan split over two chunks
+                        current_chunk_type = "plan"
+
                     elif argument.endswith("```"):
                         current_chunk_type = "text"
                     function_argument += argument
@@ -65,6 +68,9 @@ def stream_llm_response(
                     # Identify code vs. text
                     if text.startswith("```"):
                         current_chunk_type = "code"
+                    elif current_chunk_type== "code" and text.startswith("plan"): #this work because the marker is ```plan split over two chunks
+                        current_chunk_type = "plan"
+                    
                     elif text.endswith("```"):
                         current_chunk_type = "text"
 

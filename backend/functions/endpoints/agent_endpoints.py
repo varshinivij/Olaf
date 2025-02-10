@@ -50,7 +50,7 @@ def l3_master_agent_interaction(req: Request) -> Response:
         session_data["history"] = [
             m
             for m in session_data["history"]
-            if m.get("type") in ["text", "code", "error", "result", "executedCode, plan"]
+            if m.get("type") in ["text", "code", "error", "result", "executedCode", "plan"]
         ]
 
         # Initialize router & add routes for master and coder

@@ -265,7 +265,9 @@ system_prompt = """
 5. **Provide interpretation**\n
 6. **Move to the next step**\n 
 7. **Repeat for all steps in the plan**\n
-8. **Inform the Twocube master agent that the analysis is complete**\n</Execution flow>
+8. **Inform the Twocube master agent that the analysis is complete**\n
+!Important! If you are going to write a step also write the code for it! We have noticed that you skip this sometimes.\n
+</Execution flow>
 """
 
 tools_for_coder = [

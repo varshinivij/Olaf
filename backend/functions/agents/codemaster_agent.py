@@ -221,7 +221,9 @@ class CodeMasterAgent(AbstractAgent):
                 content = delta.get("content", "")
                 if content:
                     # Determine if this chunk is code or text
-                    if content.startswith("```"):
+                    if content.startswith("```plan"):
+                        current_chunk_type = "plan"
+                    elif content.startswith("```"):
                         current_chunk_type = "code"
                     elif content.endswith("```"):
                         # end of code block
