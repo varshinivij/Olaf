@@ -20,15 +20,13 @@ export class ChatService {
     sessionId: string,
     userId: string,
     projectId: string,
-    agentType: string | null = null
+    agent: string | null = null
   ): Observable<any> {
     // Build the URL with query parameters
     let url = new URL(this.chatAPIEndpoint);
-    console.log(agentType)
-    if (agentType == "L3Reasoning"){
+    if (agent == "L3-Reasoning"){
       url = new URL(this.l3chatAPIEndpoint);
-    }
-    
+    } 
     url.searchParams.append('user_id', userId);
     url.searchParams.append('project_id', projectId);
     if (sessionId) {

@@ -489,7 +489,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
 
       // Subscribe to the SSE stream
       this.chatService
-        .sendMessage(message, sessionId, userId, projectId, this.currentProject.agentType)
+        .sendMessage(message, sessionId, userId, projectId, this.currentProject.agent)
         .subscribe({
           next: (data: any) => {
             let chunks = this.localSessionChunks[session.id];

@@ -125,12 +125,12 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
   </button>
   <!-- Project Info (displayed when not collapsed) -->
   @if (!collapsed) {
-    <div *ngIf="currentProject.agentType === 'Undefined'; else agentInfo" class="text-xs text-black">
+    <div *ngIf="currentProject.agent === 'Undefined'; else agentInfo" class="text-xs text-black">
       {{ currentProject.language }}
     </div>
     <ng-template #agentInfo>
       <div class="text-xs text-black">
-        {{ currentProject.language }} | {{ currentProject.agentType }}
+        {{ currentProject.language }} | {{ currentProject.agent }}
       </div>
     </ng-template>
   }
@@ -281,7 +281,7 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
         <hlm-icon size="sm" name="lucideSendHorizontal" />
       </button>
       <!-- Only show this if the project agentType is L3 Reasoning -->
-      @if (currentProject.agentType === 'L3Reasoning') {
+      @if (currentProject.agent === 'L3-Reasoning') {
         <button
           hlmBtn
           variant="float"
@@ -303,7 +303,7 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
   >
     <!-- header tab buttons -->
       <!-- Only show planner if we are in l3 Reasoning -->
-      @if (currentProject.agentType === 'L3Reasoning') {
+      @if (currentProject.agent === 'L3-Reasoning') {
         <hlm-tabs-list class="grid w-full grid-cols-3">
         <button hlmTabsTrigger="planner">Planner</button>
         <button hlmTabsTrigger="code">Code</button>
