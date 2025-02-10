@@ -335,7 +335,6 @@ class MasterAgent:
         result = ""
         for chunk in chat_completion_api(self.history, system_prompt):
             try:
-                print(chunk)
                 content = chunk['choices'][0]['delta']['content']
                 if content:
                     result += content
