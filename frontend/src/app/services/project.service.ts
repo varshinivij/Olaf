@@ -173,7 +173,8 @@ export class ProjectService {
   async createProject(
     name: string,
     language: ProjectLanguage,
-    model: ProjectModel
+    model: ProjectModel,
+    agentType: string
   ): Promise<void> {
     if (!name.trim()) {
       return;
@@ -194,6 +195,7 @@ export class ProjectService {
       name: name,
       language: language,
       model: model,
+      agentType: agentType,
       updatedAt: new Date(),
     };
 

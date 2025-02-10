@@ -84,6 +84,7 @@ export class ProjectsComponent {
       name: ['', [Validators.required]],
       language: ['', [Validators.required]],
       model: ['', [Validators.required]],
+      agentType: ['', [Validators.required]],
     });
   }
 
@@ -119,6 +120,7 @@ export class ProjectsComponent {
       this.createProjectForm.value.name,
       this.createProjectForm.value.language as ProjectLanguage,
       this.createProjectForm.value.model as ProjectModel,
+      this.createProjectForm.value.agentType as string,
     );
     this.createProjectForm.reset();
   }

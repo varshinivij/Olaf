@@ -93,6 +93,7 @@ import {
   lucidePlus,
   lucideRotateCw,
   lucideSendHorizontal,
+  lucideSquareArrowRight,
   lucideSettings,
   lucideTrash2,
 } from '@ng-icons/lucide';
@@ -166,6 +167,7 @@ import {
       lucidePlus,
       lucideRotateCw,
       lucideSendHorizontal,
+      lucideSquareArrowRight,
       lucideSettings,
       lucideTrash2,
     }),
@@ -331,7 +333,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
         this.sendMessage(
           session,
           true,
-          'Please create code to analyze the uploaded file. Then ask the user a question about it. Ask immediate questions do not wait for code execution results.'
+          'Please create code to analyze the uploaded file. Then ask the user a question about it. Ask immediate questions do not wait for code execution results.',
         );
       },
       (error) => {
@@ -425,6 +427,13 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       );
     }
   }
+  
+  /**
+   * Let chat know we are ready to move on
+   *  */
+  sendNextStep(){
+    this.sendMessage(this.currentSession, true, 'Please continue.')
+  }
 
   /**
    * Send a message to the generalist chat service
@@ -434,6 +443,9 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     hidden = false,
     messageOveride = ''
   ): Promise<void> {
+    if(this.executingCode.has(session.id)){
+      return;
+    }
     if (
       (this.newMessage.trim() &&
         !this.localSessionChunks.hasOwnProperty(session.id)) ||
@@ -477,16 +489,14 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
 
       // Subscribe to the SSE stream
       this.chatService
-        .sendMessage(message, sessionId, userId, projectId)
+        .sendMessage(message, sessionId, userId, projectId, this.currentProject.agentType)
         .subscribe({
           next: (data: any) => {
             let chunks = this.localSessionChunks[session.id];
-
             // Each 'data' is a string sent from the server
             // Parse and handle accordingly
             const chunk = JSON.parse(data);
             const { type, content } = chunk;
-
             // If the type changes, start a new message
             if (chunks[chunks.length - 1].type !== type) {
               chunks.push({
@@ -650,6 +660,12 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     const lines = response.split('\n'); // Split response by lines to process them one by one
 
     for (let line of lines) {
+      if (line.startsWith('```plan')) {
+        continue;
+      }
+      if (line.startsWith('plan')) {
+        continue;
+      }
       if (line.startsWith('```')) {
         // Toggle the code block state when encountering ```
         isInCodeBlock = !isInCodeBlock;
@@ -665,6 +681,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       }
     }
 
+    result = result.replace(/`([^`]+)`/g, '<code>$1</code>');
     // Bold formatting for headers
     result = result.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); // Bold formatting
     result = result.replace(/###\s*(.*?)(\n|$)/g, '<b>$1</b>'); // H3 style
@@ -674,6 +691,8 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     // Replace multiple newlines with <br/> for better line break handling in HTML
     result = result.replace(/\n{2,}/g, '<br/><br/>');
 
+    // Remove all ``` from final result
+    result = result.replace(/```/g, '');
     // Ensure the result starts clean and is trimmed
     return result.trim();
   }

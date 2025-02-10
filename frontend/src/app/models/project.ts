@@ -7,4 +7,5 @@ export interface Project {
   language: ProjectLanguage;
   model: ProjectModel;
   updatedAt: Date;
+  agentType: string | null;
 }
