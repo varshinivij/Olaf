@@ -8,7 +8,9 @@ import { ChatMessage } from '../models/chat-message';
 })
 export class ChatService {
   private chatAPIEndpoint =
-    'REMOVED'; // generalist chatder agent
+    'REMOVED'
+  private l3chatAPIEndpoint =
+    'REMOVED'
   private nameMakerAPIEndpoint = 'REMOVED';
 
   constructor(private http: HttpClient) {}
@@ -17,10 +19,14 @@ export class ChatService {
     message: string,
     sessionId: string,
     userId: string,
-    projectId: string
+    projectId: string,
+    agent: string | null = null
   ): Observable<any> {
     // Build the URL with query parameters
-    const url = new URL(this.chatAPIEndpoint);
+    let url = new URL(this.chatAPIEndpoint);
+    if (agent == "L3-Reasoning"){
+      url = new URL(this.l3chatAPIEndpoint);
+    } 
     url.searchParams.append('user_id', userId);
     url.searchParams.append('project_id', projectId);
     if (sessionId) {

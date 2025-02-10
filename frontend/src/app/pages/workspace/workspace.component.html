@@ -1,56 +1,56 @@
 <div class="flex h-screen bg-background p-3">
   <!-- sidebar -->
-  <div
-    #sidebar
-    id="sidebar"
-    class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
-  >
-    <!-- header/collapse button row -->
-    <div
-      class="flex flex-none items-center gap-x-2.5 overflow-x-hidden"
-      [ngClass]="{ 'justify-center': collapsed }"
-    >
-      @if (!collapsed) {
-        <img
-          src="assets/twocube-logo-black-bg.png"
-          class="h-8 w-8 flex-none rounded-lg"
-        />
-        <div hlmLarge class="mr-auto truncate">Twocube</div>
-      }
-      <button hlmBtn variant="ghost" size="icon" (click)="toggleSidebar()">
-        <hlm-icon
-          size="sm"
-          [name]="collapsed ? 'lucidePanelLeftOpen' : 'lucidePanelLeftClose'"
-        />
-      </button>
-    </div>
-    <hr hlmSeparator />
-    <!-- new session button -->
-    <button
-      hlmBtn
-      variant="accent"
+<div
+#sidebar
+id="sidebar"
+class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
+>
+<!-- header/collapse button row -->
+<div
+  class="flex flex-none items-center gap-x-2.5 overflow-x-hidden"
+  [ngClass]="{ 'justify-center': collapsed }"
+>
+  @if (!collapsed) {
+    <img
+      src="assets/twocube-logo-black-bg.png"
+      class="h-8 w-8 flex-none rounded-lg"
+    />
+    <div hlmLarge class="mr-auto truncate">Twocube</div>
+  }
+  <button hlmBtn variant="ghost" size="icon" (click)="toggleSidebar()">
+    <hlm-icon
       size="sm"
-      class="flex-none justify-start gap-x-2 truncate pl-2"
-      (click)="newSession()"
-    >
-      <hlm-icon size="sm" name="lucidePlus" class="flex-none" />
-      @if (!collapsed) {
-        <div class="truncate">New Session</div>
-      }
-    </button>
-    <!-- sessions list -->
-    @if (!collapsed) {
-      <div class="flex flex-col gap-y-1 overflow-y-auto">
-        @for (session of sessionsService.userSessions; track session.id) {
-          @if (session.projectId === currentProject.id) {
-            <button
-              hlmBtn
-              [variant]="currentSession.id === session.id ? 'accent' : 'ghost'"
-              size="sm"
-              class="justify-between pl-3 pr-0"
-              (click)="changeSession(session)"
-            >
-              <div
+      [name]="collapsed ? 'lucidePanelLeftOpen' : 'lucidePanelLeftClose'"
+    />
+  </button>
+</div>
+<hr hlmSeparator />
+<!-- new session button -->
+<button
+  hlmBtn
+  variant="accent"
+  size="sm"
+  class="flex-none justify-start gap-x-2 truncate pl-2"
+  (click)="newSession()"
+>
+  <hlm-icon size="sm" name="lucidePlus" class="flex-none" />
+  @if (!collapsed) {
+    <div class="truncate">New Session</div>
+  }
+</button>
+<!-- sessions list -->
+@if (!collapsed) {
+  <div class="flex flex-col gap-y-1 overflow-y-auto">
+    @for (session of sessionsService.userSessions; track session.id) {
+      @if (session.projectId === currentProject.id) {
+        <button
+          hlmBtn
+          [variant]="currentSession.id === session.id ? 'accent' : 'ghost'"
+          size="sm"
+          class="justify-between pl-3 pr-0"
+          (click)="changeSession(session)"
+        >
+          <div
                 class="truncate"
                 [ngClass]="{
                   'font-semibold': currentSession.id === session.id,
@@ -112,12 +112,31 @@
                   </hlm-dialog-footer>
                 </hlm-dialog-content>
               </hlm-dialog>
-            </button>
-          }
-        }
-      </div>
+        </button>
+      }
     }
   </div>
+}
+<!-- Bottom Section with Settings Icon & Project Info -->
+<div class="mt-auto border-t border-divider pt-2 flex items-center justify-between">
+  <!-- Settings Icon Button -->
+  <button hlmBtn variant="ghost" size="icon">
+    <hlm-icon size="sm" name="lucideSettings" />
+  </button>
+  <!-- Project Info (displayed when not collapsed) -->
+  @if (!collapsed) {
+    <div *ngIf="currentProject.agent === 'Undefined'; else agentInfo" class="text-xs text-black">
+      {{ currentProject.language }}
+    </div>
+    <ng-template #agentInfo>
+      <div class="text-xs text-black">
+        {{ currentProject.language }} | {{ currentProject.agent }}
+      </div>
+    </ng-template>
+  }
+</div>
+</div>
+
   <!-- chat interface -->
   <div
     id="main-content"
@@ -158,10 +177,11 @@
         }
         <!-- display assistant messages -->
         @else if (
-          message.type === 'text' ||
+          (message.type === 'text' ||
           message.type === 'code' ||
-          message.type === 'executedCode' ||
-          message.type === 'plan'
+          message.type === 'executedCode')
+          && message.content !== ''
+          && message.content != '```'
         ) {
           <div class="flex gap-x-2.5">
             <!-- twocube avatar -->
@@ -174,15 +194,14 @@
               <div hlmLarge hlmSmall>Twocube</div>
               <div hlmSmall class="self-start break-words rounded-lg">
                 @if (
-                  (message.type === 'code' ||
-                    message.type === 'executedCode') &&
-                  message.content !== ''
+                  (message.type === 'code' || message.type === 'executedCode') &&
+                  message.content.trim() !== ''
                 ) {
                   <div
                     [innerHTML]="extractTextWithoutCode(message.content).trim()"
                   ></div>
                 }
-                @if (message.type === 'text' && message.content !== '') {
+                @if (message.type === 'text' && message.content !== ''  && message.content != '```') {
                   <div
                     [innerHTML]="extractTextWithoutCode(message.content).trim()"
                   ></div>
@@ -261,6 +280,19 @@
       >
         <hlm-icon size="sm" name="lucideSendHorizontal" />
       </button>
+      <!-- Only show this if the project agentType is L3 Reasoning -->
+      @if (currentProject.agent === 'L3-Reasoning') {
+        <button
+          hlmBtn
+          variant="float"
+          size="icon"
+          class="absolute bottom-1 right-8"
+          (mousedown)="sendNextStep()"
+          (mouseup)="adjustTextareaHeight(chatBar)"
+        >
+          <hlm-icon size="sm" name="lucideSquareArrowRight" />
+        </button>
+      }
     </div>
   </div>
   <!-- twocube den -->
@@ -270,48 +302,35 @@
     class="flex flex-col rounded-md bg-foreground p-3"
   >
     <!-- header tab buttons -->
-    <hlm-tabs-list class="grid w-full grid-cols-2">
-      <button hlmTabsTrigger="code">Code</button>
-      <button hlmTabsTrigger="files">Files</button>
-    </hlm-tabs-list>
+      <!-- Only show planner if we are in l3 Reasoning -->
+      @if (currentProject.agent === 'L3-Reasoning') {
+        <hlm-tabs-list class="grid w-full grid-cols-3">
+        <button hlmTabsTrigger="planner">Planner</button>
+        <button hlmTabsTrigger="code">Code</button>
+        <button hlmTabsTrigger="files">Files</button>
+      </hlm-tabs-list>
+      }
+      @else {
+        <hlm-tabs-list class="grid w-full grid-cols-2">
+          <button hlmTabsTrigger="code">Code</button>
+          <button hlmTabsTrigger="files">Files</button>
+        </hlm-tabs-list>
+      }
     <!-- planner tab content -->
     <div #plannerScreen hlmTabsContent="planner" class="h-full overflow-y-auto">
       @for (message of currentSession.history | planmessage; track $index) {
-        @if (parseJson(message.content); as plan) {
+         @if (message.type === 'plan') {
+          <div *ngIf="message.type === 'plan'"
+           class="rounded-lg p-5 border-l-8"
+           [ngClass]="{
+             'border-indigo-500 bg-indigo-50': message.content.includes('Plan'),
+             'border-gray-300 bg-white': !message.content.includes('Plan')
+           }">
+        <h2 class="text-xl font-bold text-gray-800 mb-2">Plan Overview</h2>
           <div
-            class="flex flex-col break-words rounded-md border p-3"
-            [ngClass]="{
-              'mt-3': !$first,
-            }"
-          >
-            <!-- plan overview -->
-            <div hlmH3>Plan Overview</div>
-            <div hlmP>
-              {{ plan.overview }}
-            </div>
-            <!-- plan steps -->
-            <div hlmH3>Required Steps</div>
-            @for (step of plan.steps; track $index) {
-              <div hlmH4>Step {{ step.step_number }}: {{ step.title }}</div>
-              <ul hlmUl>
-                <li><strong>Description: </strong>{{ step.description }}</li>
-                <li>
-                  <strong>Dependencies: </strong>
-                  {{
-                    step.dependencies ? step.dependencies.join(', ') : 'None'
-                  }}
-                </li>
-                <li>
-                  <strong>Expected Output: </strong>{{ step.expected_output }}
-                </li>
-              </ul>
-            }
-            <!-- final check -->
-            <div hlmH3>Final Check</div>
-            <div hlmP>
-              {{ plan.final_check }}
-            </div>
-          </div>
+          [innerHTML]="extractTextWithoutCode(message.content).trim()"
+        ></div>
+      </div>
         }
       }
       <!-- empty state -->
@@ -378,7 +397,7 @@
           track $index
         ) {
           <!-- code block -->
-          @if (message.type === 'code' || message.type === 'executedCode') {
+          @if (message.type === 'code' || message.type === 'executedCode')  {
             <pre><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
           }
           <!-- result block -->
