@@ -71,3 +71,120 @@ pre code.hljs {
     content: '';
   }
 }
+
+/* Light Mode (Default) */
+:root {
+  --bg-color: #ffffff;
+  --text-color: #000000;
+  --card-bg: #f8f9fa;
+  --border-color: #ddd;
+}
+
+/* Dark Mode - Enhanced */
+.dark-mode {
+  /* Main variables */
+  --bg-color: #0f172a;      /* Dark blue background like ChatGPT */
+  --text-color: #e2e8f0;    /* Light gray text for better readability */
+  --card-bg: #1e293b;       /* Slightly lighter blue for cards */
+  --border-color: #334155;  /* Subtle border color */
+  
+  /* Override HSL variables for consistent theming */
+  --background: 222 47% 11%;
+  --foreground: 217 33% 17%;
+  --muted: 215 25% 27%;
+  --muted-foreground: 215 20% 65%;
+  --popover: 222 47% 11%;
+  --popover-foreground: 210 40% 98%;
+  --card: 217 33% 17%;
+  --card-foreground: 210 40% 98%;
+  --border: 215 25% 27%;
+  --input: 215 25% 27%;
+  --primary: 196 80% 40%;   /* Adjusted primary color for dark mode */
+  --secondary: 174 75% 35%; /* Adjusted secondary color for dark mode */
+  --accent: 215 25% 27%;
+  --accent-foreground: 210 40% 98%;
+}
+
+/* Apply to body */
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: all 0.3s ease;
+}
+
+/* Style reusable components */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  padding: 16px;
+  border-radius: 8px;
+}
+
+/* Button styles */
+.theme-toggle {
+  background: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--border-color);
+}
+
+/* Dark mode additional elements */
+.dark-mode {
+  /* Code blocks */
+  pre, code {
+    background-color: #1a2234;
+    color: #e2e8f0;
+  }
+  
+  /* Scrollbar styling */
+  ::-webkit-scrollbar-thumb {
+    background-color: #4b5563;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background-color: #1e293b;
+  }
+  
+  /* Form elements */
+  input, textarea, select {
+    background-color: #1e293b;
+    color: #e2e8f0;
+    border-color: #334155;
+  }
+  
+  /* Tables */
+  table th {
+    background-color: #1e293b;
+  }
+  
+  table td, table th {
+    border-color: #334155;
+  }
+  
+  /* Links */
+  a {
+    color: #60a5fa;
+  }
+  
+  /* Modal/dialog backgrounds */
+  .modal-backdrop, .dialog-backdrop {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* Make sure SVG icons are properly colored in dark mode */
+.dark-mode svg:not([fill]) {
+  fill: currentColor;
+}
+
+/* Invert certain images if needed */
+.dark-mode img.invert-in-dark {
+  filter: invert(0.85);
+}

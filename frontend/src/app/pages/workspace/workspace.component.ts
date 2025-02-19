@@ -97,6 +97,9 @@ import {
   lucideTrash2,
 } from '@ng-icons/lucide';
 
+import { SettingsComponent } from '../../components/settings/settings.component';
+
+
 @Component({
   selector: 'app-chat',
   standalone: true,
@@ -105,6 +108,7 @@ import {
   imports: [
     CommonModule,
     FormsModule,
+    SettingsComponent,
     CodeMessagePipe,
     PlanMessagePipe,
     Highlight,
@@ -180,6 +184,9 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   getLucideIconFromType = getLucideIconFromType;
   split?: Split.Instance;
   collapsed = false; // sidebar
+
+  showSettingsModal: boolean = false;
+
 
   currentProject: Project;
   currentSession: Session;
@@ -285,6 +292,21 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       this.newSession();
     }
     this.sessionsService.deleteSession(session);
+  }
+
+
+
+
+
+
+
+
+  openSettingsModal() {
+    this.showSettingsModal = true;
+  }
+
+  closeSettingsModal() {
+    this.showSettingsModal = false;
   }
 
   /*
