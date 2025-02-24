@@ -2,16 +2,17 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, firstValueFrom } from 'rxjs';
 import { ChatMessage } from '../models/chat-message';
+import { environment } from '../../environments/environment'
 
 @Injectable({
   providedIn: 'root',
 })
 export class ChatService {
   private chatAPIEndpoint =
-    'REMOVED'
+    environment.chatAPIEndpoint;
   private l3chatAPIEndpoint =
-    'REMOVED'
-  private nameMakerAPIEndpoint = 'REMOVED';
+    environment.l3chatAPIEndpoint;
+  private nameMakerAPIEndpoint =  environment.nameMakerAPIEndpoint;
 
   constructor(private http: HttpClient) {}
 
