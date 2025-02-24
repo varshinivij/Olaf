@@ -13,6 +13,7 @@ import { getStorage, provideStorage } from '@angular/fire/storage';
 import { provideHighlightOptions } from 'ngx-highlightjs';
 
 import { routes } from './app.routes';
+import {secrets} from '../environments/environment.secret';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -23,14 +24,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
 
     provideFirebaseApp(() =>
-      initializeApp({
-        projectId: 'twocube-web',
-        appId: '1:REMOVED:web:349739f3904ebe5c7a28ef',
-        storageBucket: 'twocube-web.appspot.com',
-        apiKey: 'REMOVED',
-        authDomain: 'app.twocube.ai',
-        messagingSenderId: 'REMOVED',
-        measurementId: 'REMOVED',
+      initializeApp({ ...secrets.firebase
       }),
     ),
     provideAuth(() => getAuth()),
