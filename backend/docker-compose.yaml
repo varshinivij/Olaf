@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  firebase:
+    build: .
+    container_name: firebase_emulator
+    ports:
+      - "5000:5000"   # Hosting
+      - "5001:5001"   # Functions
+      - "8080:8080"   # Firestore
+      - "9099:9099"   # Auth
+    volumes:
+      - .:/usr/src/app
+    environment:
+      # This can be used by firebase.json or your code to know the project ID
+      - FIREBASE_PROJECT_ID=twocube-web
+    command: firebase emulators:start
