@@ -13,7 +13,7 @@ import { getStorage, provideStorage } from '@angular/fire/storage';
 import { provideHighlightOptions } from 'ngx-highlightjs';
 
 import { routes } from './app.routes';
-import {secrets} from '../environments/environment.secret';
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -24,7 +24,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
 
     provideFirebaseApp(() =>
-      initializeApp({ ...secrets.firebase
+      initializeApp({ ...environment.firebase
       }),
     ),
     provideAuth(() => getAuth()),
