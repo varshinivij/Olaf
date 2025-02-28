@@ -8,9 +8,10 @@ services:
       - "5001:5001"   # Functions
       - "8080:8080"   # Firestore
       - "9099:9099"   # Auth
+      - "9199:9199"   # Storage
+      - "4000:4000"   # Emulator Web UI
     volumes:
       - .:/usr/src/app
     environment:
       # This can be used by firebase.json or your code to know the project ID
       - FIREBASE_PROJECT_ID=twocube-web
-    command: firebase emulators:start
