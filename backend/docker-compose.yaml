@@ -4,10 +4,10 @@ services:
     build: .
     container_name: firebase_emulator
     ports:
-      # - "5000:5000"   # Hosting
+      - "5000:5000"   # Hosting
       - "5001:5001"   # Functions
-      # - "8080:8080"   # Firestore
-      # - "9099:9099"   # Auth
+      - "8080:8080"   # Firestore
+      - "9099:9099"   # Auth
     volumes:
       - .:/usr/src/app
     environment:
