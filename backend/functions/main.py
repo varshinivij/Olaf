@@ -39,9 +39,7 @@ if IS_EMULATOR:
     dummy_cred = DummyCredential()
     initialize_app(dummy_cred, {"projectId": "twocube-web"})
 else:
-    # Use real credentials in production.
-    cred = credentials.Certificate("path/to/serviceAccountKey.json")
-    initialize_app(cred)
+    initialize_app()
 
 # Expose endpoints to Firebase Functions
 from endpoints.agent_endpoints import *
