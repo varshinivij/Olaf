@@ -15,12 +15,13 @@ export const environment = {
         firestore: 'http://localhost:8080',
         functions: 'http://localhost:5001',
         hosting: 'http://localhost:5000',
+        storage: 'http://localhost:9199',
         }
     },
 
     // API Endpoints - Replace with local development URLs
     chatAPIEndpoint: 'http://localhost:5001/twocube-web/us-central1/master_agent_interaction',
-    l3chatAPIEndpoint: 'http://localhost:5001/twocube-web/us-central1/l3MasterAgentInteraction',
+    l3chatAPIEndpoint: 'http://localhost:5001/twocube-web/us-central1/l3_master_agent_interaction',
     nameMakerAPIEndpoint: 'http://localhost:5001/twocube-web/us-central1/name_maker',
 
     // Box-related APIs
