@@ -11,7 +11,7 @@ export const environment = {
     },
   
     // Production API Endpoints
-    masterAgentAPIEndpoint: 'REMOVED',
+    chatAPIEndpoint: 'REMOVED',
     l3chatAPIEndpoint: 'REMOVED',
     nameMakerAPIEndpoint: 'REMOVED',
   
