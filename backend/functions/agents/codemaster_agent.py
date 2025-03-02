@@ -1,5 +1,5 @@
 from datastructures.history import History
-from functions.models.chat_message import ChatMessageRole, ChatMessageType
+from models.chat_message import ChatMessageRole, ChatMessageType
 from services.agent_service import chat_completion_api
 from typing import List, Dict, Any, Tuple, Callable
 from .abstract_agent import AbstractAgent
