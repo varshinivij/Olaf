@@ -1,4 +1,5 @@
 from typing import List, Optional
+import os
 
 from firebase_admin import firestore
 from google.cloud.firestore import ArrayUnion
@@ -13,7 +14,17 @@ class SessionService:
     """
 
     def __init__(self):
+        self.connection_check()
         self.db = firestore.client()
+
+    def connection_check(self):
+        """
+        checks which firestore instance is being used
+        """
+        if os.getenv("FIRESTORE_EMULATOR_HOST"):
+            print("✅ Connecting to Firestore Emulator at", os.getenv("FIRESTORE_EMULATOR_HOST"))
+        else:
+            print("⚠️ WARNING: Firestore Emulator is NOT set. This may connect to production!")
 
     def add_message_to_session(
         self, session_id: str, message: ChatMessage
@@ -32,6 +43,7 @@ class SessionService:
         """
         Creates a new session in Firestore. Optionally add a message upon creation.
         """
+        self.connection_check()
         new_session_ref = self.db.collection("sessions").document()
 
         session_data: Session = {
@@ -60,6 +72,7 @@ class SessionService:
         """
         Gets a given session from Firestore.
         """
+        self.connection_check()
         session_ref = self.db.collection("sessions").document(session_id)
         session_data = session_ref.get().to_dict()
         return session_data  # type: ignore
@@ -68,6 +81,7 @@ class SessionService:
         """
         Gets all sessions for a given user from Firestore.
         """
+        self.connection_check()
         sessions_ref = self.db.collection("sessions").where("userId", "==", user_id)
         sessions_list: List[Session] = []
         sessions = sessions_ref.stream()

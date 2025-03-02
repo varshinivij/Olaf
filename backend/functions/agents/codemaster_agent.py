@@ -204,7 +204,7 @@ class CodeMasterAgent(AbstractAgent):
         """
         Overriding the base implementation to store the interaction in the history.
         """
-        self.history.append({"role": role, "content": content})
+        self.history.log(role, content, "text")
 
     def _base_interaction(self):
         """
