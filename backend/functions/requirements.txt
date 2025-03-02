@@ -1,6 +1,7 @@
 e2b==0.17.1
 e2b-code-interpreter==0.0.10a0
-firebase_functions~=0.1.0
+# firebase_functions=0.1.0 proper version for this is unclear
+firebase_functions
 gcloud
 google-cloud-firestore
 google-cloud-storage

@@ -1,4 +1,5 @@
 from datastructures.history import History
+from functions.models.chat_message import ChatMessageRole, ChatMessageType
 from services.agent_service import chat_completion_api
 from typing import List, Dict, Any, Tuple, Callable
 from .abstract_agent import AbstractAgent
@@ -204,7 +205,7 @@ class CodeMasterAgent(AbstractAgent):
         """
         return None
 
-    def store_interaction(self, role: str, content: str, type: str) -> None:
+    def store_interaction(self, role: ChatMessageRole, content: str, type: ChatMessageType) -> None:
         """
         Overriding the base implementation to store the interaction in the history.
         """
