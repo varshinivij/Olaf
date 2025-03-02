@@ -7,7 +7,9 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:TwoCube-Frontend": "node dist/two-cube-frontend/server/server.mjs"
+    "serve:ssr:TwoCube-Frontend": "node dist/two-cube-frontend/server/server.mjs",
+    "dev": "ng serve --configuration=development",
+    "prod": "ng serve --configuration=production"
   },
   "private": true,
   "dependencies": {

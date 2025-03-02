@@ -48,3 +48,4 @@ Thumbs.db
 
 # Secrets
 environment.secret.ts
+environment.ts
