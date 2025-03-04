@@ -659,6 +659,10 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     let result = ''; // To store the processed text
     const lines = response.split('\n'); // Split response by lines to process them one by one
 
+    // if all lines are empty return empty string or new line
+    if (lines.every((line) => line.trim() === '')) {
+      return '';
+    }
     for (let line of lines) {
       if (line.startsWith('```plan')) {
         continue;
@@ -693,7 +697,35 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
 
     // Remove all ``` from final result
     result = result.replace(/```/g, '');
+    // if result is <br/><br/> return empty string
+    if (result === '<br/><br/>') {
+      console.log("empty")
+      result = '';
+    }
+    console.log('result', result);
     // Ensure the result starts clean and is trimmed
     return result.trim();
   }
+
+    /*
+  * Extracts bash commands from a response string containing bash code blocks.
+  * @param response - The response string that may include bash code blocks within triple backticks.
+  * @returns An array of extracted bash commands as strings.
+  */
+    extractBashCommands(response: string): string[] {
+      const bashRegex = /```bash\s*\n([\s\S]*?)```/g;
+      const commands: string[] = [];
+      let match;
+  
+      while ((match = bashRegex.exec(response)) !== null) {
+        const cmd = match[1].trim();
+        if (cmd) {
+          commands.push(cmd);
+        }
+      }
+  
+      return commands;
+    }
+
+
 }
