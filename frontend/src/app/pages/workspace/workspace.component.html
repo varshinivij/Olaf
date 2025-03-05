@@ -167,7 +167,11 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
     <div #messageScreen class="flex h-full flex-col gap-y-3 overflow-y-auto">
       @for (message of this.currentSession.history.slice(1); track $index) {
         <!-- display user messages -->
-        @if (message.role === 'user' && message.type === 'text') {
+        @if (
+          message.role === 'user' &&
+          message.type === 'text' &&
+          message.content !== ''
+        ) {
           <div
             hlmSmall
             class="max-w-[calc(100%-40px)] self-end break-words rounded-lg bg-accent px-2 py-1"
@@ -182,6 +186,7 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
           message.type === 'executedCode')
           && message.content !== ''
           && message.content != '```'
+          && extractTextWithoutCode(message.content) != ""
         ) {
           <div class="flex gap-x-2.5">
             <!-- twocube avatar -->
@@ -311,9 +316,10 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
       </hlm-tabs-list>
       }
       @else {
-        <hlm-tabs-list class="grid w-full grid-cols-2">
+        <hlm-tabs-list class="grid w-full grid-cols-3">
           <button hlmTabsTrigger="code">Code</button>
           <button hlmTabsTrigger="files">Files</button>
+          <button hlmTabsTrigger="terminal">Terminal</button>
         </hlm-tabs-list>
       }
     <!-- planner tab content -->
@@ -344,13 +350,39 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
       }
     </div>
     <!-- terminal tab content -->
-    <div hlmTabsContent="terminal" class="h-full overflow-y-auto">
-      <!-- empty state -->
+    <div
+      hlmTabsContent="terminal"
+      class="h-full overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-white p-2 font-mono text-xs text-gray-700"
+    >
       <div
-        class="flex h-full flex-col items-center justify-center gap-y-4 rounded-md border p-3"
+        class="flex h-full w-full flex-col gap-y-2 overflow-y-auto rounded-sm bg-gray-200 p-3 font-mono text-xs leading-relaxed text-gray-700"
       >
-        <div class="h-20 w-20 rounded-full bg-background"></div>
-        <div hlmSmall hlmMuted>Terminal coming soon!</div>
+        <!-- Loop through the session history -->
+         <span>Olaf$ Welcome!</span>
+        <ng-container
+          *ngFor="let msg of this.currentSession.history"
+        >
+          <!-- If the user typed a terminal command -->
+          <div *ngIf="msg.type === 'terminal'" class="text-black-500">
+            <span>Olaf$ {{ extractBashCommands(msg.content) }}</span>
+          </div>
+          <!-- If the assistant returns a terminal result/output -->
+          <div *ngIf="msg.type === 'terminalResult'">
+            <!-- You can optionally do some cleaning or highlighting here -->
+            <pre class="text-black-500 whitespace-pre-wrap break-words">{{
+              msg.content
+            }}</pre>
+          </div>
+        </ng-container>
+        @if (executingCode.has(currentSession.id)) {
+          <span
+            hlmCode
+            class="mb-1 flex items-center gap-x-3 rounded-md border bg-transparent p-2"
+          >
+            Executing code...
+            <hlm-spinner size="xs" />
+          </span>
+        }
       </div>
     </div>
     <!-- code tab content -->

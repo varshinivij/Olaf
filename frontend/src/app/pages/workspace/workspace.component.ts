@@ -520,6 +520,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
               .then(() => {
                 this.sessionsService.loadAllSessions();
                 this.executeLatestCode(session);
+                this.executeLatestTerminalCode(session);
               });
           },
         });
@@ -622,6 +623,115 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     );
   }
 
+  /**
+   * Executes the latest terminal code message in the current session.
+   * @returns the latest terminal code message
+   */
+  async executeLatestTerminalCode(session: Session) {
+    const history = session.history;
+    const latestTerminalMessage = history.slice().reverse().find((msg) => msg.type === 'terminal');
+    if (!latestTerminalMessage) {
+      return;
+    }
+    this.executingCode.add(session.id);
+    if (!this.isConnected) {
+      await this.connectToSandbox();
+    }
+    const command = latestTerminalMessage.content;
+    this.executeTerminalCommand(session, command, latestTerminalMessage);
+  }
+
+  // Example of a new "executeTerminalCommand" with the same session-accumulation pattern
+  executeTerminalCommand(session: Session, command: string, message: ChatMessage) {
+    // Mark this session as "executing" if you track that state
+    this.executingCode.add(session.id);
+
+    this.sandboxService.runTerminalCommand(this.extractBashCommands(command)[0]).subscribe(
+      (res: any) => {
+        this.localSessionChunks[session.id] = [];
+
+        if (res.stdout && res.stdout.length > 0) {
+          const stdoutContent = res.stdout.map((line: string) => this.stripAnsiCodes(line)).join('\n');
+          const terminalResultMsg: ChatMessage = {
+            type: 'terminalResult',
+            role: 'assistant',
+            content: stdoutContent,
+          };
+          this.localSessionChunks[session.id].push(terminalResultMsg);
+        }
+
+        if (res.stderr && res.stderr.length > 0) {
+          const stderrContent = res.stderr
+            .map((errLine: string) => `[Error]: ${this.stripAnsiCodes(errLine)}`)
+            .join('\n');
+
+          const errorMessage: ChatMessage = {
+            type: 'terminalResult',
+            role: 'assistant',
+            content: stderrContent,
+          };
+          this.localSessionChunks[session.id].push(errorMessage);
+          this.errorCount += res.stderr.length;
+        }
+
+        if (res.error) {
+          const tracebackMessage: ChatMessage = {
+            type: 'terminalResult',  // or 'terminalResult' if you prefer
+            role: 'assistant',
+            content: `[Traceback]: ${this.stripAnsiCodes(res.error)}`,
+          };
+          this.localSessionChunks[session.id].push(tracebackMessage);
+          this.errorCount += 1;
+        }
+
+        if (
+          !res.stdout?.length &&
+          !res.stderr?.length &&
+          !res.error
+        ) {
+          const noOutputMsg: ChatMessage = {
+            type: 'terminalResult',
+            role: 'assistant',
+            content: '(No output)',
+          };
+          this.localSessionChunks[session.id].push(noOutputMsg);
+        }
+        this.executingCode.delete(session.id);
+        
+        const newMessages = this.localSessionChunks[session.id];
+        delete this.localSessionChunks[session.id];
+
+        this.sessionsService.addMessagesToSession(session, newMessages)
+          .then(() => {
+            return delay(500);
+          })
+          .then(() => {
+            this.sessionsService.loadAllSessions();
+          })
+          // .then(() => {
+          //   if (this.errorCount) {
+              
+          //   }
+          // });
+      },
+      (error) => {
+        console.error('Error running terminal command:', error);
+        this.executingCode.delete(session.id);
+      }
+    );
+  }
+
+  /**
+   * Removes ANSI escape codes from a string.
+   * @param content - The string containing ANSI escape codes.
+   * @returns The cleaned string.
+   */
+    stripAnsiCodes(content: string): string {
+      // Regex to match ANSI escape codes
+      const ansiRegex = /\x1b\[[0-9;]*[a-zA-Z]/g;
+      return content.replace(ansiRegex, '');
+    }
+
   extractCode(response: string): string {
     // Static variables to store the state between function calls
     let isOpen = false;
@@ -659,6 +769,10 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     let result = ''; // To store the processed text
     const lines = response.split('\n'); // Split response by lines to process them one by one
 
+    // if all lines are empty return empty string or new line
+    if (lines.every((line) => line.trim() === '')) {
+      return '';
+    }
     for (let line of lines) {
       if (line.startsWith('```plan')) {
         continue;
@@ -693,7 +807,33 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
 
     // Remove all ``` from final result
     result = result.replace(/```/g, '');
+    // if result is <br/><br/> return empty string
+    if (result === '<br/><br/>') {
+      result = '';
+    }
     // Ensure the result starts clean and is trimmed
     return result.trim();
   }
+
+    /*
+  * Extracts bash commands from a response string containing bash code blocks.
+  * @param response - The response string that may include bash code blocks within triple backticks.
+  * @returns An array of extracted bash commands as strings.
+  */
+    extractBashCommands(response: string): string[] {
+      const bashRegex = /```bash\s*\n([\s\S]*?)```/g;
+      const commands: string[] = [];
+      let match;
+  
+      while ((match = bashRegex.exec(response)) !== null) {
+        const cmd = match[1].trim();
+        if (cmd) {
+          commands.push(cmd);
+        }
+      }
+  
+      return commands;
+    }
+
+
 }
