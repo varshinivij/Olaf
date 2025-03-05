@@ -45,7 +45,7 @@ export class SandboxService {
     const headers = new HttpHeaders({
       'Content-Type': 'application/json'
     });
-    return this.http.post<any>(this.boxExecuteApi, { sandboxId: this.sandboxId, code }, { headers });
+    return this.http.post<any>(this.boxExecuteApi, { sandboxId: this.sandboxId, code });
   }
 
   isSandboxConnected(){

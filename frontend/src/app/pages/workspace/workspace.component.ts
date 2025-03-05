@@ -520,7 +520,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
               .then(() => {
                 this.sessionsService.loadAllSessions();
                 this.executeLatestCode(session);
-                // this.executeLatestTerminalCode(session);
+                this.executeLatestTerminalCode(session);
               });
           },
         });
@@ -696,6 +696,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
           };
           this.localSessionChunks[session.id].push(noOutputMsg);
         }
+        this.executingCode.delete(session.id);
         
         const newMessages = this.localSessionChunks[session.id];
         delete this.localSessionChunks[session.id];
@@ -715,6 +716,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       },
       (error) => {
         console.error('Error running terminal command:', error);
+        this.executingCode.delete(session.id);
       }
     );
   }
