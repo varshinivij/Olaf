@@ -214,48 +214,75 @@ class CodeMasterAgent(AbstractAgent):
     def _base_interaction(self):
         """
         This method yields streamed responses from chat_completion_api.
-        Instead of logging at the end, we store the assistant response once fully accumulated.
+        It treats everything outside of triple backticks as type="text",
+        and inside triple backticks as code/terminal (depending on optional language).
+        Once the closing backticks appear, we go back to text mode.
         """
-        content_accumulated = ""
-        current_chunk_type = "text"
         inside_code_block = False
+        pending_language = False
         code_language = ""
-        first_block_flag = True
+        content_accumulated = ""
 
-        # The following call streams the response tokens from the LLM
+        # Temporarily store opening ``` so we can merge with "bash" or "python" if provided
+        pending_opening = ""
+
         for chunk in chat_completion_api(self.history, self.system_prompt):
             try:
                 delta = chunk["choices"][0].get("delta", {})
                 content = delta.get("content", "")
-                if content:
-                    # Handle start of a code block
-                    if content == "```" and not inside_code_block:
-                        inside_code_block = True
-                        if first_block_flag:
-                            current_chunk_type = "terminal"
-                            first_block_flag = False
-                        else:
-                            current_chunk_type = "code" 
-                    elif inside_code_block and content in {"bash", "python"}:
-                        if content == "bash":
-                            code_language = "terminal"
-                        elif content == "python":
-                            code_language = "code"
-                        current_chunk_type = code_language
-                    elif inside_code_block and content.strip() == "`":
-                        inside_code_block = False
-                        current_chunk_type = code_language
-                        code_language = ""
-                    elif inside_code_block:
-                        current_chunk_type = code_language
-                    else:
-                        current_chunk_type = "text"
+                if not content:
+                    continue
 
-                    # Accumulate content for final storage
-                    content_accumulated += content
-                    yield {"type": current_chunk_type, "content": content}
+                # 1) Outside code block
+                if not inside_code_block:
+                    # Check if this token is opening triple backticks
+                    if content.strip() == "```":
+                        inside_code_block = True
+                        pending_language = True
+                        pending_opening = content  # store the ``` for later
+                        continue
+                    else:
+                        # Just normal text
+                        yield {"type": "text", "content": content}
+                        content_accumulated += content
+                        continue
+
+                # 2) Inside code block
+                else:
+                    if pending_language:
+                        # The next token might be a language (bash, python, etc.)
+                        stripped = content.strip()
+                        if stripped in {"bash", "python"}:
+                            # Decide type
+                            code_language = "terminal" if stripped == "bash" else "code"
+                            combined = pending_opening + content  # e.g. ```bash
+                        else:
+                            # No recognized language → default to 'code'
+                            code_language = "code"
+                            combined = pending_opening + content  # e.g. ```xyz
+
+                        yield {"type": code_language, "content": combined}
+                        content_accumulated += combined
+
+                        # Reset flags
+                        pending_language = False
+                        pending_opening = ""
+                        continue
+                    else:
+                        # Already recognized language or defaulted to 'code'
+                        # Check if this token is closing triple backticks
+                        if content.strip() == "```":
+                            # Yield the closing backticks as code (so user sees them in UI)
+                            yield {"type": code_language, "content": content}
+                            content_accumulated += content
+
+                            # Go back to text mode after the backticks
+                            inside_code_block = False
+                            code_language = ""
+                        else:
+                            # Normal content inside code block
+                            yield {"type": code_language, "content": content}
+                            content_accumulated += content
+
             except KeyError:
                 continue
-
-        # Once done, store the fully accumulated assistant response
-        self.store_interaction("assistant", content_accumulated, current_chunk_type)
