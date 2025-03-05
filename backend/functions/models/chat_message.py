@@ -2,7 +2,7 @@ from typing import Literal, TypedDict
 
 
 ChatMessageType = Literal[
-    "text", "code", "executedCode", "plan", "error", "image", "result", "hidden"
+    "text", "code", "executedCode", "plan", "error", "image", "result", "hidden", "terminal"
 ]
 ChatMessageRole = Literal["assistant", "user", "system"]
 

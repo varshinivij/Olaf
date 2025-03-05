@@ -1,11 +1,11 @@
 from datastructures.history import History
+from models.chat_message import ChatMessageRole, ChatMessageType
 from services.agent_service import chat_completion_api
 from typing import List, Dict, Any, Tuple, Callable
 from .abstract_agent import AbstractAgent
 
 system_prompt = """
 You are a highly skilled bioinformatics agent specializing in single-cell RNA-seq data analysis using Python. Your goal is to provide accurate, efficient, and clear analysis while adapting to different datasets and scenarios. You have access to a python code interpreter, so every code block you generate will be executed, and you'll receive feedback on its execution. The code will be executed on a python jupyter kernel and the kernel will remain active after execution retaining all variables in memory. Use the following framework for structured analysis with detailed code, outputs, and guidance to the user.
-
 
 **Primary Analysis Flow**:
 For analyzing single-cell RNA-seq data using the `Scanpy` package, follow this structured framework:
@@ -162,6 +162,11 @@ psutil==6.0.0
 defusedxml==0.7.1
 requests==2.32.3
 
+Whenever you need to run code on the terminal using a package that is not already install, first provide a corresponding Bash code block labeled ```bash``` with the installation commands for all dependencies utilized, if they are not already installed in the environment. Do this for each code snippet you generate, like so:
+```bash
+pip install <dependency-name>
+```
+
 You can proceed with executing code that utilizes any of these packages without needing to install them. Don't install any additional packages
 
 Your objective is to guide the user through single-cell RNA-seq analysis, ensuring accuracy, reproducibility, and meaningful insights from the data.
@@ -200,39 +205,84 @@ class CodeMasterAgent(AbstractAgent):
         """
         return None
 
-    def store_interaction(self, role: str, content: str) -> None:
+    def store_interaction(self, role: ChatMessageRole, content: str, type: ChatMessageType) -> None:
         """
         Overriding the base implementation to store the interaction in the history.
         """
-        self.history.log(role, content, "text")
+        self.history.log(role, content, type)
 
     def _base_interaction(self):
         """
         This method yields streamed responses from chat_completion_api.
-        Instead of logging at the end, we store the assistant response once fully accumulated.
+        It treats everything outside of triple backticks as type="text",
+        and inside triple backticks as code/terminal (depending on optional language).
+        Once the closing backticks appear, we go back to text mode.
         """
+        inside_code_block = False
+        pending_language = False
+        code_language = ""
         content_accumulated = ""
-        current_chunk_type = "text"
 
-        # The following call streams the response tokens from the LLM
+        # Temporarily store opening ``` so we can merge with "bash" or "python" if provided
+        pending_opening = ""
+
         for chunk in chat_completion_api(self.history, self.system_prompt):
             try:
                 delta = chunk["choices"][0].get("delta", {})
                 content = delta.get("content", "")
-                if content:
-                    # Determine if this chunk is code or text
-                    if content.startswith("```plan"):
-                        current_chunk_type = "plan"
-                    elif content.startswith("```"):
-                        current_chunk_type = "code"
-                    elif content.endswith("```"):
-                        # end of code block
-                        current_chunk_type = "text"
+                if not content:
+                    continue
 
-                    content_accumulated += content
-                    yield {"type": current_chunk_type, "content": content}
+                # 1) Outside code block
+                if not inside_code_block:
+                    # Check if this token is opening triple backticks
+                    if content.strip() == "```":
+                        inside_code_block = True
+                        pending_language = True
+                        pending_opening = content  # store the ``` for later
+                        continue
+                    else:
+                        # Just normal text
+                        yield {"type": "text", "content": content}
+                        content_accumulated += content
+                        continue
+
+                # 2) Inside code block
+                else:
+                    if pending_language:
+                        # The next token might be a language (bash, python, etc.)
+                        stripped = content.strip()
+                        if stripped in {"bash", "python"}:
+                            # Decide type
+                            code_language = "terminal" if stripped == "bash" else "code"
+                            combined = pending_opening + content  # e.g. ```bash
+                        else:
+                            # No recognized language → default to 'code'
+                            code_language = "code"
+                            combined = pending_opening + content  # e.g. ```xyz
+
+                        yield {"type": code_language, "content": combined}
+                        content_accumulated += combined
+
+                        # Reset flags
+                        pending_language = False
+                        pending_opening = ""
+                        continue
+                    else:
+                        # Already recognized language or defaulted to 'code'
+                        # Check if this token is closing triple backticks
+                        if content.strip() == "```":
+                            # Yield the closing backticks as code (so user sees them in UI)
+                            yield {"type": code_language, "content": content}
+                            content_accumulated += content
+
+                            # Go back to text mode after the backticks
+                            inside_code_block = False
+                            code_language = ""
+                        else:
+                            # Normal content inside code block
+                            yield {"type": code_language, "content": content}
+                            content_accumulated += content
+
             except KeyError:
                 continue
-
-        # Once done, store the fully accumulated assistant response
-        self.store_interaction("assistant", content_accumulated)
