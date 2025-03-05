@@ -22,4 +22,5 @@ export const environment = {
     boxStatusApi: 'REMOVED',
     boxUploadApi: 'REMOVED',
     addFirebaseFileApi: 'REMOVED',
+    boxTerminalApi: 'https://run-terminal-command-sandbox-7drpntdska-uc.a.run.app', //TODO fix perms on google for this one
   };

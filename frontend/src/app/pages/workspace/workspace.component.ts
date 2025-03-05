@@ -520,6 +520,7 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
               .then(() => {
                 this.sessionsService.loadAllSessions();
                 this.executeLatestCode(session);
+                // this.executeLatestTerminalCode(session);
               });
           },
         });
@@ -622,6 +623,113 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     );
   }
 
+  /**
+   * Executes the latest terminal code message in the current session.
+   * @returns the latest terminal code message
+   */
+  async executeLatestTerminalCode(session: Session) {
+    const history = session.history;
+    const latestTerminalMessage = history.slice().reverse().find((msg) => msg.type === 'terminal');
+    if (!latestTerminalMessage) {
+      return;
+    }
+    this.executingCode.add(session.id);
+    if (!this.isConnected) {
+      await this.connectToSandbox();
+    }
+    const command = latestTerminalMessage.content;
+    this.executeTerminalCommand(session, command, latestTerminalMessage);
+  }
+
+  // Example of a new "executeTerminalCommand" with the same session-accumulation pattern
+  executeTerminalCommand(session: Session, command: string, message: ChatMessage) {
+    // Mark this session as "executing" if you track that state
+    this.executingCode.add(session.id);
+
+    this.sandboxService.runTerminalCommand(this.extractBashCommands(command)[0]).subscribe(
+      (res: any) => {
+        this.localSessionChunks[session.id] = [];
+
+        if (res.stdout && res.stdout.length > 0) {
+          const stdoutContent = res.stdout.map((line: string) => this.stripAnsiCodes(line)).join('\n');
+          const terminalResultMsg: ChatMessage = {
+            type: 'terminalResult',
+            role: 'assistant',
+            content: stdoutContent,
+          };
+          this.localSessionChunks[session.id].push(terminalResultMsg);
+        }
+
+        if (res.stderr && res.stderr.length > 0) {
+          const stderrContent = res.stderr
+            .map((errLine: string) => `[Error]: ${this.stripAnsiCodes(errLine)}`)
+            .join('\n');
+
+          const errorMessage: ChatMessage = {
+            type: 'terminalResult',
+            role: 'assistant',
+            content: stderrContent,
+          };
+          this.localSessionChunks[session.id].push(errorMessage);
+          this.errorCount += res.stderr.length;
+        }
+
+        if (res.error) {
+          const tracebackMessage: ChatMessage = {
+            type: 'terminalResult',  // or 'terminalResult' if you prefer
+            role: 'assistant',
+            content: `[Traceback]: ${this.stripAnsiCodes(res.error)}`,
+          };
+          this.localSessionChunks[session.id].push(tracebackMessage);
+          this.errorCount += 1;
+        }
+
+        if (
+          !res.stdout?.length &&
+          !res.stderr?.length &&
+          !res.error
+        ) {
+          const noOutputMsg: ChatMessage = {
+            type: 'terminalResult',
+            role: 'assistant',
+            content: '(No output)',
+          };
+          this.localSessionChunks[session.id].push(noOutputMsg);
+        }
+        
+        const newMessages = this.localSessionChunks[session.id];
+        delete this.localSessionChunks[session.id];
+
+        this.sessionsService.addMessagesToSession(session, newMessages)
+          .then(() => {
+            return delay(500);
+          })
+          .then(() => {
+            this.sessionsService.loadAllSessions();
+          })
+          // .then(() => {
+          //   if (this.errorCount) {
+              
+          //   }
+          // });
+      },
+      (error) => {
+        console.error('Error running terminal command:', error);
+      }
+    );
+  }
+
+  /**
+   * Removes ANSI escape codes from a string.
+   * @param content - The string containing ANSI escape codes.
+   * @returns The cleaned string.
+   */
+    stripAnsiCodes(content: string): string {
+      // Regex to match ANSI escape codes
+      const ansiRegex = /\x1b\[[0-9;]*[a-zA-Z]/g;
+      return content.replace(ansiRegex, '');
+    }
+
   extractCode(response: string): string {
     // Static variables to store the state between function calls
     let isOpen = false;
@@ -699,10 +807,8 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     result = result.replace(/```/g, '');
     // if result is <br/><br/> return empty string
     if (result === '<br/><br/>') {
-      console.log("empty")
       result = '';
     }
-    console.log('result', result);
     // Ensure the result starts clean and is trimmed
     return result.trim();
   }

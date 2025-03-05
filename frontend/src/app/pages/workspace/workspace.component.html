@@ -167,7 +167,11 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
     <div #messageScreen class="flex h-full flex-col gap-y-3 overflow-y-auto">
       @for (message of this.currentSession.history.slice(1); track $index) {
         <!-- display user messages -->
-        @if (message.role === 'user' && message.type === 'text') {
+        @if (
+          message.role === 'user' &&
+          message.type === 'text' &&
+          message.content !== ''
+        ) {
           <div
             hlmSmall
             class="max-w-[calc(100%-40px)] self-end break-words rounded-lg bg-accent px-2 py-1"
@@ -196,7 +200,7 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
               <div hlmSmall class="self-start break-words rounded-lg">
                 @if (
                   (message.type === 'code' || message.type === 'executedCode') &&
-                  extractTextWithoutCode(message.content).trim() !== ''
+                  message.content.trim() !== ''
                 ) {
                   <div
                     [innerHTML]="extractTextWithoutCode(message.content).trim()"
@@ -346,36 +350,31 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
       }
     </div>
     <!-- terminal tab content -->
-    <div hlmTabsContent="terminal" class="h-full overflow-y-auto">
-        <div
-        hlmTabsContent="terminal"
-        class="h-full overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-white p-2 font-mono text-xs text-gray-700"
+    <div
+      hlmTabsContent="terminal"
+      class="h-full overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-white p-2 font-mono text-xs text-gray-700"
+    >
+      <div
+        class="flex h-full w-full flex-col gap-y-2 overflow-y-auto rounded-sm bg-gray-200 p-3 font-mono text-xs leading-relaxed text-gray-700"
       >
-        <div
-          class="flex h-full flex-col items-center justify-center gap-y-4 rounded-md border p-3"
-          class="flex h-full w-full flex-col gap-y-2 overflow-y-auto rounded-sm bg-gray-200 p-3 font-mono text-xs leading-relaxed text-gray-700"
-        >
         <!-- Loop through the session history -->
         <ng-container
           *ngFor="let msg of this.currentSession.history"
         >
           <!-- If the user typed a terminal command -->
-          <span>olaf$ Welcome!</span>
-            <div *ngIf="msg.type === 'terminal'" class="text-black-500">
+          <div *ngIf="msg.type === 'terminal'" class="text-black-500">
+            <span>olaf$ {{ extractBashCommands(msg.content) }}</span>
+          </div>
 
-              <span>olaf$ {{ extractBashCommands(msg.content) }}</span>
-            </div>
-
-            <!-- If the assistant returns a terminal result/output -->
-            <div *ngIf="msg.type === 'terminalResult'">
-              <!-- You can optionally do some cleaning or highlighting here -->
-              <pre class="text-black-500 whitespace-pre-wrap break-words">{{
-                msg.content
-              }}</pre>
-            </div>
+          <!-- If the assistant returns a terminal result/output -->
+          <div *ngIf="msg.type === 'terminalResult'">
+            <!-- You can optionally do some cleaning or highlighting here -->
+            <pre class="text-black-500 whitespace-pre-wrap break-words">{{
+              msg.content
+            }}</pre>
+          </div>
         </ng-container>
       </div>
-      </div>  
     </div>
     <!-- code tab content -->
     <div #codeScreen hlmTabsContent="code" class="h-full overflow-y-auto">
@@ -383,11 +382,11 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
         @for (message of currentSession.history | codemessage; track $index) {
           <!-- code block -->
           @if (message.type === 'code' || message.type === 'executedCode') {
-            <pre><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
+            <pre><code hlmSmall [innerHTML]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
           }
           <!-- result block -->
           @else if (message.type === 'result') {
-            <pre><code hlmSmall [highlight]="message.content" language="html" class="bg-transparent border rounded-md"></code></pre>
+            <pre><code hlmSmall [innerHTML]="message.content" language="html" class="bg-transparent border rounded-md"></code></pre>
           }
           <!-- image block -->
           @else if (message.type === 'image') {
@@ -398,7 +397,7 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
           }
           <!-- error block -->
           @else if (message.type === 'error') {
-            <pre><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
+            <pre><code hlmSmall [innerHTML]="message.content" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
           }
         }
         <!-- empty state -->
@@ -422,11 +421,11 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
         ) {
           <!-- code block -->
           @if (message.type === 'code' || message.type === 'executedCode')  {
-            <pre><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
+            <pre><code hlmSmall [innerHTML]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
           }
           <!-- result block -->
           @else if (message.type === 'result') {
-            <pre><code hlmSmall [highlight]="message.content" language="html" class="bg-transparent border rounded-md"></code></pre>
+            <pre><code hlmSmall [innerHTML]="message.content" language="html" class="bg-transparent border rounded-md"></code></pre>
           }
           <!-- image block -->
           @else if (message.type === 'image') {
@@ -437,7 +436,7 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
           }
           <!-- error block -->
           @else if (message.type === 'error') {
-            <pre><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
+            <pre><code hlmSmall [innerHTML]="message.content" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
           }
         }
         @if (executingCode.has(currentSession.id)) {

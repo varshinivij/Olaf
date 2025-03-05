@@ -25,10 +25,11 @@ export const environment = {
     nameMakerAPIEndpoint: 'http://localhost:5001/twocube-web/us-central1/name_maker',
 
     // Box-related APIs
-    boxRequestApi: 'http://localhost:5001/twocube-web/us-central1/requestSandbox',
-    boxExecuteApi: 'http://localhost:5001/twocube-web/us-central1/executeOnSandbox',
-    boxCloseApi: 'http://localhost:5001/twocube-web/us-central1/closeSandbox',
-    boxStatusApi: 'http://localhost:5001/twocube-web/us-central1/sandboxStatus',
-    boxUploadApi: 'http://localhost:5001/twocube-web/us-central1/uploadToSandbox',
-    addFirebaseFileApi: 'http://localhost:5001/twocube-web/us-central1/firebaseStorageToSandbox'
+    boxRequestApi: 'http://localhost:5001/twocube-web/us-central1/request_sandbox',
+    boxExecuteApi: 'http://localhost:5001/twocube-web/us-central1/execute_on_sandbox',
+    boxCloseApi: 'http://localhost:5001/twocube-web/us-central1/close_sandbox',
+    boxStatusApi: 'http://localhost:5001/twocube-web/us-central1/sandbox_status',
+    boxUploadApi: 'http://localhost:5001/twocube-web/us-central1/upload_to_sandbox',
+    addFirebaseFileApi: 'http://localhost:5001/twocube-web/us-central1/firebase_storage_to_sandbox',
+    boxTerminalApi: 'http://localhost:5001/twocube-web/us-central1/run_terminal_command',
 };
