@@ -8,6 +8,8 @@ from google.cloud import storage
 from werkzeug.datastructures.file_storage import FileStorage
 from werkzeug.utils import secure_filename
 
+from os import environ
+
 
 class CodeExecutionResult(TypedDict):
     logs: Dict[Literal["stdout", "stderr"], List[str]]
@@ -28,8 +30,8 @@ class E2BService:
 
     def __init__(self):
         # we should move this to a secret store and load from there eventually
-        self.e2b_api_key = "REMOVED"
-        self.e2b_template = "vh7kehbtf0t4xbx9ec9u"
+        self.e2b_api_key = environ.get("E2B_API_KEY")
+        self.e2b_template = environ.get("E2B_TEMPLATE") or "vh7kehbtf0t4xbx9ec9u"
 
     def create_sandbox(self) -> str:
         """
