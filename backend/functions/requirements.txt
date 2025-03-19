@@ -10,3 +10,4 @@ flask
 fpdf
 openAI
 werkzeug
+python-dotenv

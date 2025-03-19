@@ -1,14 +1,18 @@
 import requests
 import re
 import json
-
 from fpdf import FPDF
 from openai import OpenAI
+from os import environ
 
 from datastructures.history import History
 
 
-openai_api_key = "REMOVED"
+openai_api_key = environ.get("OPENAI_API_KEY")
+
+# except the opanai_api_key as an error
+if not openai_api_key:
+    raise ValueError(f"OpenAI API key not found in environment variables.")
 openai_api_url = "https://api.openai.com/v1/chat/completions"
 openai_client = OpenAI(api_key=openai_api_key)
 
@@ -218,7 +222,7 @@ class AgentService:
 
     def __init__(self):
         # we should move this to a secret store and load from there eventually
-        self.openai_api_key = "REMOVED"
+        self.openai_api_key = environ.get("OPENAI_API_KEY")
         self.openai_api_url = "https://api.openai.com/v1/chat/completions"
         self.openai_client = OpenAI(api_key=openai_api_key)
 
