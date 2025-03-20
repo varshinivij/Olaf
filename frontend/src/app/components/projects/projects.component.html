@@ -66,13 +66,13 @@
               <hlm-option value="GPT-4o">GPT-4o</hlm-option>
             </hlm-select-content>
           </brn-select>
-          <brn-select placeholder="Select agent" formControlName="agent">
+          <brn-select placeholder="Select Agent Type" formControlName="agent">
             <hlm-select-trigger class="w-96">
               <hlm-select-value />
             </hlm-select-trigger>
             <hlm-select-content>
-              <hlm-option value="Master">Master</hlm-option>
-              <hlm-option value="L3-Automation">L3-Automation</hlm-option>
+              <hlm-option value="BasicAgent">Basic Agent</hlm-option>
+              <hlm-option value="L3-Reasoning">L3-Reasoning</hlm-option>
             </hlm-select-content>
           </brn-select>
         </form>
@@ -161,7 +161,7 @@
 
   @if (projects?.length === 0) {
     <div class="mt-auto flex flex-col items-center gap-y-1">
-      <img class="h-12 w-12 dark-mode:invert" src="assets/twocube-logo-black-bg.png" />
+      <img class="h-12 w-12 dark-mode:invert" src="assets/OTB.png" />
       @if (projectService.getSearchFilter() | async; as search) {
         <p class="font-bold">No Projects Found</p>
         <p>Your search "{{ search }}" did not match any project.</p>

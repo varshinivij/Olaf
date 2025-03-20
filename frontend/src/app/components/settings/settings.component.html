@@ -14,21 +14,21 @@
     >
       General Settings
     </button>
-    <button
+    <!-- <button
       class="tab-button"
       [class.active]="activeTab === 'code'"
       (click)="switchTab('code')"
     >
       Code Environment
-    </button>
+    </button> -->
   </div>
 
   <div class="content">
     <div *ngIf="activeTab === 'general'">
-      <h3>General Settings</h3>
-      <p>Configure your project's basic information</p>
+      <!-- <h3>General Settings</h3>
+      <p>Configure your project's basic information</p> -->
       <form [formGroup]="generalSettingsForm">
-        <div>
+        <!-- <div>
           <label for="projectName">Project Name</label>
           <input id="projectName" type="text" formControlName="projectName" />
         </div>
@@ -47,13 +47,13 @@
           </select>
         </div>
 
-        <div>
+        <div> -->
           <label for="theme">Theme</label>
           <select id="theme" formControlName="theme">
             <option value="Light">Light</option>
             <option value="Dark">Dark</option>
           </select>
-        </div>
+        <!-- </div> -->
       </form>
     </div>
 

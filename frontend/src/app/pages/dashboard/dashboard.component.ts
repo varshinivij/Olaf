@@ -20,22 +20,20 @@ import {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  // 2. Add it to the "imports" array
   imports: [
     FileStorageComponent,
     SidebarComponent,
     ProjectsComponent,
     HlmH2Directive,
-    HlmH3Directive,
     HlmLargeDirective,
-    SettingsComponent, // <--- Add this
+    SettingsComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
 })
 export class DashboardComponent implements AfterViewInit {
   page: PageName = 'projects';
-
+  showSettingsModal = false;
   @ViewChild(SettingsComponent) settingsComponent!: SettingsComponent;
 
   ngAfterViewInit() {
@@ -46,7 +44,20 @@ export class DashboardComponent implements AfterViewInit {
       snapOffset: 0,
     });
   }
-  openSettingsModal() {
-    this.settingsComponent.openModal();
+  
+  updatePage(newPage: PageName) {
+    this.page = newPage;
+    this.showSettingsModal = newPage === 'settings';
   }
+
+  openSettingsModal() {
+    this.showSettingsModal = true;
+  }
+
+  closeSettingsModal() {
+    this.showSettingsModal = false;
+    this.page = 'projects';
+  }
+
+
 }

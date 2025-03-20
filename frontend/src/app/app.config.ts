@@ -5,14 +5,15 @@ import { provideClientHydration } from '@angular/platform-browser';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
-import { getAuth, provideAuth } from '@angular/fire/auth';
-import { getFirestore, provideFirestore } from '@angular/fire/firestore';
-import { getFunctions, provideFunctions } from '@angular/fire/functions';
-import { getStorage, provideStorage } from '@angular/fire/storage';
+import { getAuth, provideAuth, connectAuthEmulator } from '@angular/fire/auth';
+import { getFirestore, provideFirestore, connectFirestoreEmulator} from '@angular/fire/firestore';
+import { getFunctions, provideFunctions, connectFunctionsEmulator } from '@angular/fire/functions';
+import { getStorage, provideStorage, connectStorageEmulator } from '@angular/fire/storage';
 
 import { provideHighlightOptions } from 'ngx-highlightjs';
 
 import { routes } from './app.routes';
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -23,20 +24,39 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
 
     provideFirebaseApp(() =>
-      initializeApp({
-        projectId: 'twocube-web',
-        appId: '1:REMOVED:web:349739f3904ebe5c7a28ef',
-        storageBucket: 'twocube-web.appspot.com',
-        apiKey: 'REMOVED',
-        authDomain: 'app.twocube.ai',
-        messagingSenderId: 'REMOVED',
-        measurementId: 'REMOVED',
+      initializeApp({ ...environment.firebase
       }),
     ),
-    provideAuth(() => getAuth()),
-    provideFirestore(() => getFirestore()),
-    provideFunctions(() => getFunctions()),
-    provideStorage(() => getStorage()),
+    provideAuth(() => {
+      const auth = getAuth();
+      if (!environment.production) {
+        connectAuthEmulator(auth, 'http://localhost:9099');
+      }
+      return auth;
+    }),
+    provideFirestore(() => {
+      const firestore = getFirestore();
+      if (!environment.production) {
+        connectFirestoreEmulator(firestore, 'localhost', 8080);
+      }
+      return firestore;
+    }),
+
+    provideFunctions(() => {
+      const functions = getFunctions();
+      if (!environment.production) {
+        connectFunctionsEmulator(functions, 'localhost', 5001);
+      }
+      return functions;
+    }),
+
+    provideStorage(() => {
+      const storage = getStorage();
+      if (!environment.production) {
+        connectStorageEmulator(storage, 'localhost', 9199);
+      }
+      return storage;
+    }),
 
     provideHighlightOptions({
       fullLibraryLoader: () => import('highlight.js'),

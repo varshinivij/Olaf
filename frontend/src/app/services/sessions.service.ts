@@ -30,7 +30,7 @@ export class SessionsService {
 
   constructor(
     private firestore: Firestore,
-    private userService: UserService,
+    private userService: UserService
   ) {
     this.loadAllSessions();
   }
@@ -86,7 +86,6 @@ export class SessionsService {
     const currentUser = await firstValueFrom(this.userService.getCurrentUser());
     if (currentUser) {
       this.userSessions = await this.queryUserSessions(currentUser.id);
-      console.log(this.userSessions);
     }
   }
 
@@ -99,11 +98,21 @@ export class SessionsService {
   }
 
   /**
-   * Pushes a message to the current session and DOES NOT writes to Firestore.
+   * Pushes a list of messages to the current session and writes to Firestore.
    */
-    addMessageToLocalSession(session: Session, message: ChatMessage) {
+  async addMessagesToSession(session: Session, messages: ChatMessage[]) {
+    for (const message of messages) {
       session.history.push(message);
     }
+    await this.saveSession(session);
+  }
+
+  /**
+   * Pushes a message to the current session and DOES NOT writes to Firestore.
+   */
+  addMessageToLocalSession(session: Session, message: ChatMessage) {
+    session.history.push(message);
+  }
 
   /**
    * Sets the sandbox id of the current session and writes to Firestore.
@@ -119,29 +128,24 @@ export class SessionsService {
   async deleteSession(session: Session) {
     await deleteDoc(doc(this.firestore, 'sessions', session.id));
 
-    this.userSessions = this.userSessions.filter(
-      (s) => s.id !== session.id,
-    );
+    this.userSessions = this.userSessions.filter((s) => s.id !== session.id);
 
     console.log(`Session ${session.id} deleted successfully.`);
   }
-
 
   async getSession(sessionId: string) {
     const sessionRef = doc(this.firestore, 'sessions', sessionId);
     const sessionDoc = await getDoc(sessionRef);
     return sessionDoc.data() as Session;
   }
-  
 
   /**
    * Syncs the local session with the session in Firestore.
    * Local -> Cloud
-   * @param session 
+   * @param session
    */
   async syncLocalSession(session: Session) {
-    await this.updateSession(session
-    );
+    await this.updateSession(session);
   }
 
   /**
@@ -161,7 +165,9 @@ export class SessionsService {
    */
   private async ensureUserIsSet(session: Session) {
     if (!session.userId) {
-      session.userId = (await firstValueFrom(this.userService.getCurrentUser()))!.id;
+      session.userId = (await firstValueFrom(
+        this.userService.getCurrentUser()
+      ))!.id;
     }
   }
 
@@ -172,7 +178,7 @@ export class SessionsService {
   private async queryUserSessions(userId: string) {
     const sessionsQuery = query(
       collection(this.firestore, 'sessions'),
-      where('userId', '==', userId),
+      where('userId', '==', userId)
     );
     const sessionsSnapshot = await getDocs(sessionsQuery);
     return sessionsSnapshot.docs.map((doc) => doc.data() as Session);

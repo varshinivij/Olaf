@@ -1,5 +1,5 @@
 <div class="flex h-screen overflow-auto bg-background">
-  <app-sidebar id="sidebar" [(page)]="page"></app-sidebar>
+  <app-sidebar id="sidebar" [(page)]="page" (pageChange)="updatePage($event)"></app-sidebar>
   <div id="main-content">
     @if (page === 'projects') {
       <app-projects></app-projects>
@@ -11,6 +11,12 @@
         </div>
         <app-file-storage class="h-0 flex-1"></app-file-storage>
       </div>
-    } 
+    }
   </div>
 </div>
+
+<!-- Settings modal is displayed when showSettingsModal is true -->
+<app-settings
+  [showModal]="showSettingsModal"
+  (closeModalEvent)="closeSettingsModal()"
+></app-settings>

@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
+import { throwError } from 'rxjs';
+import { environment } from '../../environments/environment'
 @Injectable({
   providedIn: 'root'
 })
@@ -10,12 +11,13 @@ export class SandboxService {
 
   constructor(private http: HttpClient) {}
 
-  boxRequestApi:string = 'REMOVED'
-  boxExecuteApi:string = 'REMOVED'
-  boxCloseApi: string = 'REMOVED'
-  boxStatusApi: string = 'REMOVED'
-  boxUploadApi: string = 'REMOVED'
-  addFirebaseFileApi: string = 'REMOVED'
+  boxRequestApi:string = environment.boxRequestApi;
+  boxExecuteApi:string = environment.boxExecuteApi;
+  boxCloseApi: string = environment.boxCloseApi
+  boxStatusApi: string = environment.boxStatusApi
+  boxUploadApi: string = environment.boxUploadApi
+  addFirebaseFileApi: string = environment.addFirebaseFileApi
+  boxTerminalApi: string = environment.boxTerminalApi
 
   createSandbox(): Observable<any> {
     const headers = new HttpHeaders({
@@ -43,7 +45,7 @@ export class SandboxService {
     const headers = new HttpHeaders({
       'Content-Type': 'application/json'
     });
-    return this.http.post<any>(this.boxExecuteApi, { sandboxId: this.sandboxId, code }, { headers });
+    return this.http.post<any>(this.boxExecuteApi, { sandboxId: this.sandboxId, code });
   }
 
   isSandboxConnected(){
@@ -65,6 +67,17 @@ export class SandboxService {
       'Content-Type': 'application/json'
     });
     return this.http.post<any>(this.addFirebaseFileApi,  { sandboxId: this.sandboxId, filePaths: filepaths}, { headers });
+  }
+
+  runTerminalCommand(command: string): Observable<any> {
+    const sandboxId = this.getSandboxId();
+    if (!sandboxId) {
+      return throwError(() => new Error('No sandbox ID. Sandbox not ready.'));
+    }
+    return this.http.post<any>(
+      this.boxTerminalApi,
+      { sandboxId, command }
+    );
   }
 
 }
