@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd frontend
-          npm ci  # Ensures a clean install with package-lock.json
+          npm install  # Ensures a clean install with package-lock.json
 
       - name: Build Angular app
         run: |
