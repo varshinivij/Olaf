@@ -1,0 +1,65 @@
+Bootstrap: docker
+From: python:3.10-slim
+Stage: spython-base
+
+%files
+functions/requirements.txt .
+. .
+%post
+# Use a lightweight Python base image
+
+# Fix GPG Errors Before Running apt-get update
+apt-get update --allow-releaseinfo-change && \
+apt-get install -y --no-install-recommends \
+ca-certificates \
+gpg \
+gnupg \
+curl \
+python3.11-venv \
+&& rm -rf /var/lib/apt/lists/*  # Force fresh package lists
+
+# Install required system dependencies: Java (for Firebase Emulators)
+apt-get update && apt-get install -y --no-install-recommends \
+openjdk-17-jre \
+&& apt-get clean
+
+# Install Node.js 18 (for Firebase)
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+apt-get install -y --no-install-recommends nodejs
+
+# Verify installations
+node -v && npm -v && python --version && pip --version && java -version
+
+# Install firebase-tools globally
+npm install -g firebase-tools@latest
+
+# Set working directory
+mkdir -p /usr/src/app
+cd /usr/src/app
+
+# Copy over Python dependencies
+
+# Install Python dependencies (including Functions Framework)
+pip install --no-cache-dir -r requirements.txt
+
+# Create and activate the venv inside your functions folder
+mkdir -p /usr/src/app/functions
+cd /usr/src/app/functions
+python -m venv venv
+. venv/bin/activate && \
+python3.10 -m pip install --no-cache-dir -r ../requirements.txt
+
+# Copy the rest of the project files
+
+# Expose Firebase Emulator ports, including Web UI (4000)
+# EXPOSE 4000 5001 8080 9099 5000 9199
+
+firebase --version
+which firebase
+
+%runscript
+cd /usr/src/app/functions
+exec /bin/bash firebase emulators:start --project twocube-web "$@"
+%startscript
+cd /usr/src/app/functions
+exec /bin/bash firebase emulators:start --project twocube-web "$@"
