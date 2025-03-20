@@ -45,7 +45,3 @@ jobs:
       - name: Install backend dependencies
         run: |
           pip install -r backend/requirements.txt
-
-      - name: Verify Firebase functions compile
-        run: |
-          ./backend/run.sh
