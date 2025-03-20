@@ -1,4 +1,4 @@
-# Twocube Firebase Cloud Functions
+# OLAF Backend & Firebase Cloud Functions
 
 ## Table of Contents
 
@@ -20,9 +20,9 @@
 
 ## Introduction
 
-This repository contains the code for Firebase Cloud Functions implemented in Python for the Twocube project. Firebase Cloud Functions are used to execute backend code in response to events triggered by Firebase features and HTTPS requests.
+This repository contains the code for Firebase Cloud Functions implemented in Python for the olaf project. Firebase Cloud Functions are used to execute backend code in response to events triggered by Firebase features and HTTPS requests.
 
-This README demonstrates how to set up and deploy Python-based Firebase Cloud Functions for the Twocube project. It also includes the engineering ideas behind our architecture as well as an illustrative flowchart, providing clarity on how agents, routers, and pipes integrate and how an API request flows through the system. The project folder structure is also outlined here.
+This README demonstrates how to set up and deploy Python-based Firebase Cloud Functions for the olaf project. It also includes the engineering ideas behind our architecture as well as an illustrative flowchart, providing clarity on how agents, routers, and pipes integrate and how an API request flows through the system. The project folder structure is also outlined here.
 
 ---
 
@@ -111,7 +111,7 @@ Most endpoints use their respective services, while `agent_endpoints.py` streams
 
 ## Getting Started
 
-Follow these instructions to set up and deploy the Firebase Cloud Functions for the Twocube project.
+Follow these instructions to set up and deploy the Firebase Cloud Functions for your own OLAF project
 
 ### Prerequisites
 
@@ -124,8 +124,7 @@ Follow these instructions to set up and deploy the Firebase Cloud Functions for 
 
 1. **Clone the repository:**
    ```sh
-   git clone https://github.com/TwoCube-ai/twocube-firebase-functions.git
-   cd twocube-firebase-functions
+   git clone [url to Olaf repo]
    ```
 
 2. **Install Firebase CLI:**

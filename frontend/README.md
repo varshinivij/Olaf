@@ -1,6 +1,6 @@
-# OLAF (Open Life Science Analysis Framework)
+# OLAF (Open Life Science Analysis Framework) Frontend
 
-Welcome to **OLAF (Open Life Science Analysis Framework)**, an open-source Angular project! 🚀 This repository is designed to streamline bioinformatics workflows with an intuitive frontend interface. Contributions are always welcome! ❤️
+Welcome to **OLAF (Open Life Science Analysis Framework) Frontend**, an open-source Angular project! 🚀 This repository is designed to streamline bioinformatics workflows with an intuitive frontend interface. Contributions are always welcome! ❤️
 
 ## Table of Contents
 
@@ -14,16 +14,11 @@ Welcome to **OLAF (Open Life Science Analysis Framework)**, an open-source Angul
 - [Testing](#testing)
   - [Running Unit Tests](#running-unit-tests)
   - [Running End-to-End Tests](#running-end-to-end-tests)
-- [Firebase Setup](#firebase-setup)
-- [Requesting Access to Google Cloud](#requesting-access-to-google-cloud)
-- [Contributing](#contributing)
-- [License](#license)
-
 ---
 
 ## About the Project
 
-OLAF is built with Angular and provides a robust UI for LLM driven Bioinformatics applications. It is designed to be modular, scalable, and easily extendable.
+The OLAF frontend is built with Angular and provides a robust UI for LLM driven Bioinformatics applications. It is designed to be modular, scalable, and easily extendable.
 
 ## Getting Started
 
@@ -40,8 +35,8 @@ Clone the repository and install dependencies:
 
 ```sh
 # Clone the repository
-git clone https://github.com/OpenTechBio/TwoCubeFrontend.git
-cd TwoCubeFrontend
+git [olaf repo url]
+cd olaf/frontend
 
 # Install dependencies
 npm install
@@ -101,69 +96,3 @@ ng e2e
 
 Ensure you have a platform-specific e2e testing package installed before running this command.
 
-## Firebase Setup
-
-### 1. Configure Firebase Credentials
-
-For security, Firebase credentials should be stored in a local `environment.secret.ts` file, which is excluded from version control.
-
-#### Step 1: Create the file
-
-Create a new file at `src/environments/environment.secret.ts`
-
-#### Step 2: Add Firebase credentials
-
-```js
-export const secrets = {
-    production: false,
-    firebase: {
-        projectId: 'YOUR_PROJECT_ID',
-        appId: 'YOUR_APP_ID',
-        storageBucket: 'YOUR_STORAGE_BUCKET',
-        apiKey: process.env.FIREBASE_API_KEY || 'YOUR_FIREBASE_API_KEY',
-        authDomain: 'YOUR_AUTH_DOMAIN',
-        messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-        measurementId: 'YOUR_MEASUREMENT_ID',
-    }
-};
-```
-
-#### Step 3: Add to `.gitignore`
-
-Ensure that `.gitignore` includes:
-
-```
-src/environments/environment.secret.ts
-```
-
-## Requesting Access to Google Cloud
-
-If you are part of the core team and need access to the production Firebase environment, contact **Dylan Riffle**.
-
-Access includes:
-
-- Production Firebase credentials
-- Firestore database permissions
-- Cloud Functions deployment rights
-- Access to Firebase Hosting and related services
-
-📌 Note: Only verified team members will be granted access.
-
-## Contributing
-
-We ❤️ open-source contributions! If you'd like to contribute:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature-name`)
-3. Commit your changes (`git commit -m "Add feature"`)
-4. Push to your fork (`git push origin feature-name`)
-5. Open a pull request 🚀
-
-For major changes, please open an issue first to discuss your proposal.
-
-## License
-
-This project is licensed under the **MIT License**
-----------------------------------------------
-
-🚀 **Happy coding, and welcome to the OLAF community!** 🎉

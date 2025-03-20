@@ -18,7 +18,7 @@ read -rp "Enter your E2B_TEMPLATE ID (default: vh7kehbtf0t4xbx9ec9u, OpenTechBio
 E2B_TEMPLATE=${E2B_TEMPLATE:-vh7kehbtf0t4xbx9ec9u}
 read -rp "Enter your OPENAI_API_KEY (e.g., sk-...): " OPENAI_API_KEY
 
-BACKEND_ENV_PATH=/backend/functions"
+BACKEND_ENV_PATH=backend/functions"
 mkdir -p "$BACKEND_ENV_PATH"
 
 # Write out the .env file

@@ -15,7 +15,7 @@ echo "============================================================"
 echo
 
 # Prompt user for each Firebase key
-read -rp "Enter your Firebase projectId (e.g., twocube-web): " FIREBASE_PROJECT_ID
+read -rp "Enter your Firebase projectId (e.g., olaf-web): " FIREBASE_PROJECT_ID
 read -rp "Enter your Firebase appId (e.g., 1:123456:web:abcd1234): " FIREBASE_APP_ID
 read -rp "Enter your Firebase storageBucket (e.g., myapp.appspot.com): " FIREBASE_STORAGE_BUCKET
 read -rp "Enter your Firebase apiKey: " FIREBASE_API_KEY
@@ -37,7 +37,7 @@ read -rp "Enter your addFirebaseFileApi: " ADD_FIREBASE_FILE_API
 read -rp "Enter your boxTerminalApi: " BOX_TERMINAL_API
 
 # Directory where environment.ts should be placed
-FRONTEND_ENV_PATH="/frontend/src/environments"
+FRONTEND_ENV_PATH="frontend/src/environments"
 mkdir -p "$FRONTEND_ENV_PATH"
 
 # Write out the environment.ts file

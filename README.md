@@ -69,7 +69,9 @@ Once everything is set up, you can start the system.
 
 Run in Development Mode
 
+```bash
 ./run_all.sh
+```
 
 What it does:
 * Starts the frontend in development mode.
@@ -80,14 +82,22 @@ What it does:
 
 To stop the backend (and optionally the frontend), run:
 
+```bash
 ./stop_all.sh
+```
 
 What it does:
 * Stops Firebase backend services.
 * Optionally, you can modify this script to kill the frontend process.
 
-### Contributing
+## Contributing
 
-Contributions are welcome! Feel free to submit issues or pull requests to improve OLAF.
+We ❤️ open-source contributions! If you'd like to contribute:
 
-For questions or help, reach out via GitHub issues.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature-name`)
+3. Commit your changes (`git commit -m "Add feature"`)
+4. Push to your fork (`git push origin feature-name`)
+5. Open a pull request 🚀
+
+For major changes, please open an issue first to discuss your proposal.

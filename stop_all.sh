@@ -5,7 +5,7 @@
 # Stops running processes for the backend
 
 echo "=== Stopping Olaf Backend (Firebase) ==="
-cd /backend || exit
-chmod +x stop_firebase
-./stop_firebase
+cd backend || exit
+chmod +x stop_firebase.sh
+./stop_firebase.sh
 kill $(lsof -t -i :4200) 2>/dev/null || echo "Frontend not running on port 4200"
