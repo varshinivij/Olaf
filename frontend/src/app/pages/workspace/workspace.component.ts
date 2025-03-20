@@ -98,6 +98,9 @@ import {
   lucideTrash2,
 } from '@ng-icons/lucide';
 
+import { SettingsComponent } from '../../components/settings/settings.component';
+
+
 @Component({
   selector: 'app-chat',
   standalone: true,
@@ -106,6 +109,7 @@ import {
   imports: [
     CommonModule,
     FormsModule,
+    SettingsComponent,
     CodeMessagePipe,
     PlanMessagePipe,
     Highlight,
@@ -182,6 +186,9 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
   getLucideIconFromType = getLucideIconFromType;
   split?: Split.Instance;
   collapsed = false; // sidebar
+
+  showSettingsModal: boolean = false;
+
 
   currentProject: Project;
   currentSession: Session;
@@ -294,6 +301,14 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
     });
   }
 
+  openSettingsModal() {
+    this.showSettingsModal = true;
+  }
+
+  closeSettingsModal() {
+    this.showSettingsModal = false;
+  }
+
   /*
     Session file upload/sandbox updating methods
   */
@@ -349,8 +364,6 @@ export class WorkspaceComponent implements AfterViewInit, AfterViewChecked {
       } else {
         await this.createSandbox();
       }
-      // TODO find a better solution, but right now we give the e2b box an
-      // extra second to get ready to recieve code
       await delay(1000);
     } catch (error) {
       console.error('Error connecting to sandbox:', error);

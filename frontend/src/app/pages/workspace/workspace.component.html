@@ -1,62 +1,63 @@
 <div class="flex h-screen bg-background p-3">
   <!-- sidebar -->
-<div
-#sidebar
-id="sidebar"
-class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
->
-<!-- header/collapse button row -->
-<div
-  class="flex flex-none items-center gap-x-2.5 overflow-x-hidden"
-  [ngClass]="{ 'justify-center': collapsed }"
->
-  @if (!collapsed) {
-    <img
-      src="assets/twocube-logo-black-bg.png"
-      class="h-8 w-8 flex-none rounded-lg"
-    />
-    <div hlmLarge class="mr-auto truncate">Olaf</div>
-  }
-  <button hlmBtn variant="ghost" size="icon" (click)="toggleSidebar()">
-    <hlm-icon
-      size="sm"
-      [name]="collapsed ? 'lucidePanelLeftOpen' : 'lucidePanelLeftClose'"
-    />
-  </button>
-</div>
-<hr hlmSeparator />
-<!-- new session button -->
-<button
-  hlmBtn
-  variant="accent"
-  size="sm"
-  class="flex-none justify-start gap-x-2 truncate pl-2"
-  (click)="newSession()"
->
-  <hlm-icon size="sm" name="lucidePlus" class="flex-none" />
-  @if (!collapsed) {
-    <div class="truncate">New Session</div>
-  }
-</button>
-<!-- sessions list -->
-@if (!collapsed) {
-  <div class="flex flex-col gap-y-1 overflow-y-auto">
-    @for (session of sessionsService.userSessions; track session.id) {
-      @if (session.projectId === currentProject.id) {
-        <button
-          hlmBtn
-          [variant]="currentSession.id === session.id ? 'accent' : 'ghost'"
+  <div
+    #sidebar
+    id="sidebar"
+    class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
+  >
+    <!-- header/collapse button row -->
+    <div
+      class="flex flex-none items-center gap-x-2.5 overflow-x-hidden"
+      [ngClass]="{ 'justify-center': collapsed }"
+    >
+      @if (!collapsed) {
+        <img
+          src="assets/OTB.png"
+          class="h-8 w-8 flex-none rounded-lg"
+        />
+        <div hlmLarge class="mr-auto truncate">Olaf</div>
+      }
+      <button hlmBtn variant="ghost" size="icon" (click)="toggleSidebar()">
+        <hlm-icon
           size="sm"
-          class="justify-between pl-3 pr-0"
-          (click)="changeSession(session)"
-        >
-          <div
+          [name]="collapsed ? 'lucidePanelLeftOpen' : 'lucidePanelLeftClose'"
+        ></hlm-icon>
+      </button>
+    </div>
+    <hr hlmSeparator />
+
+    <!-- new session button -->
+    <button
+      hlmBtn
+      variant="accent"
+      size="sm"
+      class="flex-none justify-start gap-x-2 truncate pl-2"
+      (click)="newSession()"
+    >
+      <hlm-icon size="sm" name="lucidePlus" class="flex-none"></hlm-icon>
+      @if (!collapsed) {
+        <div class="truncate">New Session</div>
+      }
+    </button>
+
+    <!-- sessions list -->
+    @if (!collapsed) {
+      <div class="flex flex-col gap-y-1 overflow-y-auto">
+        @for (session of sessionsService.userSessions; track session.id) {
+          @if (session.projectId === currentProject.id) {
+            <!-- SECOND BUTTON (includes the ellipsis dialog trigger) -->
+            <button
+              hlmBtn
+              [variant]="currentSession.id === session.id ? 'accent' : 'ghost'"
+              size="sm"
+              class="justify-between pl-3 pr-0"
+              (click)="changeSession(session)"
+            >
+              <div
                 class="truncate"
-                [ngClass]="{
-                  'font-semibold': currentSession.id === session.id,
-                }"
+                [ngClass]="{ 'font-semibold': currentSession.id === session.id }"
               >
-                {{ session.name || '&lt;untitled session&gt;' }}
+                {{ session.name || '\<untitled session>' }}
               </div>
               <button
                 hlmBtn
@@ -64,20 +65,20 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
                 size="icon"
                 [brnMenuTriggerFor]="menu"
               >
-                <hlm-icon size="xs" name="lucideEllipsisVertical" />
+                <hlm-icon size="xs" name="lucideEllipsisVertical"></hlm-icon>
               </button>
+
+              <!-- FIRST hlm-dialog block -->
               <hlm-dialog class="absolute">
-                <!-- session options menu -->
+                <!-- Session options menu -->
                 <ng-template #menu>
                   <hlm-menu>
                     <button
                       hlmMenuItem
                       brnDialogTrigger
-                      (click)="
-                        newSessionName = session.name || '<untitled session>'
-                      "
+                      (click)="newSessionName = session.name || '\<untitled session>'"
                     >
-                      <hlm-icon name="lucidePencil" hlmMenuIcon />
+                      <hlm-icon name="lucidePencil" hlmMenuIcon></hlm-icon>
                       Rename
                     </button>
                     <button
@@ -85,12 +86,12 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
                       class="text-destructive hover:text-destructive"
                       (click)="deleteSession(session)"
                     >
-                      <hlm-icon name="lucideTrash2" hlmMenuIcon />
+                      <hlm-icon name="lucideTrash2" hlmMenuIcon></hlm-icon>
                       Delete
                     </button>
                   </hlm-menu>
                 </ng-template>
-                <!-- rename session dialog -->
+                <!-- Rename session dialog -->
                 <hlm-dialog-content *brnDialogContent="let ctx">
                   <hlm-dialog-header>
                     <div hlmDialogTitle>Rename Session</div>
@@ -112,30 +113,125 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
                   </hlm-dialog-footer>
                 </hlm-dialog-content>
               </hlm-dialog>
-        </button>
-      }
-    }
-  </div>
-}
-<!-- Bottom Section with Settings Icon & Project Info -->
-<div class="mt-auto border-t border-divider pt-2 flex items-center justify-between">
-  <!-- Settings Icon Button -->
-  <button hlmBtn variant="ghost" size="icon">
-    <hlm-icon size="sm" name="lucideSettings" />
-  </button>
-  <!-- Project Info (displayed when not collapsed) -->
-  @if (!collapsed) {
-    <div *ngIf="currentProject.agent === 'Undefined'; else agentInfo" class="text-xs text-black">
-      {{ currentProject.language }}
-    </div>
-    <ng-template #agentInfo>
-      <div class="text-xs text-black">
-        {{ currentProject.language }} | {{ currentProject.agent }}
+            </button>
+
+            <!-- SECOND hlm-dialog block (repeated content) -->
+            <hlm-dialog class="absolute">
+              <!-- session options menu -->
+              <ng-template #menu>
+                <hlm-menu>
+                  <button
+                    hlmMenuItem
+                    brnDialogTrigger
+                    (click)="
+                      newSessionName = session.name || '\<untitled session>'
+                    "
+                  >
+                    <hlm-icon name="lucidePencil" hlmMenuIcon></hlm-icon>
+                    Rename
+                  </button>
+                  <button
+                    hlmMenuItem
+                    class="text-destructive hover:text-destructive"
+                    (click)="deleteSession(session)"
+                  >
+                    <hlm-icon name="lucideTrash2" hlmMenuIcon></hlm-icon>
+                    Delete
+                  </button>
+                </hlm-menu>
+              </ng-template>
+              <!-- rename session dialog -->
+              <hlm-dialog-content *brnDialogContent="let ctx">
+                <hlm-dialog-header>
+                  <div hlmDialogTitle>Rename Session</div>
+                </hlm-dialog-header>
+                <input hlmInput class="w-96" [(ngModel)]="newSessionName" />
+                <hlm-dialog-footer>
+                  <button hlmBtn brnDialogClose variant="outline" size="sm">
+                    Cancel
+                  </button>
+                  <button
+                    hlmBtn
+                    brnDialogClose
+                    variant="secondary"
+                    size="sm"
+                    (click)="renameSession(session)"
+                  >
+                    Save
+                  </button>
+                </hlm-dialog-footer>
+              </hlm-dialog-content>
+            </hlm-dialog>
+          }
+        }
       </div>
-    </ng-template>
-  }
-</div>
-</div>
+    }
+
+    <!-- SETTINGS BUTTON (At the bottom) -->
+    <div class="mt-auto">
+      <button
+        hlmBtn
+        variant="ghost"
+        size="sm"
+        class="flex items-center gap-x-2 w-full justify-start pl-2"
+        (click)="openSettingsModal()"
+      >
+        <hlm-icon size="sm" name="lucideSettings"></hlm-icon>
+        @if (!collapsed) {
+          <div class="truncate">Settings</div>
+        }
+      </button>
+    </div>
+
+    <!-- Extra hlm-dialog below the settings button -->
+    <hlm-dialog class="absolute">
+      <!-- session options menu -->
+      <ng-template #menu>
+        <hlm-menu>
+          <button
+            hlmMenuItem
+            brnDialogTrigger
+            (click)="
+              newSessionName = currentSession.name || '\<untitled session>'
+            "
+          >
+            <hlm-icon name="lucidePencil" hlmMenuIcon></hlm-icon>
+            Rename
+          </button>
+          <button
+            hlmMenuItem
+            class="text-destructive hover:text-destructive"
+            (click)="deleteSession(currentSession)"
+          >
+            <hlm-icon name="lucideTrash2" hlmMenuIcon></hlm-icon>
+            Delete
+          </button>
+        </hlm-menu>
+      </ng-template>
+      <!-- rename session dialog -->
+      <hlm-dialog-content *brnDialogContent="let ctx">
+        <hlm-dialog-header>
+          <div hlmDialogTitle>Rename Session</div>
+        </hlm-dialog-header>
+        <input hlmInput class="w-96" [(ngModel)]="newSessionName" />
+        <hlm-dialog-footer>
+          <button hlmBtn brnDialogClose variant="outline" size="sm">
+            Cancel
+          </button>
+          <button
+            hlmBtn
+            brnDialogClose
+            variant="secondary"
+            size="sm"
+            (click)="renameSession(currentSession)"
+          >
+            Save
+          </button>
+        </hlm-dialog-footer>
+      </hlm-dialog-content>
+    </hlm-dialog>
+  </div>
+  <!-- END of sidebar -->
 
   <!-- chat interface -->
   <div
@@ -144,25 +240,21 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
   >
     <!-- top header row -->
     <div class="-mx-1 flex flex-none items-center gap-x-1">
-      <button
-        hlmBtn
-        variant="ghost"
-        size="icon"
-        (click)="router.navigate(['dashboard'])"
-      >
-        <hlm-icon size="sm" name="lucideHouse" />
+      <button hlmBtn variant="ghost" size="icon" (click)="router.navigate(['dashboard'])">
+        <hlm-icon size="sm" name="lucideHouse"></hlm-icon>
       </button>
       <div hlmSmall hlmMuted class="overflow-visible truncate">
         / {{ this.currentProject.name }} /
         {{ this.currentSession.name || '&lt;untitled session&gt;' }}
       </div>
       <button hlmBtn variant="ghost" size="icon" class="ml-auto">
-        <hlm-icon size="sm" name="lucideCircleStop" />
+        <hlm-icon size="sm" name="lucideCircleStop"></hlm-icon>
       </button>
       <button hlmBtn variant="ghost" size="icon">
-        <hlm-icon size="sm" name="lucideRotateCw" />
+        <hlm-icon size="sm" name="lucideRotateCw"></hlm-icon>
       </button>
     </div>
+
     <!-- message screen -->
     <div #messageScreen class="flex h-full flex-col gap-y-3 overflow-y-auto">
       @for (message of this.currentSession.history.slice(1); track $index) {
@@ -191,7 +283,7 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
           <div class="flex gap-x-2.5">
             <!-- twocube avatar -->
             <img
-              src="assets/twocube-logo-black-bg.png"
+              src="assets/OTB.png"
               class="h-9 rounded-lg"
             />
             <!-- twocube name/message -->
@@ -220,7 +312,7 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
       @empty {
         @if (!localSessionChunks.hasOwnProperty(currentSession.id)) {
           <img
-            src="assets/twocube-logo-black-bg.png"
+            src="assets/OTB.png"
             class="mt-auto h-12 self-center rounded-lg"
           />
           <div hlmSmall hlmMuted class="mb-auto self-center text-center">
@@ -232,7 +324,7 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
       @for (chunk of localSessionChunks[currentSession.id]; track $index) {
         <div class="flex gap-x-2.5">
           <!-- twocube avatar -->
-          <img src="assets/twocube-logo-black-bg.png" class="h-9 rounded-lg" />
+          <img src="assets/OTB.png" class="h-9 rounded-lg" />
           <!-- twocube name/message -->
           <div class="flex flex-col gap-y-0.5">
             <div hlmLarge hlmSmall>Olaf</div>
@@ -258,13 +350,14 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
       @if (localSessionChunks[currentSession.id]) {
         <div class="flex justify-center gap-x-2 pb-1">
           <div hlmSmall hlmMuted class="break-words">Waiting for agent...</div>
-          <hlm-spinner size="xs" />
+          <hlm-spinner size="xs"></hlm-spinner>
         </div>
       }
     </div>
+
     <!-- chat bar -->
     <div class="relative mt-auto flex-none">
-      <!-- using event-binding voodoo to make the textarea dynamically resize. -->
+      <!-- using event-binding to make the textarea dynamically resize. -->
       <textarea
         #chatBar
         hlmInput
@@ -283,7 +376,7 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
         (mousedown)="sendMessage(currentSession)"
         (mouseup)="adjustTextareaHeight(chatBar)"
       >
-        <hlm-icon size="sm" name="lucideSendHorizontal" />
+        <hlm-icon size="sm" name="lucideSendHorizontal"></hlm-icon>
       </button>
       <!-- Only show this if the project agentType is L3 Reasoning -->
       @if (currentProject.agent === 'L3-Reasoning') {
@@ -295,11 +388,12 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
           (mousedown)="sendNextStep()"
           (mouseup)="adjustTextareaHeight(chatBar)"
         >
-          <hlm-icon size="sm" name="lucideSquareArrowRight" />
+          <hlm-icon size="sm" name="lucideSquareArrowRight"></hlm-icon>
         </button>
       }
     </div>
   </div>
+
   <!-- twocube den -->
   <hlm-tabs
     id="den-sidebar"
@@ -307,36 +401,41 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
     class="flex flex-col rounded-md bg-foreground p-3"
   >
     <!-- header tab buttons -->
-      <!-- Only show planner if we are in l3 Reasoning -->
-      @if (currentProject.agent === 'L3-Reasoning') {
-        <hlm-tabs-list class="grid w-full grid-cols-3">
+    <!-- Only show planner if we are in l3 Reasoning -->
+    @if (currentProject.agent === 'L3-Reasoning') {
+      <hlm-tabs-list class="grid w-full grid-cols-3">
         <button hlmTabsTrigger="planner">Planner</button>
         <button hlmTabsTrigger="code">Code</button>
         <button hlmTabsTrigger="files">Files</button>
       </hlm-tabs-list>
-      }
-      @else {
-        <hlm-tabs-list class="grid w-full grid-cols-3">
-          <button hlmTabsTrigger="code">Code</button>
-          <button hlmTabsTrigger="files">Files</button>
-          <button hlmTabsTrigger="terminal">Terminal</button>
-        </hlm-tabs-list>
-      }
+    }
+    @else {
+      <hlm-tabs-list class="grid w-full grid-cols-3">
+        <button hlmTabsTrigger="code">Code</button>
+        <button hlmTabsTrigger="files">Files</button>
+        <button hlmTabsTrigger="terminal">Terminal</button>
+      </hlm-tabs-list>
+    }
+
     <!-- planner tab content -->
     <div #plannerScreen hlmTabsContent="planner" class="h-full overflow-y-auto">
       @for (message of currentSession.history | planmessage; track $index) {
-         @if (message.type === 'plan') {
-          <div *ngIf="message.type === 'plan'"
-           class="rounded-lg p-5 border-l-8"
-           [ngClass]="{
-             'border-indigo-500 bg-indigo-50': message.content.includes('Plan'),
-             'border-gray-300 bg-white': !message.content.includes('Plan')
-           }">
-        <h2 class="text-xl font-bold text-gray-800 mb-2">Plan Overview</h2>
+        @if (message.type === 'plan') {
           <div
-          [innerHTML]="extractTextWithoutCode(message.content).trim()"
-        ></div>
-      </div>
+            *ngIf="message.type === 'plan'"
+            class="rounded-lg p-5 border-l-8"
+            [ngClass]="{
+              'border-indigo-500 bg-indigo-50': message.content.includes('Plan'),
+              'border-gray-300 bg-white': !message.content.includes('Plan')
+            }"
+          >
+            <h2 class="text-xl font-bold text-gray-800 mb-2">
+              Plan Overview
+            </h2>
+            <div
+              [innerHTML]="extractTextWithoutCode(message.content).trim()"
+            ></div>
+          </div>
         }
       }
       <!-- empty state -->
@@ -349,6 +448,7 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
         </div>
       }
     </div>
+
     <!-- terminal tab content -->
     <div
       hlmTabsContent="terminal"
@@ -358,20 +458,17 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
         class="flex h-full w-full flex-col gap-y-2 overflow-y-auto rounded-sm bg-gray-200 p-3 font-mono text-xs leading-relaxed text-gray-700"
       >
         <!-- Loop through the session history -->
-         <span>Olaf$ Welcome!</span>
-        <ng-container
-          *ngFor="let msg of this.currentSession.history"
-        >
+        <span>Olaf$ Welcome!</span>
+        <ng-container *ngFor="let msg of this.currentSession.history">
           <!-- If the user typed a terminal command -->
           <div *ngIf="msg.type === 'terminal'" class="text-black-500">
             <span>Olaf$ {{ extractBashCommands(msg.content) }}</span>
           </div>
           <!-- If the assistant returns a terminal result/output -->
           <div *ngIf="msg.type === 'terminalResult'">
-            <!-- You can optionally do some cleaning or highlighting here -->
-            <pre class="text-black-500 whitespace-pre-wrap break-words">{{
-              msg.content
-            }}</pre>
+            <pre class="text-black-500 whitespace-pre-wrap break-words">
+              {{ msg.content }}
+            </pre>
           </div>
         </ng-container>
         @if (executingCode.has(currentSession.id)) {
@@ -380,22 +477,37 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
             class="mb-1 flex items-center gap-x-3 rounded-md border bg-transparent p-2"
           >
             Executing code...
-            <hlm-spinner size="xs" />
+            <hlm-spinner size="xs"></hlm-spinner>
           </span>
         }
       </div>
     </div>
+
     <!-- code tab content -->
     <div #codeScreen hlmTabsContent="code" class="h-full overflow-y-auto">
       <div class="flex h-full flex-col gap-y-3">
         @for (message of currentSession.history | codemessage; track $index) {
           <!-- code block -->
           @if (message.type === 'code' || message.type === 'executedCode') {
-            <pre><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
+            <pre>
+              <code
+                hlmSmall
+                [highlight]="extractCode(message.content)"
+                language="python"
+                class="bg-transparent border rounded-md"
+              ></code>
+            </pre>
           }
           <!-- result block -->
           @else if (message.type === 'result') {
-            <pre><code hlmSmall [highlight]="message.content" language="html" class="bg-transparent border rounded-md"></code></pre>
+            <pre>
+              <code
+                hlmSmall
+                [highlight]="message.content"
+                language="html"
+                class="bg-transparent border rounded-md"
+              ></code>
+            </pre>
           }
           <!-- image block -->
           @else if (message.type === 'image') {
@@ -406,7 +518,14 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
           }
           <!-- error block -->
           @else if (message.type === 'error') {
-            <pre><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
+            <pre>
+              <code
+                hlmSmall
+                [highlight]="message.content"
+                language="python"
+                class="bg-transparent border rounded-md text-destructive"
+              ></code>
+            </pre>
           }
         }
         <!-- empty state -->
@@ -429,12 +548,26 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
           track $index
         ) {
           <!-- code block -->
-          @if (message.type === 'code' || message.type === 'executedCode')  {
-            <pre><code hlmSmall [highlight]="extractCode(message.content)" language="python" class="bg-transparent border rounded-md"></code></pre>
+          @if (message.type === 'code' || message.type === 'executedCode') {
+            <pre>
+              <code
+                hlmSmall
+                [highlight]="extractCode(message.content)"
+                language="python"
+                class="bg-transparent border rounded-md"
+              ></code>
+            </pre>
           }
           <!-- result block -->
           @else if (message.type === 'result') {
-            <pre><code hlmSmall [highlight]="message.content" language="html" class="bg-transparent border rounded-md"></code></pre>
+            <pre>
+              <code
+                hlmSmall
+                [highlight]="message.content"
+                language="html"
+                class="bg-transparent border rounded-md"
+              ></code>
+            </pre>
           }
           <!-- image block -->
           @else if (message.type === 'image') {
@@ -445,7 +578,14 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
           }
           <!-- error block -->
           @else if (message.type === 'error') {
-            <pre><code hlmSmall [highlight]="message.content" language="python" class="bg-transparent border rounded-md text-destructive"></code></pre>
+            <pre>
+              <code
+                hlmSmall
+                [highlight]="message.content"
+                language="python"
+                class="bg-transparent border rounded-md text-destructive"
+              ></code>
+            </pre>
           }
         }
         @if (executingCode.has(currentSession.id)) {
@@ -454,11 +594,12 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
             class="mb-1 flex items-center gap-x-3 rounded-md border bg-transparent p-2"
           >
             Executing code...
-            <hlm-spinner size="xs" />
+            <hlm-spinner size="xs"></hlm-spinner>
           </span>
         }
       </div>
     </div>
+
     <!-- files tab content -->
     <div hlmTabsContent="files" class="h-full overflow-y-auto">
       <div
@@ -475,9 +616,8 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
               size="sm"
               [name]="getLucideIconFromType(file.type)"
               class="flex-none"
-            />
+            ></hlm-icon>
             <div hlmSmall class="truncate">{{ file.name }}</div>
-            <!-- file not added state, potentially loading -->
             @if (!uploadedFiles.has(file.id)) {
               <button
                 hlmBtn
@@ -492,10 +632,9 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
                 "
               >
                 Add to project
-                <hlm-icon #icon size="xs" name="lucideArrowUpFromLine" />
+                <hlm-icon #icon size="xs" name="lucideArrowUpFromLine"></hlm-icon>
               </button>
             }
-            <!-- file already added state -->
             @else {
               <button
                 hlmBtn
@@ -506,16 +645,14 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
                 (click)="addFirebaseFileToSandbox(file, currentSession)"
               >
                 File added
-                <hlm-icon size="xs" name="lucideCheck" />
+                <hlm-icon size="xs" name="lucideCheck"></hlm-icon>
               </button>
             }
           </div>
         }
         <!-- empty state -->
         @empty {
-          <div
-            class="mt-auto h-20 w-20 self-center rounded-full bg-background"
-          ></div>
+          <div class="mt-auto h-20 w-20 self-center rounded-full bg-background"></div>
           <div hlmSmall hlmMuted class="mb-auto self-center text-center">
             No files found.
           </div>
@@ -524,3 +661,8 @@ class="flex flex-col gap-y-2 rounded-md bg-foreground p-3 transition-[width]"
     </div>
   </hlm-tabs>
 </div>
+
+<app-settings
+  [showModal]="showSettingsModal"
+  (closeModalEvent)="closeSettingsModal()"
+></app-settings>

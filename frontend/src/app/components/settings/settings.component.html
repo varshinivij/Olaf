@@ -1,0 +1,117 @@
+<div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()"></div>
+
+<div class="settings-container" *ngIf="showModal">
+  <div class="modal-header">
+    <h2>Project Settings</h2>
+    <button class="close-button" (click)="closeModal()">×</button>
+  </div>
+
+  <div class="tabs">
+    <button
+      class="tab-button"
+      [class.active]="activeTab === 'general'"
+      (click)="switchTab('general')"
+    >
+      General Settings
+    </button>
+    <!-- <button
+      class="tab-button"
+      [class.active]="activeTab === 'code'"
+      (click)="switchTab('code')"
+    >
+      Code Environment
+    </button> -->
+  </div>
+
+  <div class="content">
+    <div *ngIf="activeTab === 'general'">
+      <!-- <h3>General Settings</h3>
+      <p>Configure your project's basic information</p> -->
+      <form [formGroup]="generalSettingsForm">
+        <!-- <div>
+          <label for="projectName">Project Name</label>
+          <input id="projectName" type="text" formControlName="projectName" />
+        </div>
+
+        <div>
+          <label for="description">Description</label>
+          <textarea id="description" formControlName="description"></textarea>
+        </div>
+
+        <div>
+          <label for="agentSpecialization">Agent Specialization</label>
+          <select id="agentSpecialization" formControlName="agentSpecialization">
+            <option value="scRNA-seq">scRNA-seq</option>
+            <option value="bulkRNA-seq">bulkRNA-seq</option>
+            <option value="metagenomics">metagenomics</option>
+          </select>
+        </div>
+
+        <div> -->
+          <label for="theme">Theme</label>
+          <select id="theme" formControlName="theme">
+            <option value="Light">Light</option>
+            <option value="Dark">Dark</option>
+          </select>
+        <!-- </div> -->
+      </form>
+    </div>
+
+    <div *ngIf="activeTab === 'code'">
+      <h3>Code Environment</h3>
+      <p>Your code environment information</p>
+
+      <div class="collapse-panel">
+        <div class="collapse-header" (click)="togglePython()">
+          <h4>Python Packages</h4>
+          <span>{{ pythonOpen ? '▲' : '▼' }}</span>
+        </div>
+        <div *ngIf="pythonOpen" class="collapse-body">
+          <ul>
+            <li *ngFor="let pkg of pythonPackages">{{ pkg }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="collapse-panel">
+        <div class="collapse-header" (click)="toggleR()">
+          <h4>R Packages</h4>
+          <span>{{ rOpen ? '▲' : '▼' }}</span>
+        </div>
+        <div *ngIf="rOpen" class="collapse-body">
+          <ul>
+            <li *ngFor="let pkg of rPackages">{{ pkg }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="collapse-panel">
+        <div class="collapse-header" (click)="toggleShell()">
+          <h4>Shell Packages</h4>
+          <span>{{ shellOpen ? '▲' : '▼' }}</span>
+        </div>
+        <div *ngIf="shellOpen" class="collapse-body">
+          <ul>
+            <li *ngFor="let pkg of shellPackages">{{ pkg }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="collapse-panel">
+        <div class="collapse-header" (click)="toggleSystem()">
+          <h4>System Information</h4>
+          <span>{{ systemOpen ? '▲' : '▼' }}</span>
+        </div>
+        <div *ngIf="systemOpen" class="collapse-body">
+          <ul>
+            <li *ngFor="let info of systemInfo">{{ info }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <button class="save-button" (click)="onSaveChanges()">
+      <span class="icon">💾</span> Save Changes
+    </button>
+  </div>
+</div>
