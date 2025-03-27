@@ -49,4 +49,4 @@ jobs:
       - name: Install backend dependencies
         run: |
           cd backend
-          pip install -r backend/requirements.txt
+          pip install -r requirements.txt
