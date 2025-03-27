@@ -35,7 +35,7 @@ jobs:
       - name: Build Angular app
         run: |
           cd frontend
-          npm run watch
+          npm run dev_build
 
   backend:
     name: Deploy Firebase Functions
