@@ -1,0 +1,52 @@
+name: CI
+
+on: [pull_request]
+
+jobs:
+  frontend:
+    name: Build Angular Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'  # Adjust as needed
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm install  # Ensures a clean install with package-lock.json
+
+      - name: Create environment.ts
+        run: |
+          # Navigate to the frontend folder
+          cd frontend
+
+          # Ensure the environments folder exists (in case it's missing)
+          mkdir -p src/environments
+
+          # Generate a minimal environment.ts
+          echo "export const environment = { production: false };" \
+            > src/environments/environment.ts
+
+      - name: Build Angular app
+        run: |
+          cd frontend
+          npm run dev_build
+
+  backend:
+    name: Deploy Firebase Functions
+    runs-on: ubuntu-latest
+    needs: frontend  # Ensures frontend builds before deploying backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -r functions/requirements.txt
