@@ -167,7 +167,6 @@
       </div>
     }
 
-    <!-- SETTINGS BUTTON (At the bottom) -->
     <div class="mt-auto">
       <button
         hlmBtn
@@ -177,9 +176,23 @@
         (click)="openSettingsModal()"
       >
         <hlm-icon size="sm" name="lucideSettings"></hlm-icon>
-        @if (!collapsed) {
-          <div class="truncate">Settings</div>
-        }
+        <div class="flex items-center w-full text-sm">
+          <!-- Settings text -->
+          <span class="truncate">Settings</span>
+          <!-- Spacer to push the agent info to the right, if needed -->
+          <span class="flex-1"></span>
+          <!-- Agent/Language information -->
+          <ng-container *ngIf="!collapsed">
+            <ng-container *ngIf="currentProject.agent === 'Undefined'; else agentInfo">
+              <span>{{ currentProject.language }}</span>
+            </ng-container>
+            <ng-template #agentInfo>
+              <span>
+                {{ currentProject.language }} | {{ currentProject.agent }}
+              </span>
+            </ng-template>
+          </ng-container>
+        </div>
       </button>
     </div>
 
