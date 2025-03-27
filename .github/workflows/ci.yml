@@ -20,6 +20,18 @@ jobs:
           cd frontend
           npm install  # Ensures a clean install with package-lock.json
 
+      - name: Create environment.ts
+        run: |
+          # Navigate to the frontend folder
+          cd frontend
+
+          # Ensure the environments folder exists (in case it's missing)
+          mkdir -p src/environments
+
+          # Generate a minimal environment.ts
+          echo "export const environment = { production: false };" \
+            > src/environments/environment.ts
+
       - name: Build Angular app
         run: |
           cd frontend
