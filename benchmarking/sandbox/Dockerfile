@@ -53,5 +53,8 @@ COPY ./startup.sh /startup.sh
 RUN chmod +x /startup.sh
 
 RUN mkdir -p /home/user
-CMD ["/startup.sh"]
+
+EXPOSE 8888
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''"]
+# CMD ["/startup.sh"]
 
