@@ -1,0 +1,7 @@
+cellxgene-census
+tiledbsoma
+rich
+numpy
+docker
+dotenv
+openai
