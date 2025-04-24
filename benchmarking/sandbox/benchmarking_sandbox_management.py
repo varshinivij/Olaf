@@ -2,14 +2,6 @@
 import logging
 import sys
 
-logging.basicConfig(
-    level=logging.INFO,
-    stream=sys.stdout,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    force=True
-)
-logging.info("Root logger configured for INFO via basicConfig.")
-
 # --- Standard Library Imports ---
 import argparse
 import os
@@ -28,7 +20,7 @@ except ImportError:
     logging.error("Please install it in your host environment: pip install docker")
     sys.exit(1)
 
-# Use rich for better formatting if available
+# Optional: Use rich for better formatting if available
 try:
     from rich.console import Console
     from rich.prompt import Prompt
@@ -54,10 +46,10 @@ CONTAINER_NAME = "benchmarking_sandbox_instance"
 API_PORT_INSIDE = 8000
 API_PORT_HOST = 8000 # Host port to map to
 
-# Message printing function using logging and optional rich console
+# Centralized message printing function using logging and optional rich console
 def _print_message(message, style=None, is_error=False):
     """Helper to print using rich console or standard logging."""
-    level = logging.INFO
+    level = logging.INFO # Default level
     if is_error or (style and 'red' in style):
         level = logging.ERROR
     elif style and 'yellow' in style:
@@ -65,14 +57,23 @@ def _print_message(message, style=None, is_error=False):
     elif style and 'green' in style:
         level = logging.INFO
     elif style and ('dim' in style or 'blue' in style or 'cyan' in style):
-        level = logging.DEBUG
+        # Keep these less critical styled messages as DEBUG if overall level is DEBUG
+        # If overall level is INFO, they won't show unless changed here.
+        # Let's make them INFO so they appear with INFO level logging.
+        level = logging.INFO # Changed from DEBUG to INFO
 
+    # Log the message using Python's standard logging
+    # It will only appear if 'level' >= the level set in basicConfig
     logging.log(level, message)
 
+    # Additionally print to console using rich if available and not an error
+    # This provides the styling even if the log level is higher than the message level
     if HAS_RICH and console and not is_error:
         console.print(message, style=style if style else None)
     elif not HAS_RICH and not is_error and level >= logging.INFO:
-        print(message)
+         # Fallback print for non-error, non-debug messages when rich is unavailable
+         # Ensures INFO messages are printed if logging level is INFO or lower
+         print(message)
 
 
 class SandboxManager:
@@ -143,17 +144,22 @@ class SandboxManager:
             )
             last_status = None
             for chunk in stream:
+                # Process build stream for logging/display
                 if 'stream' in chunk:
                     line = chunk['stream'].strip()
-                    if line: logging.debug(f"Build output: {line}")
+                    # Log/print build output lines only if they contain content
+                    # Use _print_message with no style (defaults to INFO level)
+                    if line: _print_message(line) # <-- CHANGED from logging.debug
                 elif 'errorDetail' in chunk:
                     error_msg = chunk['errorDetail']['message']
                     _print_message(f"Build Error: {error_msg}", style="bold red", is_error=True)
                     return False
                 elif 'status' in chunk:
                     status = chunk['status']
+                    # Log/print status changes, but reduce noise from download/extract steps
                     if status != last_status and "Downloading" not in status and "Extracting" not in status:
-                         logging.debug(f"Build Status: {status}")
+                         # Use _print_message with dim style (logs as INFO)
+                         _print_message(f"Status: {status}", style="dim") # <-- CHANGED from logging.debug
                          last_status = status
             _print_message(f"Image '[cyan]{IMAGE_TAG}[/cyan]' built successfully.", style="green")
             return True
@@ -179,7 +185,7 @@ class SandboxManager:
                      _print_message("Failed to stop/remove existing container during rebuild. Aborting start.", style="red", is_error=True)
                      return False
             if not self.build_image():
-                _print_message("Build failed, cannot start container.", style="bold red", is_error=True)
+                # Error printed by build_image
                 return False
 
         # Ensure no old container instance is running
@@ -228,14 +234,17 @@ class SandboxManager:
             time.sleep(wait_time)
 
             # Basic check: Is the container still running?
-            self.container.reload()
-            if self.container.status != 'running':
-                 _print_message(f"Container exited unexpectedly shortly after start (status: {self.container.status}).", style="bold red", is_error=True)
+            # Use _find_container to check live status
+            current_container = self._find_container()
+            if not current_container or current_container.status != 'running':
+                 status = current_container.status if current_container else 'not found'
+                 _print_message(f"Container exited unexpectedly shortly after start (status: {status}).", style="bold red", is_error=True)
+                 # Try to get logs even if stopped/gone
                  logs = self._get_container_logs()
                  _print_message("--- Container Logs ---", is_error=True)
                  _print_message(logs if logs else "(Could not retrieve logs)", is_error=True)
                  _print_message("----------------------", is_error=True)
-                 self.container = None
+                 self.container = None # Clear internal ref
                  return False
 
             _print_message(f"Container running. API should be accessible at http://localhost:{API_PORT_HOST}", style="green")
@@ -350,7 +359,6 @@ class SandboxManager:
                 logging.warning(f"Error getting container status: {e}")
                 container_status = "unknown (error)"
 
-        # Kernel status is now internal to the container/API
         return f"Container: {container_status}, API Port (Host): {API_PORT_HOST}"
 
 
@@ -431,6 +439,7 @@ def interactive_loop(manager):
 
                  logs = manager._get_container_logs(tail=tail_count)
                  _print_message(f"\n--- Last {tail_count} Container Logs ---")
+                 # Use standard print for logs as they can be multiline and formatting is less critical
                  print(logs if logs else "(No logs retrieved or container not found)")
                  _print_message("-----------------------------")
             else:
@@ -497,13 +506,16 @@ def main():
     def show_logs(args, mgr):
         logs = mgr._get_container_logs(tail=args.n)
         _print_message(f"\n--- Last {args.n} Container Logs ---")
+        # Use standard print for logs
         print(logs if logs else "(No logs retrieved or container not found)")
         _print_message("-----------------------------")
-        return True # Assume success for showing logs unless _get_container_logs fails badly
+        return True # Assume success for showing logs
     parser_logs.set_defaults(func=show_logs)
 
     args = parser.parse_args()
+    # Execute the function and store success status
     success = args.func(args, manager)
+    # Exit with appropriate status code
     sys.exit(0 if success else 1)
 
 

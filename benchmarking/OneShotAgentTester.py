@@ -464,6 +464,8 @@ print(adata.obs['cell_type'].value_counts())
 ```
 I will execute the code you provide and return the results (stdout, stderr, errors, and potentially image data). Use the results to inform your next step.
 Focus on providing meaningful characterizations and insights based on the data and metadata. Plan your {max_code_tries} code executions wisely. Start by loading the data.
+
+While you can generate plots, please prioritize investigating via text as you do not have the ability to understand images.
 """
         user_message_content = agent_prompt
 
