@@ -6,7 +6,7 @@ import re
 import shlex
 import time
 from pathlib import Path
-import subprocess # Added for docker cp
+import subprocess # Still needed for docker cp
 
 # --- Dependency Imports ---
 try:
@@ -100,7 +100,7 @@ except ImportError:
 SCRIPT_DIR = Path(__file__).parent.resolve()
 DATASETS_DIR = SCRIPT_DIR / "datasets"
 ENV_FILE = SCRIPT_DIR / ".env"
-SANDBOX_DATA_PATH = "/home/user/data.h5ad" # Where data will be copied inside container
+SANDBOX_DATA_PATH = "/home/sandboxuser/data.h5ad" # Where data will be copied inside container
 
 # --- Configuration Loading ---
 console = Console()
@@ -114,9 +114,6 @@ if not OPENAI_API_KEY:
 
 try:
     openai_client = OpenAI(api_key=OPENAI_API_KEY)
-    # Test connection (optional, but good practice)
-    # openai_client.models.list()
-    # console.print("OpenAI client initialized successfully.")
 except Exception as e:
     console.print(f"[bold red]Error initializing OpenAI client:[/bold red] {e}")
     sys.exit(1)
@@ -132,7 +129,6 @@ def extract_python_code(text):
 
 def display_message(role, content):
     """Displays messages with nice formatting."""
-    # Existing display logic... (unchanged)
     if role == "system":
         console.print(Panel(content, title="SYSTEM PROMPT", border_style="dim blue"))
     elif role == "user":
@@ -153,9 +149,6 @@ def display_message(role, content):
                  console.print(f"--- ASSISTANT (Code) ---\n{code}\n--- End Code ---")
         else:
             console.print(Panel(content, title="ASSISTANT (Text Only)", border_style="green"))
-    # Remove the explicit 'tool' role display as we are sending it as 'user'
-    # elif role == "tool":
-    #      console.print(Panel(content, title="CODE EXECUTION RESULT", border_style="yellow"))
     else:
         console.print(f"[bold]{role.upper()}:[/bold]\n{content}")
     console.print("-" * 20) # Separator
@@ -248,6 +241,7 @@ def select_dataset():
 
 def get_code_tries():
     """Prompts user for the number of code execution attempts."""
+    # Existing logic... (unchanged)
     while True:
         tries_str = Prompt.ask("Enter the maximum number of code execution attempts for the agent", default="5")
         try:
@@ -257,7 +251,7 @@ def get_code_tries():
         except ValueError: console.print("[red]Invalid input. Please enter an integer.[/red]")
 
 def run_agent_test(agent_prompt_id, agent_prompt, dataset_h5ad_path, dataset_metadata, max_code_tries):
-    """Runs a single agent test loop."""
+    """Runs a single agent test loop using stateful kernel execution."""
     console.print(f"\n[bold cyan]----- Starting Test: '{agent_prompt_id}' ----- [/bold cyan]")
     console.print(f"Dataset: [green]{dataset_metadata.get('dataset_title', dataset_h5ad_path.stem)}[/green]")
     console.print(f"Max Code Tries: [yellow]{max_code_tries}[/yellow]")
@@ -267,14 +261,18 @@ def run_agent_test(agent_prompt_id, agent_prompt, dataset_h5ad_path, dataset_met
     code_tries_left = max_code_tries
 
     try:
-        # 1. Initialize and Start Sandbox
+        # 1. Initialize Manager and Start Sandbox Container + Kernel
         console.print("\nInitializing Sandbox Manager...")
         sandbox_manager = SandboxManager()
-        console.print("Starting sandbox container...")
-        container = sandbox_manager.start_container()
-        if not container:
+        console.print("Starting sandbox container and kernel...")
+        if not sandbox_manager.start_container(): # Starts container
             console.print("[bold red]Failed to start sandbox container. Aborting test.[/bold red]")
             return None
+        if not sandbox_manager.connect_kernel(): # Connects to the kernel
+             console.print("[bold red]Failed to connect to kernel after starting container. Aborting test.[/bold red]")
+             # Attempt cleanup
+             sandbox_manager.stop_container(remove=True)
+             return None
 
         # 2. Copy Dataset to Sandbox
         console.print(f"Copying dataset '{dataset_h5ad_path.name}' to sandbox ({SANDBOX_DATA_PATH})...")
@@ -286,14 +284,13 @@ def run_agent_test(agent_prompt_id, agent_prompt, dataset_h5ad_path, dataset_met
             console.print(f"[bold red]Error copying dataset to container:[/bold red]")
             console.print(f"Command: {' '.join(e.cmd)}")
             console.print(f"Stderr: {e.stderr}")
-            raise
+            raise # Caught by outer try/except
 
-        # 3. Prepare Initial Agent Message
+        # 3. Prepare Initial Agent Message and Load Data in Kernel
         system_message_content = f"""You are an AI assistant tasked with analyzing a single-cell transcriptomics dataset.
 Your goal is to characterize this dataset based on its metadata and by executing Python code.
-You have access to a Python environment within a sandbox. Standard libraries like pandas, numpy, scipy, scikit-learn, and anndata should be available.
-The dataset is loaded into the sandbox at: {SANDBOX_DATA_PATH}
-You can load it using anndata.read_h5ad('{SANDBOX_DATA_PATH}').
+You have access to a stateful Python kernel within a sandbox. Standard libraries like pandas, numpy, scipy, scikit-learn, and anndata should be available. Variables and imports persist between your code executions in this session.
+The dataset file is located inside the sandbox at: {SANDBOX_DATA_PATH}
 
 Dataset Metadata:
 {json.dumps(dataset_metadata, indent=2)}
@@ -301,13 +298,17 @@ Dataset Metadata:
 You have a maximum of {max_code_tries} attempts to execute Python code blocks.
 When you want to execute code, enclose it in triple backticks with the language specified as python, like this:
 ```python
+# Your analysis code here. Imports and variables persist.
+# Example: Load data in the first turn:
 import anndata as ad
 adata = ad.read_h5ad('{SANDBOX_DATA_PATH}')
-# Your analysis code here
 print(adata.shape)
+
+# Example: Use adata in a later turn:
+print(adata.obs['cell_type'].value_counts())
 ```
-I will run the code you provide and return the output (stdout and stderr). Use the output to inform your next step.
-Focus on providing meaningful characterizations and insights based on the data and metadata. Plan your {max_code_tries} code executions wisely. Start by loading the data and examining its basic properties.
+I will run the code you provide in the persistent kernel and return the output (stdout and stderr). Use the output to inform your next step.
+Focus on providing meaningful characterizations and insights based on the data and metadata. Plan your {max_code_tries} code executions wisely. Start by loading the data.
 """
         user_message_content = agent_prompt
 
@@ -323,60 +324,54 @@ Focus on providing meaningful characterizations and insights based on the data a
             console.print(f"\n[bold]Sending request to OpenAI... (Code tries left: {code_tries_left})[/bold]")
             try:
                 response = openai_client.chat.completions.create(
-                    model="gpt-4o", # Or your preferred model
+                    model="gpt-4o",
                     messages=conversation_history,
                     temperature=0.7,
                 )
                 assistant_message = response.choices[0].message
                 assistant_content = assistant_message.content
 
-                # Append assistant's response BEFORE processing code
                 conversation_history.append({"role": "assistant", "content": assistant_content})
                 display_message("assistant", assistant_content)
 
                 # 5. Check for and Execute Code
-                code_to_run = extract_python_code(assistant_content)
-                if code_to_run:
-                    console.print(f"\n[bold cyan]Executing Code (Attempt {max_code_tries - code_tries_left + 1}/{max_code_tries})...[/bold cyan]")
-                    execution_output = sandbox_manager.run_code(code_to_run)
+                agent_code = extract_python_code(assistant_content)
+                if agent_code:
+                    console.print(f"\n[bold cyan]Executing Code via Kernel (Attempt {max_code_tries - code_tries_left + 1}/{max_code_tries})...[/bold cyan]")
+
+                    # *** MODIFICATION: Execute via kernel, NO prefix needed ***
+                    execution_output = sandbox_manager.run_code(agent_code)
+                    # **********************************************************
                     code_tries_left -= 1
 
-                    # Prepare result message for history and display
-                    # **MODIFICATION:** Send result back as 'user' role to avoid API error
                     user_feedback_content = f"Code execution result:\n"
                     if execution_output is not None:
-                         # Limit output length sent back to OpenAI if necessary
                          max_output_len = 2000
                          if len(execution_output) > max_output_len:
                               user_feedback_content += f"--- STDOUT (Truncated) ---\n{execution_output[:max_output_len]}...\n--------------"
                          else:
                               user_feedback_content += f"--- STDOUT ---\n{execution_output}\n--------------"
                     else:
-                         user_feedback_content += "[No standard output captured]"
-                    # Note: stderr is printed by run_code but not added to history here.
-                    # Could add stderr to user_feedback_content if needed.
+                         # Indicate if execution failed or timed out (run_code returns None)
+                         user_feedback_content += "[Execution failed, timed out, or produced no stdout]"
 
-                    # Append the execution result as a user message
                     conversation_history.append({"role": "user", "content": user_feedback_content})
-                    # Display this feedback message (using the modified display_message)
                     display_message("user", user_feedback_content)
 
                     if code_tries_left == 0:
                         console.print("[bold yellow]Maximum code execution attempts reached.[/bold yellow]")
-                        break # Exit loop
+                        break
 
                 else:
                     console.print("[yellow]No code block found in assistant's response this turn.[/yellow]")
 
             except APIError as e:
                 console.print(f"[bold red]OpenAI API Error:[/bold red] {e}")
-                # Attempt to print more details from the error object if available
-                if hasattr(e, 'body') and e.body:
-                     console.print(f"Error Body: {e.body}")
-                break # Stop test on API error
+                if hasattr(e, 'body') and e.body: console.print(f"Error Body: {e.body}")
+                break
             except Exception as e:
                 console.print(f"[bold red]Error during agent interaction:[/bold red] {e}")
-                break # Stop test on other errors
+                break
 
         console.print(f"\n[bold cyan]----- Test Finished: '{agent_prompt_id}' ----- [/bold cyan]")
         return conversation_history
@@ -387,11 +382,10 @@ Focus on providing meaningful characterizations and insights based on the data a
     finally:
         # 6. Stop and Cleanup Sandbox
         if sandbox_manager:
-            console.print("\nStopping sandbox container...")
-            if not sandbox_manager.stop_container():
+            console.print("\nStopping sandbox container and disconnecting kernel...")
+            # stop_container now also handles disconnect
+            if not sandbox_manager.stop_container(remove=True): # Remove container on test end
                  console.print("[yellow]Warning: Could not cleanly stop/remove sandbox container.[/yellow]")
-
-
 
 def main():
     parser = argparse.ArgumentParser(description="Run AI agent benchmarks against datasets in a sandbox.")
