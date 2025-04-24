@@ -2,8 +2,8 @@ import os, os.path, sys
 
 base = int(os.environ.get("IPY_BASE_PORT", 4000))
 argv = [
-    sys.executable, "-Xfrozen_modules=off", "-m", "ipykernel_launcher",
-    "--ip=0.0.0.0",
+    sys.executable, "-Xfrozen_modules=off", "-vv", "-m", "ipykernel_launcher",
+    "--ip=127.0.0.1",
     "--log-level=DEBUG",
     f"--shell={base + 0}",
     f"--iopub={base + 1}",

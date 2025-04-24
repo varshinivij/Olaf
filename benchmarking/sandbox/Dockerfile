@@ -1,24 +1,17 @@
-# Use official Python slim image based on Debian
-FROM python:3.11
+# Use official Python slim image based on Debian (adjust version if needed)
+FROM python:3.11-slim
 
 # Set DEBIAN_FRONTEND to noninteractive to prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-ENV TINI_VERSION v0.19.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-RUN chmod +x /tini
-
-# Install tzdata first and set timezone
+# --- Install System Dependencies ---
+# Combine apt-get operations into a single layer to leverage caching.
+# This layer rarely changes unless system dependencies are added/removed.
+# Install tini, tzdata, build tools, C libraries, and utilities.
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends tzdata && \
-    ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
-    dpkg-reconfigure --frontend noninteractive tzdata && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install build tools and required C libraries for Python packages
-# python3-dev, python3-pip, python3-venv are not needed as they come with the base image
-RUN apt-get update && apt-get install -y --no-install-recommends \
+    apt-get install -y --no-install-recommends \
+    tini \
+    tzdata \
     build-essential \
     pkg-config \
     libhdf5-dev \
@@ -26,9 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libzmq3-dev \
     gcc \
     g++ \
-    # Install sudo for the adduser command below if needed
     sudo \
-    # Keep essential utilities
     curl \
     wget \
     git \
@@ -36,69 +27,78 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nano \
     unzip \
     zip \
-    tini \
-    # R-base and openssh-server removed as likely not needed
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    # Configure timezone
+    && ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime \
+    && dpkg-reconfigure --frontend noninteractive tzdata \
+    # Clean up apt cache
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# --- Create non-root user ---
-# Using different UID/GID than default root/staff/users
+# --- Create Non-Root User & Group ---
+# These arguments and user setup steps rarely change.
 ARG NB_USER="sandboxuser"
 ARG NB_UID=1001
 ARG NB_GID=1001
 ENV USER=${NB_USER}
 ENV HOME=/home/${NB_USER}
-ENV PATH=${HOME}/.local/bin:${PATH} 
+# Add user's local bin to PATH early
+ENV PATH=${HOME}/.local/bin:${PATH}
 
-# Create the group and user, add to sudo (optional)
+# Create group, user, add to sudoers (run as root)
 RUN groupadd -g ${NB_GID} ${NB_USER} && \
     useradd -m -s /bin/bash -u ${NB_UID} -g ${NB_GID} ${NB_USER} && \
     adduser ${NB_USER} sudo && \
-    echo "${NB_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    chown -R ${NB_UID}:${NB_GID} ${HOME}
+    echo "${NB_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Create directories needed for jupyter and set ownership
-# Run this as root before switching user
-RUN mkdir -p ${HOME}/.local/share/jupyter \
-             ${HOME}/.ipython/profile_default/startup \
-             ${HOME}/.ipython/profile_default/static \
-    && chown -R ${NB_UID}:${NB_GID} ${HOME}/.local \
-                                   ${HOME}/.ipython
+# --- Install Python Dependencies ---
+COPY ./requirements.txt /tmp/requirements.txt
 
-# Copy requirements *before* installing them, into user's home
-COPY ./requirements.txt ${HOME}/requirements.txt
-RUN chown ${NB_UID}:${NB_GID} ${HOME}/requirements.txt
-
-# Switch to the non-root user BEFORE installing pip packages
+# Install Python packages. This layer is cached if requirements.txt hasn't changed.
+# Run pip installs as the target user to ensure correct permissions and paths.
+# Switch user and set working directory *before* pip install --user.
 USER ${NB_USER}
 WORKDIR ${HOME}
 
-# Install python packages as the non-root user
-# Upgrade pip first
-# No need for --break-system-packages with official python images
-RUN python -m pip install --no-cache-dir --upgrade pip --user
-# Install specific versions of core Jupyter components + requirements
-RUN python -m pip install --no-cache-dir --user \
+RUN python -m pip install --no-cache-dir --upgrade pip --user && \
+    python -m pip install --no-cache-dir --user \
+    # Core Jupyter components (pin versions for stability)
     ipython==8.12.0 \
     traitlets==5.9.0 \
     jupyter_client==8.3.0 \
     jupyter_core==5.3.1 \
     pyzmq==25.1.0 \
     tornado==6.3.2 \
-    ipykernel==6.25.1 
-    # -r ${HOME}/requirements.txt
+    ipykernel==6.25.1 \
+    # FastAPI dependencies
+    fastapi \
+    uvicorn[standard] \
+    python-multipart \
+    # Install user requirements from the temporary location
+    -r /tmp/requirements.txt
 
-# Expose the ports Jupyter kernel might use (optional, for info)
-EXPOSE 9000-9010
+# --- Application Setup ---
+# Copy application code and scripts AFTER dependencies are installed.
+# Changes to these files will only invalidate the cache from this point.
+COPY --chown=${NB_USER}:${NB_GID} ./kernel_api.py ${HOME}/kernel_api.py
+COPY --chown=${NB_USER}:${NB_GID} ./start_kernel.py ${HOME}/start_kernel.py
+COPY --chown=${NB_USER}:${NB_GID} ./start.sh ${HOME}/start.sh
 
-# Define the command to run the kernel and save connection info
-# Use 'python' instead of 'python3' as it's the standard in official images
-# --- Add right above the CMD (anywhere after USER/WORKDIR) -------------
-ENV IPY_BASE_PORT=4000  
-# ----------------------------------------------------------------------
+# Create user directories and make scripts executable in a single layer
+RUN mkdir -p ${HOME}/.local/share/jupyter \
+             ${HOME}/.ipython/profile_default/startup \
+             ${HOME}/.ipython/profile_default/static && \
+    chmod +x ${HOME}/start_kernel.py ${HOME}/start.sh
 
-# --- REPLACE the old single-line CMD with everything below -------------
-# Start ipykernel on fixed ports 4000-4004 so the host can map them.
-COPY start_kernel.py /usr/local/bin/start_kernel.py
+# --- Runtime Configuration ---
+# Expose the FastAPI port (informational)
+EXPOSE 8000
+
+# Set environment variable for kernel port (used by start_kernel.py)
+ENV IPY_BASE_PORT=4000
+
+# Use tini as the entrypoint; it will execute the CMD
+# Ensure tini installed via apt is in the default PATH or use /usr/bin/tini
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["python", "/usr/local/bin/start_kernel.py"]
 
+# Set the default command to run the startup script from user's home
+CMD ["/home/sandboxuser/start.sh"]
