@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 import subprocess # Still needed for docker cp (for dataset copy)
 import base64 # For decoding image data from API
+from datetime import datetime # For timestamp in filename
 
 # --- Dependency Imports ---
 try:
@@ -116,6 +117,7 @@ except ImportError:
 # --- Constants ---
 SCRIPT_DIR = Path(__file__).parent.resolve()
 DATASETS_DIR = SCRIPT_DIR / "datasets"
+OUTPUTS_DIR = SCRIPT_DIR / "outputs" # Define output directory
 ENV_FILE = SCRIPT_DIR / ".env"
 SANDBOX_DATA_PATH = "/home/sandboxuser/data.h5ad" # Where data will be copied inside container
 # URL for the FastAPI service running in the container (mapped to host)
@@ -186,6 +188,7 @@ def format_api_response_for_llm(response_data):
     stderr_lines = []
     error_info = None
     display_items = [] # Store items for potential later display/saving
+    max_len = 1000 # Max length for stdout/stderr truncation
 
     for item in outputs:
         output_type = item.get("type")
@@ -215,9 +218,7 @@ def format_api_response_for_llm(response_data):
     # Combine stdout
     if stdout_lines:
         output_lines.append("--- STDOUT ---")
-        # Truncate if necessary
         full_stdout = "".join(stdout_lines)
-        max_len = 2000
         if len(full_stdout) > max_len:
              output_lines.append(full_stdout[:max_len] + "\n... (stdout truncated)")
         else:
@@ -230,30 +231,37 @@ def format_api_response_for_llm(response_data):
     if stderr_lines:
         output_lines.append("--- STDERR ---")
         full_stderr = "".join(stderr_lines)
-        max_len = 2000
+        # --- ADDED STDERR TRUNCATION ---
         if len(full_stderr) > max_len:
              output_lines.append(full_stderr[:max_len] + "\n... (stderr truncated)")
         else:
              output_lines.append(full_stderr)
+        # --- END STDERR TRUNCATION ---
         output_lines.append("--------------")
+    # No need for an else block if stderr is empty, unlike stdout
 
     output_lines.append(f"Final Status: {final_status}")
 
-    # TODO: Optionally save images/plots from display_items here
-    # for item in display_items:
-    #     if item['type'] == 'display_data':
-    #         for mime, b64_data in item.get('data', {}).items():
-    #             if mime.startswith('image/'):
-    #                 try:
-    #                     image_data = base64.b64decode(b64_data)
-    #                     ext = mime.split('/')[-1]
-    #                     filename = f"output_image_{int(time.time())}_{len(display_items)}.{ext}"
-    #                     # Define where to save, e.g., SCRIPT_DIR / "outputs"
-    #                     # with open(filename, "wb") as f: f.write(image_data)
-    #                     # output_lines.append(f"[Saved image data to {filename}]")
-    #                     console.print(f"[bold yellow]Note: Image data ({mime}) was generated but not saved in this example.[/bold yellow]")
-    #                 except Exception as e:
-    #                     output_lines.append(f"[Error processing display data {mime}: {e}]")
+    # Optionally save images/plots from display_items here
+    # Create outputs directory if it doesn't exist
+    OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
+    for i, item in enumerate(display_items):
+        if item['type'] == 'display_data':
+            for mime, b64_data in item.get('data', {}).items():
+                if mime.startswith('image/'):
+                    try:
+                        image_data = base64.b64decode(b64_data)
+                        ext = mime.split('/')[-1].split('+')[0] # Handle things like image/svg+xml
+                        # Create a more descriptive filename
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        filename = OUTPUTS_DIR / f"output_image_{timestamp}_{i}.{ext}"
+                        with open(filename, "wb") as f:
+                            f.write(image_data)
+                        output_lines.append(f"[Saved image data ({mime}) to {filename}]")
+                        console.print(f"[bold yellow]Saved image data ({mime}) to {filename}[/bold yellow]")
+                    except Exception as e:
+                        output_lines.append(f"[Error processing/saving display data {mime}: {e}]")
+                        console.print(f"[red]Error processing/saving display data {mime}: {e}[/red]")
 
     return "\n".join(output_lines)
 
@@ -393,6 +401,17 @@ def run_agent_test(agent_prompt_id, agent_prompt, dataset_h5ad_path, dataset_met
     sandbox_manager = None
     conversation_history = []
     code_tries_left = max_code_tries
+    # Add metadata to the conversation start for saving context
+    initial_context = {
+        "prompt_id": agent_prompt_id,
+        "dataset_file": str(dataset_h5ad_path.name),
+        "dataset_metadata": dataset_metadata,
+        "max_code_tries": max_code_tries,
+        "start_time": datetime.now().isoformat()
+    }
+    # Store the raw API responses alongside the conversation turns
+    full_conversation_data = {"context": initial_context, "turns": []}
+
 
     try:
         # 1. Initialize Manager and Start Sandbox Container with API service
@@ -401,14 +420,14 @@ def run_agent_test(agent_prompt_id, agent_prompt, dataset_h5ad_path, dataset_met
         console.print("Starting sandbox container with API service...")
         if not sandbox_manager.start_container(): # start_container now waits briefly
             console.print("[bold red]Failed to start sandbox container. Aborting test.[/bold red]")
-            return None
+            return None # Return None if setup fails
 
         # 1b. Check if API is responsive
         if not check_api_status():
              console.print("[bold red]API service failed to start or respond. Aborting test.[/bold red]")
              # Attempt cleanup
              sandbox_manager.stop_container(remove=True)
-             return None
+             return None # Return None if setup fails
 
         # 2. Copy Dataset to Sandbox (Still needed)
         console.print(f"Copying dataset '{dataset_h5ad_path.name}' to sandbox ({SANDBOX_DATA_PATH})...")
@@ -432,8 +451,6 @@ def run_agent_test(agent_prompt_id, agent_prompt, dataset_h5ad_path, dataset_met
              raise # Re-raise to be caught by outer try/except for cleanup
 
         # 3. Prepare Initial Agent Message
-        # System prompt needs to be updated: no direct kernel access, just code blocks.
-        # The API handles the kernel interaction.
         system_message_content = f"""You are an AI assistant tasked with analyzing a single-cell transcriptomics dataset.
 Your goal is to characterize this dataset based on its metadata and by generating Python code to be executed.
 The dataset file is located inside the execution environment at: {SANDBOX_DATA_PATH}
@@ -469,6 +486,11 @@ While you can generate plots, please prioritize investigating via text as you do
 """
         user_message_content = agent_prompt
 
+        # Store initial messages for saving later
+        full_conversation_data["turns"].append({"role": "system", "content": system_message_content})
+        full_conversation_data["turns"].append({"role": "user", "content": user_message_content})
+
+        # Prepare history for the API call (needs to be in the format OpenAI expects)
         conversation_history = [
             {"role": "system", "content": system_message_content},
             {"role": "user", "content": user_message_content}
@@ -479,6 +501,8 @@ While you can generate plots, please prioritize investigating via text as you do
         # 4. Agent Interaction Loop
         while code_tries_left > 0:
             console.print(f"\n[bold]Sending request to OpenAI... (Code tries left: {code_tries_left})[/bold]")
+            api_call_successful = False
+            response_data = None # To store API response for saving
             try:
                 response = openai_client.chat.completions.create(
                     model="gpt-4o", # Or your preferred model
@@ -487,8 +511,11 @@ While you can generate plots, please prioritize investigating via text as you do
                 )
                 assistant_message = response.choices[0].message
                 assistant_content = assistant_message.content
+                api_call_successful = True # Mark OpenAI call as successful
 
+                # Add assistant message to both histories
                 conversation_history.append({"role": "assistant", "content": assistant_content})
+                full_conversation_data["turns"].append({"role": "assistant", "content": assistant_content})
                 display_message("assistant", assistant_content)
 
                 # 5. Check for and Execute Code via API
@@ -497,75 +524,75 @@ While you can generate plots, please prioritize investigating via text as you do
                     console.print(f"\n[bold cyan]Executing Code via API (Attempt {max_code_tries - code_tries_left + 1}/{max_code_tries})...[/bold cyan]")
                     code_tries_left -= 1
                     user_feedback_content = "[Code execution failed or API unreachable]" # Default feedback
+                    execution_api_response = None # Store raw API response
 
                     try:
-                        # Define request payload
-                        payload = {"code": agent_code, "timeout": 120} # Increase API timeout maybe?
+                        payload = {"code": agent_code, "timeout": 120}
                         headers = {"Content-Type": "application/json"}
+                        api_response = requests.post(EXECUTE_ENDPOINT, json=payload, headers=headers, timeout=130)
+                        api_response.raise_for_status()
+                        execution_api_response = api_response.json() # Store successful response
+                        user_feedback_content = format_api_response_for_llm(execution_api_response)
 
-                        # Make POST request to the FastAPI endpoint
-                        api_response = requests.post(EXECUTE_ENDPOINT, json=payload, headers=headers, timeout=130) # Client timeout > API timeout
-                        api_response.raise_for_status() # Check for HTTP errors
-
-                        # Process the successful response
-                        response_data = api_response.json()
-                        user_feedback_content = format_api_response_for_llm(response_data)
-
-                    except requests.exceptions.ConnectionError as e:
-                         console.print(f"[bold red]API Connection Error: {e}. Cannot execute code.[/bold red]")
-                         user_feedback_content = f"Code execution result:\n[API Connection Error: {e}]"
-                         # Optionally break the loop or allow LLM to try again without code
-                         # break
-                    except requests.exceptions.Timeout as e:
-                         console.print(f"[bold red]API Request Timeout: {e}. Cannot execute code.[/bold red]")
-                         user_feedback_content = f"Code execution result:\n[API Request Timeout: {e}]"
-                         # break
                     except requests.exceptions.RequestException as e:
-                         console.print(f"[bold red]API Request Error: {e}[/bold red]")
+                         console.print(f"[bold red]API Request Error during execution: {e}[/bold red]")
+                         error_detail = str(e)
                          if e.response is not None:
                               console.print(f"Response Status: {e.response.status_code}")
-                              try:
-                                   console.print(f"Response Body: {e.response.text}") # Show error detail from API
-                                   detail = e.response.json().get("detail", "Unknown API error")
-                                   user_feedback_content = f"Code execution result:\n[API Error {e.response.status_code}: {detail}]"
+                              error_detail = e.response.text
+                              try: # Try to get detail from JSON
+                                   detail_json = e.response.json().get("detail", error_detail)
+                                   error_detail = f"API Error {e.response.status_code}: {detail_json}"
                               except json.JSONDecodeError:
-                                   user_feedback_content = f"Code execution result:\n[API Error {e.response.status_code}: {e.response.text}]"
-                         else:
-                              user_feedback_content = f"Code execution result:\n[API Request Error: {e}]"
-                         # break
+                                   error_detail = f"API Error {e.response.status_code}: {e.response.text}"
+                         user_feedback_content = f"Code execution result:\n[{error_detail}]"
+                         # Store error info instead of successful response
+                         execution_api_response = {"error": error_detail, "status_code": e.response.status_code if e.response else None}
+                         # break # Decide if API errors should stop the loop
 
-                    # Append execution result back to conversation history
+                    # Append execution result back to conversation history for LLM
                     conversation_history.append({"role": "user", "content": user_feedback_content})
+                    # Store user feedback and API response in the full data log
+                    full_conversation_data["turns"].append({
+                        "role": "user",
+                        "content": user_feedback_content,
+                        "api_response": execution_api_response # Add raw API response here
+                    })
                     display_message("user", user_feedback_content) # Display formatted results
 
                     if code_tries_left == 0:
                         console.print("[bold yellow]Maximum code execution attempts reached.[/bold yellow]")
                         break
 
-                else:
+                else: # No code found in assistant response
                     console.print("[yellow]No code block found in assistant's response this turn.[/yellow]")
-                    # Decide how to handle no code: continue loop? End test? Ask LLM to provide code?
-                    # For now, let's assume the conversation might continue without code execution.
-                    # If the LLM *must* produce code, you might add logic here to re-prompt or end.
+                    # Add a placeholder turn to keep track
+                    full_conversation_data["turns"].append({"role": "user", "content": "[No code executed this turn]"})
+
 
             except APIError as e:
                 console.print(f"[bold red]OpenAI API Error:[/bold red] {e}")
                 if hasattr(e, 'body') and e.body: console.print(f"Error Body: {e.body}")
+                # Store error in results
+                full_conversation_data["error"] = f"OpenAI API Error: {e}"
                 break # Stop test on OpenAI error
             except Exception as e:
                 console.print(f"[bold red]Error during agent interaction: {e}[/bold red]")
                 import traceback
                 traceback.print_exc() # Print traceback for unexpected errors
+                full_conversation_data["error"] = f"Agent Interaction Error: {e}\n{traceback.format_exc()}"
                 break # Stop test on other errors
 
         console.print(f"\n[bold cyan]----- Test Finished: '{agent_prompt_id}' ----- [/bold cyan]")
-        return conversation_history
+        # Return the detailed conversation data including context and API responses
+        return full_conversation_data
 
     except Exception as e:
         console.print(f"[bold red]An error occurred during test setup or execution for '{agent_prompt_id}':[/bold red] {e}")
         import traceback
         traceback.print_exc()
-        return None
+        # Return error information if setup failed
+        return {"context": initial_context, "error": f"Setup/Execution Error: {e}\n{traceback.format_exc()}"}
     finally:
         # 6. Stop and Cleanup Sandbox
         if sandbox_manager:
@@ -575,8 +602,15 @@ While you can generate plots, please prioritize investigating via text as you do
 
 def main():
     parser = argparse.ArgumentParser(description="Run AI agent benchmarks against datasets in a sandbox (API Mode).")
-    # Add any command-line arguments if needed, e.g., --model
+    parser.add_argument(
+        "--output-dir", type=str, default="outputs",
+        help="Directory to save results JSON file (default: outputs)"
+    )
     args = parser.parse_args()
+
+    # Use Path object for output directory
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True) # Create output dir if needed
 
     console.print("[bold blue]Welcome to the One-Shot Agent Tester (API Mode)![/bold blue]")
 
@@ -588,20 +622,20 @@ def main():
 
     max_code_tries = get_code_tries()
 
-    results = {}
+    # Dictionary to hold results for all prompts run in this session
+    all_results = {}
+
     for prompt_id, prompt_text in agent_prompts.items():
-        test_result = run_agent_test(prompt_id, prompt_text, dataset_h5ad_path, dataset_metadata, max_code_tries)
-        results[prompt_id] = test_result # Store conversation history or summary
-
-        # Save results incrementally?
-        # output_filename = f"results_{prompt_id}_{int(time.time())}.json"
-        # try:
-        #     with open(output_filename, "w") as f:
-        #         json.dump({"prompt_id": prompt_id, "conversation": test_result}, f, indent=2)
-        #     console.print(f"[green]Saved results for '{prompt_id}' to {output_filename}[/green]")
-        # except Exception as e:
-        #      console.print(f"[red]Error saving results for '{prompt_id}': {e}[/red]")
-
+        # Run the test and get the detailed conversation data
+        test_result_data = run_agent_test(
+            prompt_id,
+            prompt_text,
+            dataset_h5ad_path,
+            dataset_metadata,
+            max_code_tries
+        )
+        # Store the result under the prompt ID
+        all_results[prompt_id] = test_result_data
 
         if len(agent_prompts) > 1:
              if not Confirm.ask(f"\nTest for '{prompt_id}' finished. Continue with the next agent prompt?", default=True):
@@ -609,7 +643,24 @@ def main():
              console.print("\n" + "="*40 + "\n"); time.sleep(1) # Separator and pause
 
     console.print("\n[bold blue]All specified agent tests have concluded.[/bold blue]")
-    # TODO: Final processing/summary of the 'results' dictionary if needed
+
+    # --- Save all results to a single JSON file ---
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Include dataset name stem in filename for clarity
+    dataset_stem = dataset_h5ad_path.stem if dataset_h5ad_path else "unknown_dataset"
+    output_filename = output_dir / f"benchmark_results_{dataset_stem}_{timestamp}.json"
+
+    console.print(f"Saving all results to [cyan]{output_filename}[/cyan]...")
+    try:
+        with open(output_filename, "w", encoding="utf-8") as f:
+            # Use default=str to handle potential non-serializable objects like Path
+            json.dump(all_results, f, indent=2, default=str)
+        console.print("[green]Results saved successfully.[/green]")
+    except TypeError as e:
+         console.print(f"[bold red]Error: Failed to serialize results to JSON:[/bold red] {e}")
+         console.print("Check if non-serializable objects (like Path) are in the results data.")
+    except Exception as e:
+         console.print(f"[bold red]Error saving results to {output_filename}:[/bold red] {e}")
 
 if __name__ == "__main__":
     main()
