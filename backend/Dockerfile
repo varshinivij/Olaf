@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean
 
 # Install Node.js 18 (for Firebase)
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y --no-install-recommends nodejs
 
 # Verify installations
@@ -47,7 +47,7 @@ COPY . .
 # Expose Firebase Emulator ports, including Web UI (4000)
 EXPOSE 4000 5001 8080 9099 5000 9199
 
-RUN firebase --version
-RUN which firebase
+# RUN firebase --version
+# RUN which firebase
 
 CMD ["firebase", "emulators:start", "--project", "twocube-web"]
