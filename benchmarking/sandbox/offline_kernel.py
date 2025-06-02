@@ -3,10 +3,9 @@
 Run arbitrary Python and emit a JSON blob describing the result.
 Designed for `singularity exec` with no network.
 """
+from __future__ import annotations
 import os
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/.matplotlib")
-
-from __future__ import annotations
 
 import base64
 import io
