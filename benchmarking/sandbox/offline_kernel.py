@@ -1,68 +1,78 @@
 #!/usr/bin/env python3
 """
-Run arbitrary Python and emit a JSON blob describing the result.
-Designed for `singularity exec` with no network.
+Offline Kernel (state‑preserving REPL or single‑shot)
+====================================================
+• **REPL mode**  : `python /opt/offline_kernel.py --repl`
+  ‑ Parent writes a code chunk to stdin, terminates with the sentinel line
+    `<<<EOF>>>`. Kernel executes it in a persistent global namespace, then
+    prints **one** JSON line.
+  ‑ Variables (e.g. `adata`) remain available in subsequent chunks.
+
+• **Single‑shot**: `python /opt/offline_kernel.py <file.py>`
+  ‑ Runs the file in a fresh namespace and exits (legacy behaviour).
+
+Returned JSON schema
+--------------------
+{
+  "status" : "ok" | "error" | "timeout",
+  "stdout" : "captured standard output",
+  "stderr" : "captured errors / traceback",
+  "images" : [ "base64_png", ... ]  # Any matplotlib figures
+}
 """
 from __future__ import annotations
-import os
-os.environ.setdefault("MPLCONFIGDIR", "/tmp/.matplotlib")
 
 import base64
 import io
 import json
+import os
 import sys
 import traceback
 from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
+from typing import List, Dict
 
-# If you want stateful sessions later, replace this with a long‐lived namespace.
-global_namespace: dict = {}
+# Force Matplotlib cache to a writable dir (avoid warnings)
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/.matplotlib")
 
-def run_code(code: str, namespace: dict | None = None) -> dict:
-    """
-    Execute a Python code string, capturing stdout, stderr, and any Matplotlib figures.
+SENTINEL = "<<<EOF>>>"           # Delimits code blocks in REPL mode
+GLOBAL_NS: Dict = {"__builtins__": __builtins__}  # Persistent namespace
 
-    Args:
-        code: Python source to execute.
-        namespace: Optional dict for globals() during execution. If None, a new dict is used.
+# ---------------------------------------------------------------------------
+# Core execution helper
+# ---------------------------------------------------------------------------
 
-    Returns:
-        A dict with keys "status", "stdout", "stderr", and "images" (base64 PNGs).
-    """
-    stdout_buf = io.StringIO()
-    stderr_buf = io.StringIO()
-    images: list[str] = []
+def _run(code: str, ns: Dict) -> Dict:
+    """Execute *code* in *ns* and capture stdout / stderr / matplotlib figs."""
+    out, err = io.StringIO(), io.StringIO()
+    images: List[str] = []
     status = "ok"
 
-    ns = namespace if namespace is not None else {}
-    ns.setdefault("__builtins__", __builtins__)
-
     try:
-        with redirect_stdout(stdout_buf), redirect_stderr(stderr_buf):
-            # Ensure Matplotlib uses Agg backend if available
+        with redirect_stdout(out), redirect_stderr(err):
+            # Set up Matplotlib (optional)
             try:
                 import matplotlib
                 matplotlib.use("Agg")
-                import matplotlib.pyplot as plt
+                import matplotlib.pyplot as plt  # noqa: F401
                 ns["plt"] = plt
             except ImportError:
-                pass
+                pass  # Matplotlib not installed; fine unless user imports it
 
-            compiled = compile(code, "<user_code>", "exec")
-            exec(compiled, ns)
+            exec(compile(code, "<repl>", "exec"), ns)
 
-            # Capture open figures
             if "plt" in ns:
-                for fig_num in ns["plt"].get_fignums():
-                    fig = ns["plt"].figure(fig_num)
+                for fid in ns["plt"].get_fignums():
+                    fig = ns["plt"].figure(fid)
                     buf = io.BytesIO()
                     fig.savefig(buf, format="png", bbox_inches="tight")
                     images.append(base64.b64encode(buf.getvalue()).decode())
                     ns["plt"].close(fig)
     except Exception:
-        stderr_buf.write(traceback.format_exc())
+        err.write(traceback.format_exc())
         status = "error"
     finally:
+        # Make sure no phantom figures linger
         if "plt" in ns:
             try:
                 ns["plt"].close("all")
@@ -71,39 +81,70 @@ def run_code(code: str, namespace: dict | None = None) -> dict:
 
     return {
         "status": status,
-        "stdout": stdout_buf.getvalue(),
-        "stderr": stderr_buf.getvalue(),
+        "stdout": out.getvalue(),
+        "stderr": err.getvalue(),
         "images": images,
     }
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: offline_kernel.py <code_file_path>", file=sys.stderr)
-        sys.exit(2)
+# ---------------------------------------------------------------------------
+# REPL mode implementation
+# ---------------------------------------------------------------------------
 
-    code_path = Path(sys.argv[1])
-    if not code_path.is_file():
-        result = {
+def _repl() -> None:
+    """Persistent loop: read code chunks, exec, print JSON."""
+    sys.stdout.write("__REPL_READY__\n")
+    sys.stdout.flush()
+
+    buffer: List[str] = []
+    for line in sys.stdin:
+        if line.rstrip("\n") == SENTINEL:
+            code_block = "".join(buffer)
+            buffer.clear()
+            result = _run(code_block, GLOBAL_NS)
+            sys.stdout.write(json.dumps(result) + "\n")
+            sys.stdout.flush()
+        else:
+            buffer.append(line)
+
+# ---------------------------------------------------------------------------
+# Single‑shot helper (legacy)
+# ---------------------------------------------------------------------------
+
+def _single_shot(file_path: Path):
+    if not file_path.is_file():
+        print(json.dumps({
             "status": "error",
             "stdout": "",
-            "stderr": f"Error: Code file '{code_path}' not found.",
-            "images": [],
-        }
-        print(json.dumps(result))
+            "stderr": f"File not found: {file_path}",
+            "images": []
+        }))
         sys.exit(3)
-
     try:
-        user_code = code_path.read_text(encoding="utf-8")
+        code = file_path.read_text("utf‑8")
     except Exception as e:
-        result = {
+        print(json.dumps({
             "status": "error",
             "stdout": "",
-            "stderr": f"Error reading '{code_path}': {e}",
-            "images": [],
-        }
-        print(json.dumps(result))
+            "stderr": f"Error reading {file_path}: {e}",
+            "images": []
+        }))
         sys.exit(4)
 
-    # Each invocation uses the same global_namespace (stateless for now).
-    output = run_code(user_code, namespace=global_namespace)
-    print(json.dumps(output))
+    print(json.dumps(_run(code, GLOBAL_NS)))
+
+# ---------------------------------------------------------------------------
+# Entry‑point
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    if len(sys.argv) == 2 and sys.argv[1] == "--repl":
+        _repl()
+        sys.exit(0)
+
+    if len(sys.argv) != 2:
+        print(
+            "Usage: offline_kernel.py <file.py>  OR  offline_kernel.py --repl",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    _single_shot(Path(sys.argv[1]))
