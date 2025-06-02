@@ -39,10 +39,7 @@ from pathlib import Path
 # ── Paths & constants (for InteractiveAgentTester.py) ─────────────────────────
 SCRIPT_DIR = Path(__file__).resolve().parent
 SIF_PATH = SCRIPT_DIR / "sandbox.sif"
-CONTAINER_URL = (
-    "https://github.com/OpenTechBio/Olaf/releases/download/"
-    "v0.0.1/benchmarking_sandbox.sif"
-)  # Must include /opt/offline_kernel.py
+CONTAINER_URL = "https://github.com/OpenTechBio/Olaf/releases/download/v0.0.1/sandbox.sif"
 
 INSTANCE_NAME = "benchmarking_sandbox_instance"
 API_PORT_INSIDE = 8000
