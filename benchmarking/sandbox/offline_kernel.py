@@ -34,6 +34,7 @@ from typing import List, Dict
 
 # Force Matplotlib cache to a writable dir (avoid warnings)
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/.matplotlib")
+os.environ.setdefault("NUMBA_CACHE_DIR", "/tmp/.numba_cache")
 
 SENTINEL = "<<<EOF>>>"           # Delimits code blocks in REPL mode
 GLOBAL_NS: Dict = {"__builtins__": __builtins__}  # Persistent namespace

@@ -122,6 +122,7 @@ elif backend == "singularity":
 elif backend == "singularity-exec":
     sandbox_dir = SCRIPT_DIR / "sandbox"
     sys.path.insert(0, str(sandbox_dir))
+    print("here")
     try:
         import benchmarking_sandbox_management_singularity as sing
     finally:
@@ -130,7 +131,7 @@ elif backend == "singularity-exec":
     SIF_PATH = sing.SIF_PATH
     SING_BIN = sing.SING_BIN
     SENTINEL = "<<<EOF>>>"
-
+    print("here 2")
     class _SingExecBackend:
         """Launch one long‑lived REPL inside the SIF and stream code to it."""
 
@@ -240,15 +241,246 @@ else:
     console.print("[red]Unknown backend.")
     sys.exit(1)
 
-# ==============================================================================
-# 2 · Utility functions (extract_python_code, display, etc.)
-# ==============================================================================
+# ====================================================================================
+# 2 · Generic helpers (unchanged)
+# ====================================================================================
 
-def extract_python_code(text: str) -> Optional[str]:
-    m = re.search(r"```python\s*([\s\S]+?)\s*```", text)
+def extract_python_code(txt: str) -> Optional[str]:
+    m = re.search(r"```python\s*([\s\S]+?)\s*```", txt)
     return m.group(1).strip() if m else None
 
 
-# … unchanged helper functions (display, get_initial_prompt, select_dataset, etc.) …
-# Due to space, those helper definitions are identical to the prior cleaned version
-# and have been omitted here for brevity.
+# Rich display wrappers
+
+def _panel(role: str, content: str):
+    titles = {"system": "SYSTEM", "user": "USER", "assistant": "ASSISTANT"}
+    styles = {"system": "dim blue", "user": "cyan", "assistant": "green"}
+    console.print(Panel(content, title=titles.get(role, role.upper()), border_style=styles.get(role, "white")))
+
+
+def display(role: str, content: str):
+    if role == "assistant":
+        code = extract_python_code(content) or ""
+        text_part = re.sub(r"```python[\s\S]+?```", "", content, count=1).strip()
+        if text_part:
+            _panel("assistant", text_part)
+        if code:
+            console.print(
+                Panel(
+                    Syntax(code, "python", line_numbers=True),
+                    title="ASSISTANT (code)",
+                    border_style="green",
+                )
+            )
+    else:
+        _panel(role, content)
+
+
+# ====================================================================================
+# 3 · Dataset / prompt helpers (unchanged)
+# ====================================================================================
+
+def get_initial_prompt() -> str:
+    console.print("[bold cyan]Enter the initial user prompt (Ctrl+D to finish):[/bold cyan]")
+    try:
+        txt = sys.stdin.read().strip()
+    except EOFError:
+        txt = ""
+    if not txt:
+        console.print("[red]Empty prompt – aborting.[/red]")
+        sys.exit(1)
+    return txt
+
+
+def select_dataset() -> Tuple[Path, dict]:
+    if not DATASETS_DIR.exists():
+        console.print(f"[red]Datasets dir not found: {DATASETS_DIR}[/red]")
+        sys.exit(1)
+    items = [
+        (p, json.loads(p.with_suffix(".json").read_text()))
+        for p in DATASETS_DIR.glob("*.h5ad")
+        if p.with_suffix(".json").exists()
+    ]
+    if not items:
+        console.print("[red]No datasets found.[/red]")
+        sys.exit(1)
+    tbl = Table(title="Datasets")
+    tbl.add_column("Idx", justify="right")
+    tbl.add_column("Name")
+    tbl.add_column("Cells", justify="right")
+    for i, (p, meta) in enumerate(items, 1):
+        tbl.add_row(str(i), meta.get("dataset_title", p.stem), str(meta.get("cell_count", "?")))
+    console.print(tbl)
+    idx = int(Prompt.ask("Choose index", choices=[str(i) for i in range(1, len(items) + 1)])) - 1
+    return items[idx]
+
+
+def collect_resources() -> List[Tuple[Path, str]]:
+    console.print("\n[bold cyan]Optional: paths to bind inside sandbox[/bold cyan] (blank line to finish)")
+    res: List[Tuple[Path, str]] = []
+    while True:
+        p = Prompt.ask("Path", default="").strip()
+        if not p:
+            break
+        path = Path(p).expanduser().resolve()
+        if not path.exists():
+            console.print(f"[yellow]Path does not exist: {path}[/yellow]")
+            continue
+        res.append((path, f"{SANDBOX_RESOURCES_DIR}/{path.name}"))
+    return res
+
+
+# ====================================================================================
+# 4 · Networked FastAPI helpers (skipped for exec mode)
+# ====================================================================================
+
+def api_alive(max_retries: int = 10, delay: float = 1.5) -> bool:
+    if is_exec_mode:
+        return True  # nothing to ping
+    for _ in range(max_retries):
+        try:
+            if requests.get(STATUS_ENDPOINT, timeout=2).json().get("status") == "ok":
+                return True
+        except Exception:
+            time.sleep(delay)
+    return False
+
+
+def format_execute_response(resp: dict) -> str:
+    lines = ["Code execution result:"]
+    if resp.get("status") != "ok":
+        lines.append(f"[status: {resp.get('status')}]")
+    stdout, stderr = resp.get("stdout", ""), resp.get("stderr", "")
+    if stdout:
+        lines += ["--- STDOUT ---", stdout[:1500]]
+    if stderr:
+        lines += ["--- STDERR ---", stderr[:1500]]
+    img_paths = []
+    for b64 in resp.get("images", []):
+        fname = OUTPUTS_DIR / f"{datetime.now():%Y%m%d_%H%M%S_%f}.png"
+        fname.parent.mkdir(exist_ok=True, parents=True)
+        with open(fname, "wb") as f:
+            f.write(base64.b64decode(b64))
+        img_paths.append(str(fname))
+    if img_paths:
+        lines.append("Saved images: " + ", ".join(img_paths))
+    return "\n".join(lines)
+
+
+# ====================================================================================
+# 5 · Main interactive loop
+# ====================================================================================
+
+def run_interactive(prompt: str, dataset: Path, metadata: dict, resources: List[Tuple[Path, str]]):
+    mgr = _BackendManager()
+    console.print(f"Starting sandbox ({backend}) …")
+
+    # Tell exec back‑end where data/resources are (creates bind list)
+    if is_exec_mode and hasattr(mgr, "set_data"):
+        mgr.set_data(dataset, resources)
+
+    if not mgr.start_container():
+        console.print("[red]Failed to start sandbox.[/red]")
+        return
+
+    if not api_alive():
+        console.print("[red]Kernel API not responsive (networked back‑end).[/red]")
+        return
+
+    # For docker / singularity‑instance we still *attempt* docker cp (no‑op or warning otherwise)
+    if not is_exec_mode:
+        COPY_CMD(str(dataset), f"{_SANDBOX_HANDLE}:{SANDBOX_DATA_PATH}")
+        for h, c in resources:
+            COPY_CMD(str(h), f"{_SANDBOX_HANDLE}:{c}")
+
+    resource_lines = [f"- {c} (from {h})" for h, c in resources] or ["- (none)"]
+    sys_prompt = textwrap.dedent(
+        f"""
+        You are an AI assistant analysing a single‑cell dataset.
+        Dataset path inside container: **{SANDBOX_DATA_PATH}**
+        Additional resources:\n"""
+        + "\n".join(resource_lines)
+        + "\n\n"
+        + textwrap.dedent(
+            f"Dataset metadata:\n{json.dumps(metadata, indent=2)}\n\n"
+            "Wrap runnable Python in triple‑backtick ```python blocks. Imports & variables persist within the container session."
+        )
+    )
+
+    history = [
+        {"role": "system", "content": sys_prompt},
+        {"role": "user", "content": prompt},
+    ]
+    display("system", sys_prompt)
+    display("user", prompt)
+
+    openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    turn = 0
+    while True:
+        turn += 1
+        console.print(f"\n[bold]OpenAI call (turn {turn})…[/bold]")
+        try:
+            rsp = openai.chat.completions.create(
+                model="gpt-4o", messages=history, temperature=0.7
+            )
+        except APIError as e:
+            console.print(f"[red]OpenAI error: {e}[/red]")
+            break
+        assistant_msg = rsp.choices[0].message.content
+        history.append({"role": "assistant", "content": assistant_msg})
+        display("assistant", assistant_msg)
+
+        code = extract_python_code(assistant_msg)
+        if code:
+            console.print("[cyan]Executing code…[/cyan]")
+            try:
+                if is_exec_mode:
+                    exec_result = mgr.exec_code(code, timeout=300)
+                else:
+                    exec_result = requests.post(
+                        EXECUTE_ENDPOINT, json={"code": code, "timeout": 300}, timeout=310
+                    ).json()
+                feedback = format_execute_response(exec_result)
+            except Exception as exc:
+                feedback = f"Code execution result:\n[Execution error on host: {exc}]"
+
+            history.append({"role": "user", "content": feedback})
+            display("user", feedback)
+
+        console.print("\n[bold]Next message (blank = continue, 'exit' to quit):[/bold]")
+        try:
+            user_in = input().strip()
+        except (EOFError, KeyboardInterrupt):
+            user_in = "exit"
+        if user_in.lower() in {"exit", "quit"}:
+            break
+        if user_in:
+            history.append({"role": "user", "content": user_in})
+            display("user", user_in)
+
+    console.print("Stopping sandbox…")
+    mgr.stop_container()
+
+
+# ====================================================================================
+# 6 · Entry‑point
+# ====================================================================================
+
+def main():
+    load_dotenv(Path(ENV_FILE))
+    if not os.getenv("OPENAI_API_KEY"):
+        console.print(f"[red]OPENAI_API_KEY not set in {ENV_FILE}.[/red]")
+        sys.exit(1)
+
+    prompt = get_initial_prompt()
+    data_p, meta = select_dataset()
+    resources = collect_resources()
+    run_interactive(prompt, data_p, meta, resources)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        console.print("\nInterrupted.")
+
