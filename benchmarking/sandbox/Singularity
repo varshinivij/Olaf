@@ -10,6 +10,7 @@ cp "requirements.txt"  "${SINGULARITY_ROOTFS}/opt/app/requirements.txt"
 cp "kernel_api.py"     "${SINGULARITY_ROOTFS}/opt/app/kernel_api.py"
 cp "start_kernel.py"   "${SINGULARITY_ROOTFS}/opt/app/start_kernel.py"
 cp "start.sh"          "${SINGULARITY_ROOTFS}/opt/app/start.sh"
+cp "offline_kernel.py"   "${SINGULARITY_ROOTFS}/opt/offline_kernel.py"
 
 # ---------------------------------------------------------------
 # Build steps executed INSIDE the container
@@ -40,6 +41,9 @@ pip install --no-cache-dir -r /opt/app/requirements.txt
 # --- 4 ▸ Permissions & executables -----------------------------
 chown -R "$NB_USER:$NB_GID" /opt/app
 chmod +x /opt/app/start_kernel.py /opt/app/start.sh
+
+chown "$NB_USER:$NB_GID" /opt/offline_kernel.py
+chmod +x /opt/offline_kernel.py
 
 # ---------------------------------------------------------------
 # Runtime environment
