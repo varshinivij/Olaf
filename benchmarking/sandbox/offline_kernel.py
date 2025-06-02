@@ -32,9 +32,14 @@ from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 from typing import List, Dict
 
-# Force Matplotlib cache to a writable dir (avoid warnings)
+# force to save to /tmp, so that the kernel can be run in a container
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/.matplotlib")
 os.environ.setdefault("NUMBA_CACHE_DIR", "/tmp/.numba_cache")
+os.environ.setdefault("XDG_CONFIG_HOME", "/tmp/.config")
+os.environ.setdefault("XDG_CACHE_HOME", "/tmp/.cache")
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/.matplotlib")
+os.environ.setdefault("CELLTYPIST_HOME", "/tmp/.celltypist")
+os.environ.setdefault("TRANSFORMERS_CACHE", "/tmp/.transformers")
 
 SENTINEL = "<<<EOF>>>"           # Delimits code blocks in REPL mode
 GLOBAL_NS: Dict = {"__builtins__": __builtins__}  # Persistent namespace

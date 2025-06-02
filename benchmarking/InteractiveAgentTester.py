@@ -122,7 +122,6 @@ elif backend == "singularity":
 elif backend == "singularity-exec":
     sandbox_dir = SCRIPT_DIR / "sandbox"
     sys.path.insert(0, str(sandbox_dir))
-    print("here")
     try:
         import benchmarking_sandbox_management_singularity as sing
     finally:
@@ -131,7 +130,6 @@ elif backend == "singularity-exec":
     SIF_PATH = sing.SIF_PATH
     SING_BIN = sing.SING_BIN
     SENTINEL = "<<<EOF>>>"
-    print("here 2")
     class _SingExecBackend:
         """Launch one long‑lived REPL inside the SIF and stream code to it."""
 
