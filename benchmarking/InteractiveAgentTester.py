@@ -63,6 +63,14 @@ backend = Prompt.ask(
     default="docker",
 )
 
+# Ask user whether to force‑update the sandbox image/SIF
+force_refresh = (
+    Prompt.ask(
+        "Force update sandbox environment?", choices=["y", "n"], default="n"
+    ).lower()
+    == "y"
+)
+
 is_exec_mode = backend == "singularity-exec"
 
 # -----------------------------------------------------------------------------
@@ -75,10 +83,20 @@ if backend == "docker":
         from benchmarking_sandbox_management import (
             SandboxManager as _BackendManager,
             CONTAINER_NAME as _SANDBOX_HANDLE,
+            IMAGE_NAME as _SANDBOX_IMAGE,  # assume this constant exists
             API_PORT_HOST as _API_PORT,
         )
     finally:
         sys.path.pop(0)
+
+    # --- optional force‑refresh logic --------------------------------------
+    if force_refresh:
+        console.print("[yellow]Forcing Docker sandbox refresh…[/yellow]")
+        # Stop & remove any running container gracefully
+        subprocess.run(["docker", "rm", "-f", _SANDBOX_HANDLE], check=False)
+        # Remove the sandbox image to ensure re‑pull/build
+        subprocess.run(["docker", "image", "rm", "-f", _SANDBOX_IMAGE], check=False)
+        console.print("[green]Docker image removed – it will be pulled/built on next start.[/green]")
 
     def COPY_CMD(src: str, dst: str):
         subprocess.run(["docker", "cp", src, dst], check=True)
@@ -96,6 +114,19 @@ elif backend == "singularity":
         import benchmarking_sandbox_management_singularity as sing
     finally:
         sys.path.pop(0)
+
+    # optional force‑refresh
+    if force_refresh:
+        console.print("[yellow]Forcing Singularity sandbox refresh…[/yellow]")
+        try:
+            sing.stop_instance()
+        except Exception:
+            pass  # ignore if not running
+        if sing.SIF_PATH.exists():
+            sing.SIF_PATH.unlink()
+            console.print(
+                f"[green]Deleted {sing.SIF_PATH.name} – it will be re‑downloaded on next start.[/green]"
+            )
 
     class _SingInstanceWrapper:
         def start_container(self):
@@ -127,9 +158,19 @@ elif backend == "singularity-exec":
     finally:
         sys.path.pop(0)
 
+    # optional force‑refresh
+    if force_refresh:
+        console.print("[yellow]Forcing Singularity sandbox refresh…[/yellow]")
+        if sing.SIF_PATH.exists():
+            sing.SIF_PATH.unlink()
+            console.print(
+                f"[green]Deleted {sing.SIF_PATH.name} – it will be re‑downloaded on next start.[/green]"
+            )
+
     SIF_PATH = sing.SIF_PATH
     SING_BIN = sing.SING_BIN
     SENTINEL = "<<<EOF>>>"
+
     class _SingExecBackend:
         """Launch one long‑lived REPL inside the SIF and stream code to it."""
 
@@ -366,7 +407,7 @@ def format_execute_response(resp: dict) -> str:
 
 
 # ====================================================================================
-# 5 · Main interactive loop
+# 5 · Main interactive loop (unchanged)
 # ====================================================================================
 
 def run_interactive(prompt: str, dataset: Path, metadata: dict, resources: List[Tuple[Path, str]]):
@@ -481,4 +522,3 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         console.print("\nInterrupted.")
-
