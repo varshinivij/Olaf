@@ -31,6 +31,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict
 
+from rich.table import Table
 # ── Dependencies ------------------------------------------------------------
 try:
     from dotenv import load_dotenv
@@ -138,7 +139,7 @@ def api_alive(url: str, tries: int = 10) -> bool:
 # 3 · Interactive loop
 # ===========================================================================
 
-def run(agent_system: AgentSystem, agent: Agent, roster_instr: str, dataset: Path, metadata: dict, resources: List[Tuple[Path, str]]):
+def run(agent_system: AgentSystem, agent: Agent, roster_instr: str, dataset: Path, metadata: dict, resources: List[Tuple[Path, str]], benchmark_module: Optional[Path] = None):
     mgr = _BackendManager()
     console.print(f"Launching sandbox ({backend})…")
 
@@ -214,19 +215,122 @@ def run(agent_system: AgentSystem, agent: Agent, roster_instr: str, dataset: Pat
             history.append({"role": "user", "content": feedback})
             display(console, "user", feedback)
 
-        console.print("\n[bold]Next message (blank = continue, 'exit' to quit):")
+        if benchmark_module:
+            console.print("\n[bold]Next message (blank = continue, 'benchmark' to run benchmarks, 'exit' to quit):[/bold]")
+        else:
+            console.print("\n[bold]Next message (blank = continue, 'exit' to quit):[/bold]")
         try:
             user_in = input().strip()
         except (EOFError, KeyboardInterrupt):
             user_in = "exit"
         if user_in.lower() in {"exit", "quit"}:
             break
+        if user_in.lower() == "benchmark" and benchmark_module:
+            run_benchmark(mgr, benchmark_module)
+            continue
         if user_in:
             history.append({"role": "user", "content": user_in})
             display(console, "user", user_in)
 
     console.print("Stopping sandbox…")
     mgr.stop_container()
+
+
+# ===========================================================================
+# 4 · Benchmarking
+# ===========================================================================
+
+def get_benchmark_module(console: Console, parent_dir: Path) -> Optional[Path]:
+    """
+    Prompts the user to select a benchmark module from the available ones.
+    Returns the path to the selected module or None if no selection is made.
+    """
+    benchmark_dir = parent_dir / "auto_metrics"
+    if not benchmark_dir.exists():
+        console.print("[red]No benchmarks directory found.[/red]")
+        return None
+
+    modules = list(benchmark_dir.glob("*.py"))
+    # remove AutoMetric.py from modules (it is the base class)
+    modules = [m for m in modules if m.name != "AutoMetric.py"]
+    if not modules:
+        console.print("[red]No benchmark modules found.[/red]")
+        return None
+
+    console.print("\n[bold]Available benchmark modules:[/bold]")
+    for i, mod in enumerate(modules, start=1):
+        console.print(f"{i}. {mod.name}")
+
+    choice = Prompt.ask("Select a benchmark module by number (or press Enter to skip)", default="")
+    if not choice:
+        return None
+
+    try:
+        index = int(choice) - 1
+        if 0 <= index < len(modules):
+            return modules[index]
+        else:
+            console.print("[red]Invalid selection.[/red]")
+            return None
+    except ValueError:
+        console.print("[red]Invalid input. Please enter a number.[/red]")
+        return None
+    
+def run_benchmark(mgr, benchmark_module: str):
+    """
+    Runs the benchmark module and displays the results.
+    """
+    console.print(f"\n[bold cyan]Running benchmark module: {benchmark_module}[/bold cyan]")
+    autometric_base_path = benchmark_module.parent / "AutoMetric.py"
+    try:
+        # Read the abstract base class definition
+        with open(autometric_base_path, "r") as f:
+            autometric_code = f.read()
+
+        with open(benchmark_module, "r") as f:
+            benchmark_code = f.read()
+    except FileNotFoundError:
+        console.print(f"[red]Benchmark module not found at: {benchmark_module}[/red]")
+        return
+
+    code_to_execute = f"""
+# --- Code from AutoMetric.py --- 
+{autometric_code}
+# --- Code from {benchmark_module.name} ---
+{benchmark_code}
+"""
+    console.print("[cyan]Executing benchmark code...[/cyan]")
+    try:
+        if is_exec_mode:
+            exec_result = mgr.exec_code(code_to_execute, timeout=300)
+        else:
+            exec_result = requests.post(
+                EXECUTE_ENDPOINT, json={"code": code_to_execute, "timeout": 300}, timeout=310
+            ).json()
+
+        # Create a table to display the results
+        table = Table(title="Benchmark Results")
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", style="magenta")
+
+        # Assuming the benchmark module returns a dictionary of results
+        stdout = exec_result.get("stdout", "")
+        try:
+            result_dict = json.loads(stdout.strip().splitlines()[-1])  # Parse last printed line
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not parse JSON from stdout: {e}[/yellow]")
+            result_dict = {}
+
+        if exec_result.get("status") == "ok" and isinstance(result_dict, dict):
+            for key, value in result_dict.items():
+                table.add_row(str(key), str(value))
+        else:
+            table.add_row("Error", exec_result.get("stderr") or "An unknown error occurred.")
+
+        console.print(table)
+
+    except Exception as exc:
+        console.print(f"[red]Benchmark execution error: {exc}[/red]")
 
 # ===========================================================================
 # 4 · Entry point
@@ -240,8 +344,9 @@ def main():
 
     sys, drv, roster = load_agent_system()
     dp, meta = select_dataset(console, DATASETS_DIR)
+    benchmark_module = get_benchmark_module(console, PARENT_DIR)
     res = collect_resources(console, SANDBOX_RESOURCES_DIR)
-    run(sys, drv, roster, dp, meta, res)
+    run(sys, drv, roster, dp, meta, res, benchmark_module)
 
 
 if __name__ == "__main__":
