@@ -46,3 +46,7 @@ bbknn
 scVI-tools
 scarches
 harmonypy
+
+# Additional Tools
+rapids-singlecell
+scib-metrics
