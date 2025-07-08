@@ -1,52 +1,32 @@
-# --- New metric class using scib-tools ------------------------------------
-from scib.metrics import silhouette, silhouette_batch
-from scib_metrics.nearest_neighbor import isolated_label_f1 # Corrected import
+# --- New metric class using scib-metrics ------------------------------------
+from scib_metrics.benchmark import Benchmarker
 from typing import Dict
+import anndata
+import numpy as np
 
-EMBED = "X_scVI"        # change if your embedding key is different
-BATCH_KEY = "batch"
-LABEL_KEY = "cell_type"
+EMBED = "X_scVI"        # The embedding key in adata.obsm
+BATCH_KEY = "batch"     # The batch key in adata.obs
+LABEL_KEY = "cell_type" # The cell type key in adata.obs
 
 class IntegrationMetric(AutoMetric):
     """
-    Compute SCIB integration quality metrics on an AnnData object.
-    Returns:
+    Compute SCIB integration quality metrics on an AnnData object using scib_metrics.
+    Returns a dictionary with three metrics:
         • batch_silhouette: How well batches mix (lower ≈ better)
         • celltype_silhouette: How well cell types separate (higher ≈ better)
         • isolated_label_f1: Label preservation in isolated clusters (higher ≈ better)
     """
-
-    def metric(self, adata) -> Dict[str, float]:
-        # Batch-mixing silhouette (lower is better)
-        batch_sil = silhouette_batch(
+    def metric(self, adata):
+        bm = Benchmarker(
             adata,
             batch_key=BATCH_KEY,
-            embed=EMBED,
-            verbose=False
-        )
-
-        # Cell-type silhouette (higher is better)
-        celltype_sil = silhouette(
-            adata,
             label_key=LABEL_KEY,
-            embed=EMBED,
-            verbose=False
+            embedding_obsm_keys=[EMBED],        # list of embeddings to evaluate
         )
+        bm.prepare()     # computes neighbors
+        bm.benchmark()   # runs selected metrics
+        results = bm.get_results()
 
-        # Isolated-label F1 (higher is better)
-        iso_f1 = isolated_label_f1(
-            adata,
-            label_key=LABEL_KEY,
-            batch_key=BATCH_KEY,
-            embed=EMBED,
-            verbose=False
-        )
-
-        return {
-            "Batch Silhouette (↓)": batch_sil,
-            "Cell-type Silhouette (↑)": celltype_sil,
-            "Isolated-Label F1 (↑)": iso_f1
-        }
-
-# --- Example execution -----------------------------------------------------
+        return results.to_dict()
+    
 IntegrationMetric().run(adata)
