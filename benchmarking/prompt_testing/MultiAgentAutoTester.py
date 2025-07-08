@@ -1,21 +1,7 @@
 #!/usr/bin/env python3
 """
-Interactive Agent System Tester (v1.1)
-======================================
-• **New in v1.1** – Smarter delegation detection.
-  The router now recognises any of the following patterns in an assistant reply
-  when deciding to switch agents:
-
-  ```text
-  //delegate_to_coder
-  delegate_to_coder
-  `delegate_to_coder`
-  Executing command: `delegate_to_coder`
-  ```
-
-  No need to rigidly start the reply with the token – the regex scans the whole
-  message. Once detected, we alert the user ("🔄 Routing to …") and prepend the
-  new agent’s system prompt.
+Interactive Auto Agent System Tester (v1.2-auto)
+==========================================
 """
 from __future__ import annotations
 
@@ -57,7 +43,7 @@ from benchmarking.core.io_helpers import (
     select_dataset,
     collect_resources,
     get_initial_prompt,
-    format_execute_response
+    format_execute_response,
 )
 from benchmarking.core.sandbox_management import (
     init_docker,
@@ -78,23 +64,39 @@ SANDBOX_RESOURCES_DIR = "/workspace/resources"
 # ===========================================================================
 # 1 · Backend selection
 # ===========================================================================
-backend = Prompt.ask("Choose backend", choices=["docker", "singularity", "singularity-exec"], default="docker")
-force_refresh = Prompt.ask("Force refresh environment?", choices=["y", "n"], default="n").lower() == "y"
+backend = Prompt.ask(
+    "Choose backend", choices=["docker", "singularity", "singularity-exec"], default="docker"
+)
+force_refresh = (
+    Prompt.ask("Force refresh environment?", choices=["y", "n"], default="n").lower() == "y"
+)
 is_exec_mode = backend == "singularity-exec"
 
 if backend == "docker":
-    _BackendManager, _SANDBOX_HANDLE, COPY_CMD, EXECUTE_ENDPOINT, STATUS_ENDPOINT = init_docker(
-        SCRIPT_DIR, subprocess, console, force_refresh
-    )
+    (
+        _BackendManager,
+        _SANDBOX_HANDLE,
+        COPY_CMD,
+        EXECUTE_ENDPOINT,
+        STATUS_ENDPOINT,
+    ) = init_docker(SCRIPT_DIR, subprocess, console, force_refresh)
     SANDBOX_DATA_PATH = "dataset.h5ad"
 elif backend == "singularity":
-    _BackendManager, _SANDBOX_HANDLE, COPY_CMD, EXECUTE_ENDPOINT, STATUS_ENDPOINT = init_singularity(
-        SCRIPT_DIR, subprocess, console, force_refresh
-    )
+    (
+        _BackendManager,
+        _SANDBOX_HANDLE,
+        COPY_CMD,
+        EXECUTE_ENDPOINT,
+        STATUS_ENDPOINT,
+    ) = init_singularity(SCRIPT_DIR, subprocess, console, force_refresh)
 elif backend == "singularity-exec":
-    _BackendManager, _SANDBOX_HANDLE, COPY_CMD, EXECUTE_ENDPOINT, STATUS_ENDPOINT = init_singularity_exec(
-        SCRIPT_DIR, SANDBOX_DATA_PATH, subprocess, console, force_refresh
-    )
+    (
+        _BackendManager,
+        _SANDBOX_HANDLE,
+        COPY_CMD,
+        EXECUTE_ENDPOINT,
+        STATUS_ENDPOINT,
+    ) = init_singularity_exec(SCRIPT_DIR, SANDBOX_DATA_PATH, subprocess, console, force_refresh)
 else:
     console.print("[red]Unknown backend.")
     sys.exit(1)
@@ -114,8 +116,7 @@ def load_agent_system() -> Tuple[AgentSystem, Agent, str]:
     instr = system.get_insturctions()
     return system, driver, instr
 
-# Smarter regex – matches inline/backtick/explicit styles
-# Match variations like //<backtick>delegate_to_coder<backtick>, with optional punctuation.
+# Smarter regex – matches inline/backtick/explicit styles
 _DELEG_RE = re.compile(r"delegate_to_([A-Za-z0-9_]+)")
 
 def detect_delegation(msg: str) -> Optional[str]:
@@ -136,10 +137,22 @@ def api_alive(url: str, tries: int = 10) -> bool:
     return False
 
 # ===========================================================================
-# 3 · Interactive loop
+# 3 · Interactive *or* Automated loop
 # ===========================================================================
 
-def run(agent_system: AgentSystem, agent: Agent, roster_instr: str, dataset: Path, metadata: dict, resources: List[Tuple[Path, str]], benchmark_module: Optional[Path] = None):
+def run(
+    agent_system: AgentSystem,
+    agent: Agent,
+    roster_instr: str,
+    dataset: Path,
+    metadata: dict,
+    resources: List[Tuple[Path, str]],
+    benchmark_module: Optional[Path] = None,
+    *,
+    initial_user_message: str,
+    tries: int = 0,
+):
+    """Main driver"""
     mgr = _BackendManager()
     console.print(f"Launching sandbox ({backend})…")
 
@@ -166,14 +179,16 @@ def run(agent_system: AgentSystem, agent: Agent, roster_instr: str, dataset: Pat
         return roster_instr + "\n\n" + a.get_full_prompt() + "\n\n" + analysis_ctx
 
     history = [{"role": "system", "content": build_system(agent)}]
-    first_user = "Beginning interactive session. You can ask questions or give commands."
-    history.append({"role": "user", "content": first_user})
+    history.append({"role": "user", "content": initial_user_message})
     display(console, "system", history[0]["content"])
-    display(console, "user", first_user)
+    display(console, "user", initial_user_message)
 
     openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     current_agent = agent
     turn = 0
+
+    automatic = tries > 0
+    tries_left = tries
 
     while True:
         turn += 1
@@ -187,6 +202,7 @@ def run(agent_system: AgentSystem, agent: Agent, roster_instr: str, dataset: Pat
         history.append({"role": "assistant", "content": msg})
         display(console, f"assistant ({current_agent.name})", msg)
 
+        # ── Delegation --------------------------------------------------------
         cmd = detect_delegation(msg)
         if cmd and cmd in current_agent.commands:
             tgt = current_agent.commands[cmd].target_agent
@@ -196,8 +212,10 @@ def run(agent_system: AgentSystem, agent: Agent, roster_instr: str, dataset: Pat
                 history.append({"role": "assistant", "content": f"🔄 Routing to **{tgt}** (command `{cmd}`)"})
                 current_agent = new_agent
                 history.insert(0, {"role": "system", "content": build_system(new_agent)})
+                # no user interaction required – continue with same control-flow
                 continue
 
+        # ── Inline code execution -------------------------------------------
         code = extract_python_code(msg)
         if code:
             console.print("[cyan]Executing code…[/cyan]")
@@ -215,44 +233,34 @@ def run(agent_system: AgentSystem, agent: Agent, roster_instr: str, dataset: Pat
             history.append({"role": "user", "content": feedback})
             display(console, "user", feedback)
 
+        # ── Automatic benchmarking (v1.2 addition) --------------------------
         if benchmark_module:
-            console.print("\n[bold]Next message (blank = continue, 'benchmark' to run benchmarks, 'exit' to quit):[/bold]")
-        else:
-            console.print("\n[bold]Next message (blank = continue, 'exit' to quit):[/bold]")
-        try:
-            user_in = input().strip()
-        except (EOFError, KeyboardInterrupt):
-            user_in = "exit"
-        if user_in.lower() in {"exit", "quit"}:
+            result_str = run_benchmark(mgr, benchmark_module)
+            if result_str:
+                history.append({"role": "user", "content": result_str})
+                display(console, "user", result_str)
+        tries_left -= 1
+        if tries_left <= 0:
             break
-        if user_in.lower() == "benchmark" and benchmark_module:
-            run_benchmark(mgr, benchmark_module)
-            continue
-        if user_in:
-            history.append({"role": "user", "content": user_in})
-            display(console, "user", user_in)
-
+        # Simulate blank *continue* from the user
+        history.append({"role": "user", "content": ""})
+        continue  # next OpenAI call immediately
     console.print("Stopping sandbox…")
     mgr.stop_container()
 
 
 # ===========================================================================
-# 4 · Benchmarking
+# 4 · Benchmarking helpers (modified to *return* results)
 # ===========================================================================
 
 def get_benchmark_module(console: Console, parent_dir: Path) -> Optional[Path]:
-    """
-    Prompts the user to select a benchmark module from the available ones.
-    Returns the path to the selected module or None if no selection is made.
-    """
+    """Prompt user to select a benchmark module."""
     benchmark_dir = parent_dir / "auto_metrics"
     if not benchmark_dir.exists():
         console.print("[red]No benchmarks directory found.[/red]")
         return None
 
-    modules = list(benchmark_dir.glob("*.py"))
-    # remove AutoMetric.py from modules (it is the base class)
-    modules = [m for m in modules if m.name != "AutoMetric.py"]
+    modules = [m for m in benchmark_dir.glob("*.py") if m.name != "AutoMetric.py"]
     if not modules:
         console.print("[red]No benchmark modules found.[/red]")
         return None
@@ -275,26 +283,24 @@ def get_benchmark_module(console: Console, parent_dir: Path) -> Optional[Path]:
     except ValueError:
         console.print("[red]Invalid input. Please enter a number.[/red]")
         return None
-    
-def run_benchmark(mgr, benchmark_module: str):
-    """
-    Runs the benchmark module and displays the results.
-    """
-    console.print(f"\n[bold cyan]Running benchmark module: {benchmark_module}[/bold cyan]")
+
+
+def run_benchmark(mgr, benchmark_module: Path) -> str:
+    """Execute benchmark module and *return* a compact JSON string."""
+    console.print(f"\n[bold cyan]Running benchmark module: {benchmark_module.name}[/bold cyan]")
     autometric_base_path = benchmark_module.parent / "AutoMetric.py"
     try:
-        # Read the abstract base class definition
         with open(autometric_base_path, "r") as f:
             autometric_code = f.read()
-
         with open(benchmark_module, "r") as f:
             benchmark_code = f.read()
     except FileNotFoundError:
-        console.print(f"[red]Benchmark module not found at: {benchmark_module}[/red]")
-        return
+        err = f"Benchmark module not found at: {benchmark_module}"
+        console.print(f"[red]{err}[/red]")
+        return err
 
     code_to_execute = f"""
-# --- Code from AutoMetric.py --- 
+# --- Code from AutoMetric.py ---
 {autometric_code}
 # --- Code from {benchmark_module.name} ---
 {benchmark_code}
@@ -308,12 +314,11 @@ def run_benchmark(mgr, benchmark_module: str):
                 EXECUTE_ENDPOINT, json={"code": code_to_execute, "timeout": 300}, timeout=310
             ).json()
 
-        # Create a table to display the results
+        # Prepare display table
         table = Table(title="Benchmark Results")
         table.add_column("Metric", style="cyan")
         table.add_column("Value", style="magenta")
 
-        # Assuming the benchmark module returns a dictionary of results
         stdout = exec_result.get("stdout", "")
         try:
             result_dict = json.loads(stdout.strip().splitlines()[-1])  # Parse last printed line
@@ -328,12 +333,15 @@ def run_benchmark(mgr, benchmark_module: str):
             table.add_row("Error", exec_result.get("stderr") or "An unknown error occurred.")
 
         console.print(table)
+        return "Benchmark results:\n" + json.dumps(result_dict or {"error": "see console"})
 
     except Exception as exc:
-        console.print(f"[red]Benchmark execution error: {exc}[/red]")
+        err_msg = f"Benchmark execution error: {exc}"
+        console.print(f"[red]{err_msg}[/red]")
+        return err_msg
 
 # ===========================================================================
-# 4 · Entry point
+# 5 · Entry point (collect *tries* & initial message)
 # ===========================================================================
 
 def main():
@@ -342,11 +350,34 @@ def main():
         console.print("[red]OPENAI_API_KEY not set in .env")
         sys.exit(1)
 
-    sys, drv, roster = load_agent_system()
+    sys_, drv, roster = load_agent_system()
     dp, meta = select_dataset(console, DATASETS_DIR)
     benchmark_module = get_benchmark_module(console, PARENT_DIR)
     res = collect_resources(console, SANDBOX_RESOURCES_DIR)
-    run(sys, drv, roster, dp, meta, res, benchmark_module)
+
+    # ── New prompts for automated mode -------------------------------------
+    initial_user_message = Prompt.ask(
+        "Initial user message", default="What should I do with this dataset?"
+    )
+    try:
+        tries = int(Prompt.ask("Number of automatic tries", default="1"))
+        if tries < 0:
+            raise ValueError
+    except ValueError:
+        console.print("[yellow]Invalid number – defaulting to 1.[/yellow]")
+        tries = 1
+
+    run(
+        sys_,
+        drv,
+        roster,
+        dp,
+        meta,
+        res,
+        benchmark_module,
+        initial_user_message=initial_user_message,
+        tries=tries,
+    )
 
 
 if __name__ == "__main__":

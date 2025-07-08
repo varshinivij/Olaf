@@ -110,7 +110,6 @@ def collect_resources(console, sandbox_sources_dir) -> List[Tuple[Path, str]]:
 
 def format_execute_response(resp: dict, output_dir) -> str:
     lines = ["Code execution result:"]
-    print(f"Response: {resp}")
     if resp.get("final_status") != "ok":
         lines.append(f"[status: {resp.get('status')}]")
     #if the key outputs in in resp we get the second dictionary
