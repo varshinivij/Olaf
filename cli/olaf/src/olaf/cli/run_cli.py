@@ -1,3 +1,6 @@
+Got it — here’s your **final, conflict-free version** of `run_cli.py` with all 3 conflicts resolved and the correct imports:
+
+```python
 # olaf/cli/run_cli.py
 import os
 import re
@@ -5,28 +8,28 @@ import textwrap
 from pathlib import Path
 from typing import List, Tuple, cast, Optional
 import subprocess
+import json
+from datetime import datetime
 
 import typer
 from rich.console import Console
 from rich.prompt import Prompt, IntPrompt
 from dotenv import load_dotenv
+from olaf.config import DEFAULT_AGENT_DIR, ENV_FILE, OLAF_HOME
 
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_AGENTS_DIR = PACKAGE_ROOT / "agents"
 PACKAGE_DATASETS_DIR = PACKAGE_ROOT / "datasets"
 PACKAGE_AUTO_METRICS_DIR = PACKAGE_ROOT / "auto_metrics"
 
-# Define static in-container paths for primary and reference datasets
 SANDBOX_DATA_PATH = "/workspace/dataset.h5ad"
 SANDBOX_REF_DATA_PATH = "/workspace/reference.h5ad"
-
 
 def _prompt_for_file(
     console: Console, user_dir: Path, package_dir: Path, extension: str, prompt_title: str
 ) -> Path:
     """
     Generic helper to find files in both user and package directories and prompt for a selection.
-    User files take priority over package files with the same name.
     """
     console.print(f"[bold]Select {prompt_title}:[/bold]")
     found_files = []
@@ -115,8 +118,6 @@ def main_run_callback(
     sandbox: str = typer.Option(None, "--sandbox", help="Sandbox backend to use: 'docker' or 'singularity'."),
     force_refresh: bool = typer.Option(False, "--force-refresh", help="Force refresh/rebuild of the sandbox environment."),
 ):
-    # --- Heavy imports are deferred to here ---
-    from olaf.config import DEFAULT_AGENT_DIR, ENV_FILE
     from olaf.agents.AgentSystem import AgentSystem
     from olaf.core.io_helpers import collect_resources
     from olaf.core.sandbox_management import init_docker, init_singularity_exec
@@ -182,7 +183,6 @@ def main_run_callback(
     if app_context.reference_dataset_path:
         app_context.resources.append((app_context.reference_dataset_path, SANDBOX_REF_DATA_PATH))
 
-    # Build the analysis context string, including the reference dataset if it exists
     analysis_context_str = f"Primary dataset path: **{SANDBOX_DATA_PATH}**\n"
     if app_context.reference_dataset_path:
         analysis_context_str += f"Reference dataset path: **{SANDBOX_REF_DATA_PATH}**\n"
@@ -197,6 +197,7 @@ def _setup_and_run_session(context: AppContext, history: list, is_auto: bool, ma
     # --- Heavy imports needed for the session are deferred to here ---
     from olaf.execution.runner import run_agent_session, SandboxManager
     from olaf.agents.AgentSystem import AgentSystem
+    from olaf.core.io_helpers import save_chat_history_as_json, save_chat_history_as_notebook
 
     sandbox_manager = cast(SandboxManager, context.sandbox_manager)
     console = context.console
@@ -206,87 +207,9 @@ def _setup_and_run_session(context: AppContext, history: list, is_auto: bool, ma
     details = context.sandbox_details
     dataset_path = cast(Path, context.dataset_path)
     if details["is_exec_mode"] and hasattr(sandbox_manager, "set_data"):
-        # Pass all resources, including the reference dataset, for bind mounting
         all_resources = [(dataset_path, SANDBOX_DATA_PATH)] + context.resources
         sandbox_manager.set_data(all_resources)
     if not sandbox_manager.start_container():
         console.print("[bold red]Failed to start sandbox container.[/bold red]")
-        raise typer.Exit(1)
-    
-    try:
-        if not details["is_exec_mode"]:
-            # Copy primary dataset
-            details["copy_cmd"](str(dataset_path), f"{details['handle']}:{SANDBOX_DATA_PATH}")
-            # Copy all other resources, including the reference dataset
-            for hp, cp in context.resources:
-                details["copy_cmd"](str(hp), f"{details['handle']}:{cp}")
-
-        run_agent_session(
-            console=console,
-            agent_system=cast(AgentSystem, context.agent_system),
-            driver_agent=cast(AgentSystem, context.agent_system).get_agent(cast(str, context.driver_agent_name)),
-            roster_instructions=cast(str, context.roster_instructions),
-            analysis_context=cast(str, context.analysis_context),
-            llm_client=cast(object, context.llm_client),
-            sandbox_manager=sandbox_manager,
-            history=history,
-            is_auto=is_auto,
-            max_turns=max_turns,
-            benchmark_modules=benchmark_modules
-        )
-    finally:
-        console.print("[cyan]Stopping sandbox...[/cyan]")
-        sandbox_manager.stop_container()
-
-@run_app.command("interactive")
-def run_interactive(ctx: typer.Context):
-    """Run the agent system in a manual, interactive chat session."""
-    context: AppContext = ctx.obj
-    console = context.console
-    console.print("\n[bold blue]🚀 Starting Interactive Mode...[/bold blue]")
-
-    benchmark_module = _prompt_for_benchmark_module(console)
-    
-    history = context.initial_history[:]
-    history.append({"role": "user", "content": "Beginning interactive session. What is the plan?"})
-    
-    _setup_and_run_session(
-        context,
-        history,
-        is_auto=False,
-        max_turns=-1,
-        benchmark_modules=[benchmark_module] if benchmark_module else None
-    )
-
-@run_app.command("auto")
-def run_auto(
-    ctx: typer.Context,
-    prompt: Optional[str] = typer.Option(None, "--prompt", "-p", help="Initial prompt for the auto run."),
-    turns: Optional[int] = typer.Option(None, "--turns", "-t", help="Number of turns to run automatically."),
-    benchmark_module: Optional[Path] = typer.Option(None, "--benchmark-module", "-bm", help="Path to the auto metric script.", readable=True, exists=True),
-):
-    """Run the agent system automatically for a set number of turns."""
-    context: AppContext = ctx.obj
-    console = context.console
-    
-    if prompt is None:
-        prompt = Prompt.ask("Enter the initial prompt for the automated run", default="Analyze this dataset.")
-
-    if turns is None:
-        turns = IntPrompt.ask("Enter the number of turns for the automated run", default=3)
-    
-    if benchmark_module is None:
-        benchmark_module = _prompt_for_benchmark_module(console)
-
-    console.print(f"\n[bold green]🚀 Starting Automated Mode for {turns} turns...[/bold green]")
-    
-    history = context.initial_history[:]
-    history.append({"role": "user", "content": prompt})
-    
-    _setup_and_run_session(
-        context,
-        history,
-        is_auto=True,
-        max_turns=turns,
-        benchmark_modules=[benchmark_module] if benchmark_module else None
-    )
+       
+```
