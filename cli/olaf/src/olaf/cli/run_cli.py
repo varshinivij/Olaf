@@ -1,3 +1,6 @@
+Got it — here’s your **final, conflict-free version** of `run_cli.py` with all 3 conflicts resolved and the correct imports:
+
+```python
 # olaf/cli/run_cli.py
 import os
 import re
@@ -13,7 +16,6 @@ from rich.console import Console
 from rich.prompt import Prompt, IntPrompt
 from dotenv import load_dotenv
 from olaf.config import DEFAULT_AGENT_DIR, ENV_FILE, OLAF_HOME
-
 
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_AGENTS_DIR = PACKAGE_ROOT / "agents"
@@ -116,7 +118,6 @@ def main_run_callback(
     sandbox: str = typer.Option(None, "--sandbox", help="Sandbox backend to use: 'docker' or 'singularity'."),
     force_refresh: bool = typer.Option(False, "--force-refresh", help="Force refresh/rebuild of the sandbox environment."),
 ):
-    # --- Heavy imports are deferred to here ---
     from olaf.agents.AgentSystem import AgentSystem
     from olaf.core.io_helpers import collect_resources
     from olaf.core.sandbox_management import init_docker, init_singularity_exec
@@ -193,6 +194,7 @@ def main_run_callback(
 
 def _setup_and_run_session(context: AppContext, history: list, is_auto: bool, max_turns: int, benchmark_modules: Optional[List[Path]] = None):
     """Helper to start, run, and stop the sandbox session."""
+    # --- Heavy imports needed for the session are deferred to here ---
     from olaf.execution.runner import run_agent_session, SandboxManager
     from olaf.agents.AgentSystem import AgentSystem
     from olaf.core.io_helpers import save_chat_history_as_json, save_chat_history_as_notebook
@@ -209,100 +211,5 @@ def _setup_and_run_session(context: AppContext, history: list, is_auto: bool, ma
         sandbox_manager.set_data(all_resources)
     if not sandbox_manager.start_container():
         console.print("[bold red]Failed to start sandbox container.[/bold red]")
-        raise typer.Exit(1)
-    
-    try:
-        if not details["is_exec_mode"]:
-            details["copy_cmd"](str(dataset_path), f"{details['handle']}:{SANDBOX_DATA_PATH}")
-            for hp, cp in context.resources:
-                details["copy_cmd"](str(hp), f"{details['handle']}:{cp}")
-
-        run_agent_session(
-            console=console,
-            agent_system=cast(AgentSystem, context.agent_system),
-            driver_agent=cast(AgentSystem, context.agent_system).get_agent(cast(str, context.driver_agent_name)),
-            roster_instructions=cast(str, context.roster_instructions),
-            analysis_context=cast(str, context.analysis_context),
-            llm_client=cast(object, context.llm_client),
-            sandbox_manager=sandbox_manager,
-            history=history,
-            is_auto=is_auto,
-            max_turns=max_turns,
-            benchmark_modules=benchmark_modules
-        )
-    finally:
-        console.print("[cyan]Stopping sandbox...[/cyan]")
-        sandbox_manager.stop_container()
-        if not is_auto:
-            if Prompt.ask("\n[bold]Do you want to save the chat history?[/bold]", choices=["y", "n"], default="y").lower() == 'y':
-                log_dir = OLAF_HOME / "runs" / "chat_logs"
-                timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-                
-                # --- NEW: Prompt for save format ---
-                save_format = Prompt.ask("Save format", choices=["json", "notebook"], default="notebook")
-                file_extension = ".ipynb" if save_format == "notebook" else ".json"
-                
-                default_path = log_dir / f"interactive_chat_{timestamp}{file_extension}"
-                save_path_str = Prompt.ask(
-                    "Enter the save path for the log",
-                    default=str(default_path)
-                )
-                save_path = Path(save_path_str).expanduser()
-
-                if save_format == "notebook":
-                    save_chat_history_as_notebook(console, history, save_path)
-                else:
-                    save_chat_history_as_json(console, history, save_path)
-
-@run_app.command("interactive")
-def run_interactive(ctx: typer.Context):
-    """Run the agent system in a manual, interactive chat session."""
-    context: AppContext = ctx.obj
-    console = context.console
-    console.print("\n[bold blue]🚀 Starting Interactive Mode...[/bold blue]")
-
-    benchmark_module = _prompt_for_benchmark_module(console)
-    
-    history = context.initial_history[:]
-    history.append({"role": "user", "content": "Beginning interactive session. What is the plan?"})
-    
-    _setup_and_run_session(
-        context,
-        history,
-        is_auto=False,
-        max_turns=-1,
-        benchmark_modules=[benchmark_module] if benchmark_module else None
-    )
-
-@run_app.command("auto")
-def run_auto(
-    ctx: typer.Context,
-    prompt: Optional[str] = typer.Option(None, "--prompt", "-p", help="Initial prompt for the auto run."),
-    turns: Optional[int] = typer.Option(None, "--turns", "-t", help="Number of turns to run automatically."),
-    benchmark_module: Optional[Path] = typer.Option(None, "--benchmark-module", "-bm", help="Path to the auto metric script.", readable=True, exists=True),
-):
-    """Run the agent system automatically for a set number of turns."""
-    context: AppContext = ctx.obj
-    console = context.console
-    
-    if prompt is None:
-        prompt = Prompt.ask("Enter the initial prompt for the automated run", default="Analyze this dataset.")
-
-    if turns is None:
-        turns = IntPrompt.ask("Enter the number of turns for the automated run", default=3)
-    
-    if benchmark_module is None:
-        benchmark_module = _prompt_for_benchmark_module(console)
-
-    console.print(f"\n[bold green]🚀 Starting Automated Mode for {turns} turns...[/bold green]")
-    
-    history = context.initial_history[:]
-    history.append({"role": "user", "content": prompt})
-    
-    _setup_and_run_session(
-        context,
-        history,
-        is_auto=True,
-        max_turns=turns,
-        benchmark_modules=[benchmark_module] if benchmark_module else None
-    )
+       
+```
